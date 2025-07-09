@@ -1,5 +1,7 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Home from "../page/user/Home";
+import Login from "../page/user/Login";
+import Register from "../page/user/Register";
 
 // รวม Router สำหรับเปลี่ยนไปหน้าต่างๆ
 const router = createBrowserRouter([
@@ -20,6 +22,9 @@ const router = createBrowserRouter([
     path: "/",
     children: [
       { index: true, element: <Home/> },
+      { path: "login", element: <Login /> },
+      { path: "register", element: <Register /> },
+
     ],
   },
 ]);
