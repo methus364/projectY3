@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom'; // 👈 เพิ่มบรรทัดนี้
 
@@ -63,5 +62,3 @@ export default function Login() {
     </div>
   );
 }
-=======
->>>>>>> 4ed576ee81217a59a8592d2eb81be22cfe86d65f
