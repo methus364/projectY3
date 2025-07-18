@@ -1,6 +1,15 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Home from "../page/user/Home";
 import Login from "../page/user/Login";
+import Rooms from "../page/admin/Rooms";
+import Massage from "../page/admin/Massage";
+import Products from "../page/admin/Products";
+import Customer from "../page/admin/Customer";
+import Bill from "../page/admin/Bill";
+import Booking from "../page/admin/Booking";
+import Bookkeeping from "../page/admin/Bookkeeping";
+import Repair from "../page/admin/Repair";
+import Dailyroom from "../page/admin/Dailyroom";
 import Register from "../page/user/Register";
 import Dashbord from "../page/admin/Dashbord";
 import LayoutAdmin from "../layouts/LayoutAdmin";
@@ -12,6 +21,15 @@ const router = createBrowserRouter([
     element: <LayoutAdmin />,
     children: [
       { index: true, element: <Dashbord /> },
+      { path: "rooms", element: <Rooms /> },
+      { path: "products", element: <Products /> },
+      { path: "customers", element: <Customer /> },
+      { path: "bill", element: <Bill /> },
+      { path: "massage", element: <Massage /> },
+      { path: "booking", element: <Booking /> },
+      { path: "bookkeeping", element: <Bookkeeping /> },
+      { path: "repair", element: <Repair /> },
+      { path: "dailyroom", element: <Dailyroom /> }
     ],
   },
 // router ฝั่ง user

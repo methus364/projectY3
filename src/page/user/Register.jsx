@@ -11,7 +11,7 @@ export default function Register() {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      setError('รหัสผ่านไม่ตรงกัน');
+      setError('รหัสผ่านไม่ตรงกัน');  
       return;
     }
 

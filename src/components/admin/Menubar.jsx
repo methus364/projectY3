@@ -1,14 +1,17 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 
-// Import icons จาก Heroicons
+// Import icons จาก Heroicons (อัปเดตรายการไอคอน)
 import {
   ChartPieIcon,
   ShoppingBagIcon,
-  InboxIcon,
   UsersIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
+  KeyIcon, // ไอคอนสำหรับ Rooms
+  ReceiptPercentIcon, // ไอคอนสำหรับ Bill
+  HandRaisedIcon, // ไอคอนสำหรับ Massage
+  CalendarDaysIcon, // ไอคอนสำหรับ Booking
 } from '@heroicons/react/24/solid';
 
 const Menubar = () => {
@@ -32,15 +35,21 @@ const Menubar = () => {
       <nav className="flex-grow">
         <ul className="space-y-2">
           <li>
-            <NavLink to="/admin/dashboard" className={navLinkStyles}>
+            <NavLink to="/admin" className={navLinkStyles}>
               <ChartPieIcon className="h-6 w-6" />
               <span className="ml-3">Dashboard</span>
             </NavLink>
+          </li> 
+          <li>
+            <NavLink to="/admin/dailyroom" className={navLinkStyles}>
+              <KeyIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
+              <span className="ml-3">Daily Room</span>
+            </NavLink>
           </li>
           <li>
-            <NavLink to="/admin/orders" className={navLinkStyles}>
-              <InboxIcon className="h-6 w-6" />
-              <span className="ml-3">Orders</span>
+            <NavLink to="/admin/rooms" className={navLinkStyles}>
+              <KeyIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
+              <span className="ml-3">Rooms</span>
             </NavLink>
           </li>
           <li>
@@ -53,6 +62,36 @@ const Menubar = () => {
             <NavLink to="/admin/customers" className={navLinkStyles}>
               <UsersIcon className="h-6 w-6" />
               <span className="ml-3">Customers</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/bill" className={navLinkStyles}>
+              <ReceiptPercentIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
+              <span className="ml-3">Bill</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/massage" className={navLinkStyles}>
+              <HandRaisedIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
+              <span className="ml-3">Massage</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/booking" className={navLinkStyles}>
+              <CalendarDaysIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
+              <span className="ml-3">Booking</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/bookkeeping" className={navLinkStyles}>
+              <CalendarDaysIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
+              <span className="ml-3">Bookkeeping</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/repair" className={navLinkStyles}>
+              <CalendarDaysIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
+              <span className="ml-3">Repair</span>
             </NavLink>
           </li>
         </ul>
