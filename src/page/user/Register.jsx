@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // ✅ เพิ่มบรรทัดนี้
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -7,17 +8,21 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
 
+  const navigate = useNavigate(); // ✅ สร้างตัวแปรสำหรับนำทาง
+
   const handleRegister = (e) => {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      setError('รหัสผ่านไม่ตรงกัน');  
+      setError('รหัสผ่านไม่ตรงกัน');
       return;
     }
 
     setError('');
     console.log('Register with:', { name, email, password });
-    // เพิ่ม logic เชื่อม Firebase หรือ API ได้ตรงนี้
+
+    // ✅ หลังจากสมัครเสร็จ เด้งไปหน้า Login
+    navigate('/login');
   };
 
   return (
@@ -34,6 +39,7 @@ export default function Register() {
         )}
 
         <form onSubmit={handleRegister} className="space-y-5">
+          {/* ชื่อ, อีเมล, รหัสผ่าน ฯลฯ */}
           <div>
             <label className="block text-gray-700 dark:text-gray-200 mb-1">
               ชื่อผู้ใช้
@@ -86,6 +92,7 @@ export default function Register() {
               placeholder="********"
             />
           </div>
+
           <button
             type="submit"
             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300"

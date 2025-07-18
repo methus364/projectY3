@@ -13,6 +13,12 @@ import Dailyroom from "../page/admin/Dailyroom";
 import Register from "../page/user/Register";
 import Dashbord from "../page/admin/Dashbord";
 import LayoutAdmin from "../layouts/LayoutAdmin";
+import Roomuser from "../page/user/Roomuser";
+import Roomhistory from "../page/user/Roomhistory";
+import Profile from "../page/user/Profile";
+import Editprofile from "../page/user/Editprofile";
+
+
 // รวม Router สำหรับเปลี่ยนไปหน้าต่างๆ
 const router = createBrowserRouter([
   {
@@ -37,8 +43,14 @@ const router = createBrowserRouter([
     path: "/",
     children: [
       { index: true, element: <Home/> },
+      { path: "home", element: <Home /> },
       { path: "login", element: <Login /> },
       { path: "register", element: <Register /> },
+      { path: "roomuser", element: <Roomuser /> },
+      { path: "roomhistory", element: <Roomhistory/> },
+      { path: "profile", element: <Profile/> },
+      { path: "Editprofile", element: <Editprofile/> },
+      
 
     ],
   },

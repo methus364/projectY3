@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom'; // 👈 เพิ่มบรรทัดนี้
+import { Link } from 'react-router-dom'; // 👈 ต้องมี
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -51,11 +51,18 @@ export default function Login() {
           </button>
         </form>
 
-        {/* 👇 แก้ตรงนี้ให้ใช้ Link */}
+        {/* ลิงก์สมัครสมาชิก */}
         <p className="mt-4 text-sm text-center text-gray-600 dark:text-gray-400">
           ยังไม่มีบัญชี?{' '}
           <Link to="/register" className="text-indigo-600 hover:underline">
             สมัครสมาชิก
+          </Link>
+        </p>
+
+        {/* ✅ ลิงก์กลับหน้าแรก */}
+        <p className="mt-2 text-sm text-center text-gray-600 dark:text-gray-400">
+          <Link to="/" className="text-indigo-500 hover:underline">
+            ← กลับหน้าแรก
           </Link>
         </p>
       </div>
