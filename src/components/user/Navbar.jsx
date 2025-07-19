@@ -1,16 +1,8 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const navigate = useNavigate();
-
-  const handleProtectedRoute = (route) => {
-    const confirmed = window.confirm('กรุณาเข้าสู่ระบบก่อนใช้งานหน้านี้\nต้องการเข้าสู่หน้าล็อกอินหรือไม่?');
-    if (confirmed) {
-      navigate('/Login');
-    }
-  };
 
   return (
     <nav className="bg-white dark:bg-gray-900 fixed top-0 w-full z-50 shadow border-b border-gray-200 dark:border-gray-700">
@@ -25,8 +17,8 @@ export default function Navbar() {
           {/* Desktop Menu */}
           <div className="hidden md:flex space-x-8">
             <Link to="/Home" className="text-gray-700 dark:text-white hover:text-indigo-600">หน้าแรก</Link>
-            <button onClick={() => handleProtectedRoute('/Roomuser')} className="text-gray-700 dark:text-white hover:text-indigo-600">ค้นหาห้องพัก</button>
-            <button onClick={() => handleProtectedRoute('/Roomhistory')} className="text-gray-700 dark:text-white hover:text-indigo-600">ประวัติการจอง</button>
+            <Link to="/Roomuser" className="text-gray-700 dark:text-white hover:text-indigo-600">ค้นหาห้องพัก</Link>
+            <Link to="/Roomhistory" className="text-gray-700 dark:text-white hover:text-indigo-600">ประวัติการจอง</Link>
             <Link to="/Profile" className="text-gray-700 dark:text-white hover:text-indigo-600">บัญชีผู้ใช้</Link>
           </div>
 
@@ -55,8 +47,8 @@ export default function Navbar() {
         <div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
           <div className="px-4 py-3 space-y-2">
             <Link to="/Home" className="block text-gray-700 dark:text-white hover:text-indigo-600">หน้าแรก</Link>
-            <button onClick={() => handleProtectedRoute('/Roomuser')} className="block w-full text-left text-gray-700 dark:text-white hover:text-indigo-600">ค้นหาห้องพัก</button>
-            <button onClick={() => handleProtectedRoute('/Roomhistory')} className="block w-full text-left text-gray-700 dark:text-white hover:text-indigo-600">ประวัติการจอง</button>
+            <Link to="/Roomuser" className="block text-gray-700 dark:text-white hover:text-indigo-600">ค้นหาห้องพัก</Link>
+            <Link to="/Roomhistory" className="block text-gray-700 dark:text-white hover:text-indigo-600">ประวัติการจอง</Link>
             <Link to="/Profile" className="block text-gray-700 dark:text-white hover:text-indigo-600">บัญชีผู้ใช้</Link>
           </div>
         </div>
