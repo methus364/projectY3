@@ -17,7 +17,7 @@ import Roomuser from "../page/user/Roomuser";
 import Roomhistory from "../page/user/Roomhistory";
 import Profile from "../page/user/Profile";
 import Editprofile from "../page/user/Editprofile";
-
+import Contact from "../page/user/Contact";
 
 // รวม Router สำหรับเปลี่ยนไปหน้าต่างๆ
 const router = createBrowserRouter([
@@ -50,7 +50,7 @@ const router = createBrowserRouter([
       { path: "roomhistory", element: <Roomhistory/> },
       { path: "profile", element: <Profile/> },
       { path: "Editprofile", element: <Editprofile/> },
-      
+      { path: "contact", element: <Contact/> },
 
     ],
   },
