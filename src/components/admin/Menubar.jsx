@@ -39,12 +39,6 @@ const Menubar = () => {
               <ChartPieIcon className="h-6 w-6" />
               <span className="ml-3">Dashboard</span>
             </NavLink>
-          </li> 
-          <li>
-            <NavLink to="/admin/dailyroom" className={navLinkStyles}>
-              <KeyIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
-              <span className="ml-3">Daily Room</span>
-            </NavLink>
           </li>
           <li>
             <NavLink to="/admin/rooms" className={navLinkStyles}>
@@ -77,15 +71,15 @@ const Menubar = () => {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/admin/bookkeeping" className={navLinkStyles}>
-              <CalendarDaysIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
-              <span className="ml-3">Bookkeeping</span>
-            </NavLink>
-          </li>
-          <li>
             <NavLink to="/admin/repair" className={navLinkStyles}>
               <CalendarDaysIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
               <span className="ml-3">Repair</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/admin/money" className={navLinkStyles}>
+              <CalendarDaysIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
+              <span className="ml-3">Money</span>
             </NavLink>
           </li>
         </ul>
@@ -94,16 +88,16 @@ const Menubar = () => {
       {/* ส่วนโปรไฟล์ผู้ใช้ด้านล่าง */}
       <div className="mt-auto">
         <div className="p-2">
-            <a href="#" className={navLinkStyles({isActive: false})}>
-                <Cog6ToothIcon className="h-6 w-6" />
-                <span className="ml-3">Settings</span>
-            </a>
+          <a href="#" className={navLinkStyles({ isActive: false })}>
+            <Cog6ToothIcon className="h-6 w-6" />
+            <span className="ml-3">Settings</span>
+          </a>
         </div>
         <div className="border-t border-gray-700 p-2">
-            <a href="#" className={navLinkStyles({isActive: false})}>
-                <ArrowRightOnRectangleIcon className="h-6 w-6" />
-                <span className="ml-3">Sign Out</span>
-            </a>
+          <a href="#" className={navLinkStyles({ isActive: false })}>
+            <ArrowRightOnRectangleIcon className="h-6 w-6" />
+            <span className="ml-3">Sign Out</span>
+          </a>
         </div>
       </div>
     </div>
