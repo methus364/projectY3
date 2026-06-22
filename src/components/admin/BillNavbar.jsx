@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 
-const BookingNavbar = () => {
+
+const BillNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <div>
@@ -9,9 +10,8 @@ const BookingNavbar = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="hidden md:flex space-x-8">
-              <NavLink to="/admin/bookingmanagement" className="text-gray-700 dark:text-white hover:text-indigo-600">จัดการการจองห้องพัก</NavLink>
-              <NavLink to="/admin/booking" className="text-gray-700 dark:text-white hover:text-indigo-600">ปฏิทินการจองห้องพัก</NavLink>
-
+              <NavLink to="/admin/bookingmanagement" className="text-gray-700 dark:text-white hover:text-indigo-600">สถานะการชำระเงิน</NavLink>
+              <NavLink to="/admin/booking" className="text-gray-700 dark:text-white hover:text-indigo-600">เลขมิตเตอร์</NavLink>
             </div>
             {/* Mobile toggle */}
             <div className="md:hidden">
@@ -47,4 +47,4 @@ const BookingNavbar = () => {
   )
 }
 
-export default BookingNavbar
+export default BillNavbar

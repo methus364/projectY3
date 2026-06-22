@@ -1,351 +1,321 @@
 import React, { useState, useEffect } from 'react';
+import RoomNavbar from '../../components/admin/RoomNavbar';
+import axios from 'axios';
 
-const initialRooms = [
-  { id: 1, name: '101', available: true, floor: 1, type: 'รายเดือน', description: 'ห้องรายเดือน ชั้น 1', image: null },
-  { id: 2, name: '102', available: true, floor: 1, type: 'รายวัน', description: 'ห้องรายวัน ชั้น 1', image: null },
-  { id: 3, name: '103', available: false, floor: 1, type: 'รายวัน', description: 'ห้องมีผู้พักแล้ว ชั้น 1', image: null },
-  { id: 4, name: '104', available: true, floor: 1, type: 'รายเดือน', description: 'ห้องรายเดือน ชั้น 1', image: null },
-  { id: 5, name: '105', available: true, floor: 1, type: 'รายวัน', description: 'ห้องรายวัน ชั้น 1', image: null },
-
-  { id: 6, name: '201', available: false, floor: 2, type: 'รายเดือน', description: 'ห้องมีผู้พักแล้ว ชั้น 2', image: null },
-  { id: 7, name: '202', available: true, floor: 2, type: 'รายวัน', description: 'ห้องรายวัน ชั้น 2', image: null },
-  { id: 8, name: '203', available: true, floor: 2, type: 'รายเดือน', description: 'ห้องรายเดือน ชั้น 2', image: null },
-  { id: 9, name: '204', available: false, floor: 2, type: 'รายวัน', description: 'ห้องมีผู้พักแล้ว ชั้น 2', image: null },
-  { id: 10, name: '205', available: true, floor: 2, type: 'รายวัน', description: 'ห้องรายวัน ชั้น 2', image: null },
-
-  { id: 11, name: '301', available: true, floor: 3, type: 'รายเดือน', description: 'ห้องรายเดือน ชั้น 3', image: null },
-  { id: 12, name: '302', available: false, floor: 3, type: 'รายเดือน', description: 'ห้องอยู่ระหว่างซ่อม ชั้น 3', image: null },
-  { id: 13, name: '303', available: true, floor: 3, type: 'รายวัน', description: 'ห้องรายวัน ชั้น 3', image: null },
-  { id: 14, name: '304', available: true, floor: 3, type: 'รายวัน', description: 'ห้องรายวัน ชั้น 3', image: null },
-  { id: 15, name: '305', available: false, floor: 3, type: 'รายเดือน', description: 'ห้องมีผู้พักแล้ว ชั้น 3', image: null },
-
-  { id: 16, name: '401', available: true, floor: 4, type: 'รายวัน', description: 'ห้องรายวัน ชั้น 4', image: null },
-  { id: 17, name: '402', available: true, floor: 4, type: 'รายเดือน', description: 'ห้องรายเดือน ชั้น 4', image: null },
-  { id: 18, name: '403', available: false, floor: 4, type: 'รายวัน', description: 'ห้องถูกจองแล้ว ชั้น 4', image: null },
-  { id: 19, name: '404', available: true, floor: 4, type: 'รายวัน', description: 'ห้องรายวัน ชั้น 4', image: null },
-  { id: 20, name: '405', available: true, floor: 4, type: 'รายเดือน', description: 'ห้องรายเดือน ชั้น 4', image: null },
-];
+// const API = 'https://projeccty3-server.onrender.com/api';
+const API = ' http://localhost:5000/api';
+const getAuthHeader = () => {
+    const token = localStorage.getItem('token');
+    return { headers: { Authorization: `Bearer ${token}` } };
+};
 
 const Rooms = () => {
-  const [rooms, setRooms] = useState(initialRooms);
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [selectedFloor, setSelectedFloor] = useState(1);
-  const [selectedType, setSelectedType] = useState('ทั้งหมด');
-  const [showAddEditModal, setShowAddEditModal] = useState(false);
+    const [rooms, setRooms] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedRoom, setSelectedRoom] = useState(null);
+    const [selectedFloor, setSelectedFloor] = useState('ทั้งหมด');
+    const [selectedStatus, setSelectedStatus] = useState('ทั้งหมด');
+    const [showModal, setShowModal] = useState(false);
 
-  const [form, setForm] = useState({
-    id: null,
-    name: '',
-    floor: 1,
-    type: 'รายเดือน',
-    available: true,
-    description: '',
-    image: null,
-  });
+    const initialForm = {
+        id: null,
+        number: '',
+        type_name: '',
+        room_price: '',
+        price_monthly: '',
+        deposit_amount: '',
+        image_url: '',
+        room_status: 'ว่าง',
+    };
+    const [form, setForm] = useState(initialForm);
 
-  // โหลดข้อมูลห้องลงฟอร์มตอน Edit
-  useEffect(() => {
-    if (selectedRoom) {
-      setForm({
-        id: selectedRoom.id,
-        name: selectedRoom.name,
-        floor: selectedRoom.floor,
-        type: selectedRoom.type,
-        available: selectedRoom.available,
-        description: selectedRoom.description,
-        image: selectedRoom.image,
-      });
-    }
-  }, [selectedRoom]);
+    // --- Fetch Rooms ---
+    const fetchRooms = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`${API}/getRoom`);
+            const rawData = Array.isArray(response.data) ? response.data : response.data.data || [];
+            setRooms(rawData);
+        } catch (error) {
+            console.error("Fetch Rooms Error:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  const closeModal = () => {
-    setSelectedRoom(null);
-    setShowAddEditModal(false);
-    setForm({
-      id: null,
-      name: '',
-      floor: 1,
-      type: 'รายเดือน',
-      available: true,
-      description: '',
-      image: null,
+    useEffect(() => { fetchRooms(); }, []);
+
+    // --- Open Modal ---
+    const openModal = (room = null) => {
+        if (room) {
+            setForm({
+                id: room.id,
+                number: room.number,
+                type_name: room.typeName || '',
+                room_price: room.price || '',
+                price_monthly: room.priceMonthly || '',
+                deposit_amount: room.depositAmount || '',
+                image_url: room.imageUrl || '',
+                room_status: room.status,
+            });
+        } else {
+            setForm(initialForm);
+        }
+        setShowModal(true);
+    };
+
+    // --- Save (Add / Edit) ---
+    const handleSave = async (e) => {
+        e.preventDefault();
+        try {
+            const payload = {
+                number: form.number,
+                room_status: form.room_status,
+                type_name: form.type_name || null,
+                room_price: form.room_price !== '' ? Number(form.room_price) : null,
+                price_monthly: form.price_monthly !== '' ? Number(form.price_monthly) : null,
+                deposit_amount: form.deposit_amount !== '' ? Number(form.deposit_amount) : null,
+                image_url: form.image_url || null,
+            };
+
+            if (form.id) {
+                await axios.put(`${API}/editRoom/${form.id}`, payload, getAuthHeader());
+                alert("อัปเดตข้อมูลห้องพักเรียบร้อย");
+            } else {
+                await axios.post(`${API}/addRoom`, payload, getAuthHeader());
+                alert("เพิ่มห้องพักใหม่เรียบร้อย");
+            }
+            fetchRooms();
+            setShowModal(false);
+        } catch (error) {
+            alert("เกิดข้อผิดพลาด: " + (error.response?.data?.message || error.message));
+            console.error("Save Error:", error);
+        }
+    };
+
+    // --- Delete ---
+    const handleDelete = async (id) => {
+        if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบห้องพักนี้?")) {
+            try {
+                await axios.delete(`${API}/deleteRoom/${id}`, getAuthHeader());
+                setRooms(rooms.filter(r => r.id !== id));
+                setSelectedRoom(null);
+                alert("ลบห้องพักเรียบร้อย");
+            } catch (error) {
+                alert("ไม่สามารถลบได้: " + (error.response?.data?.message || error.message));
+                console.error("Delete Error:", error);
+            }
+        }
+    };
+
+    // --- Filter ---
+    const filteredRooms = rooms.filter(room => {
+        const floorMatch = selectedFloor === 'ทั้งหมด' || String(room.number).startsWith(String(selectedFloor));
+        const statusMatch = selectedStatus === 'ทั้งหมด' || room.status === selectedStatus;
+        return floorMatch && statusMatch;
     });
-  };
 
-  const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
-    if (type === 'checkbox') {
-      setForm((prev) => ({ ...prev, [name]: checked }));
-    } else if (type === 'file') {
-      if (files && files[0]) {
-        setForm((prev) => ({ ...prev, image: URL.createObjectURL(files[0]) }));
-      } else {
-        setForm((prev) => ({ ...prev, image: null }));
-      }
-    } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
-    }
-  };
+    const statusColor = (status) => {
+        if (status === 'ว่าง') return 'bg-gradient-to-br from-emerald-400 to-teal-500 shadow-emerald-100';
+        if (status === 'ปิดปรับปรุง') return 'bg-gradient-to-br from-gray-400 to-gray-500 shadow-gray-100';
+        return 'bg-gradient-to-br from-rose-400 to-pink-500 shadow-rose-100';
+    };
 
-  const handleSaveRoom = (e) => {
-    e.preventDefault();
-    if (form.id) {
-      // แก้ไขข้อมูล
-      setRooms((prevRooms) =>
-        prevRooms.map((room) =>
-          room.id === form.id
-            ? {
-                ...room,
-                name: form.name,
-                floor: Number(form.floor),
-                type: form.type,
-                available: form.available,
-                description: form.description,
-                image: form.image,
-              }
-            : room
-        )
-      );
-    } else {
-      // เพิ่มข้อมูลใหม่
-      const newRoom = {
-        id: rooms.length + 1,
-        name: form.name,
-        floor: Number(form.floor),
-        type: form.type,
-        available: form.available,
-        description: form.description,
-        image: form.image,
-      };
-      setRooms((prev) => [...prev, newRoom]);
-    }
-    closeModal();
-  };
+    const statusHeaderColor = (status) => {
+        if (status === 'ว่าง') return 'bg-emerald-500';
+        if (status === 'ปิดปรับปรุง') return 'bg-gray-500';
+        return 'bg-rose-500';
+    };
 
-  // กรองห้องตามชั้นและประเภท
-  const filteredRooms = rooms.filter(
-    (room) =>
-      room.floor === selectedFloor &&
-      (selectedType === 'ทั้งหมด' || room.type === selectedType)
-  );
+    if (loading) return <div className="h-screen flex items-center justify-center font-bold text-blue-600 animate-pulse">กำลังโหลดข้อมูล...</div>;
 
-  return (
-    <div className="p-4">
+    return (
+        <div className="p-4 bg-gray-50 min-h-screen font-sans">
+            <RoomNavbar />
 
-      {/* ตัวเลือกชั้นและประเภท */}
-      <div className="flex flex-wrap gap-6 mb-6">
-        <div>
-          <label className="block mb-2 text-lg font-medium text-gray-700">เลือกชั้น:</label>
-          <select
-            className="px-4 py-2 rounded border border-gray-300"
-            value={selectedFloor}
-            onChange={(e) => setSelectedFloor(Number(e.target.value))}
-          >
-            {[1, 2, 3, 4].map((floor) => (
-              <option key={floor} value={floor}>
-                ชั้น {floor}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block mb-2 text-lg font-medium text-gray-700">เลือกประเภท:</label>
-          <select
-            className="px-4 py-2 rounded border border-gray-300"
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-          >
-            <option value="ทั้งหมด">ทั้งหมด</option>
-            <option value="รายวัน">รายวัน</option>
-            <option value="รายเดือน">รายเดือน</option>
-          </select>
-        </div>
-        <div>
-          {/* ปุ่มเพิ่มข้อมูลห้อง */}
-          <button
-            className="mb-6 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded shadow"
-            onClick={() => {
-              setForm({
-                id: null,
-                name: '',
-                floor: 1,
-                type: 'รายเดือน',
-                available: true,
-                description: '',
-                image: null,
-              });
-              setShowAddEditModal(true);
-            }}
-          >
-            เพิ่มข้อมูลห้อง
-          </button>
-        </div>
-      </div>
-
-      {/* แสดงรายชื่อห้อง */}
-      <div className="grid grid-cols-5 gap-4">
-        {filteredRooms.map((room) => (
-          <div key={room.id} className="relative">
-            <button
-              className={`rounded-lg px-4 py-2 shadow-md text-white font-semibold w-full ${
-                room.available ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 cursor-not-allowed'
-              }`}
-              disabled={!room.available}
-              onClick={() => setSelectedRoom(room)}
-            >
-              ห้อง {room.name}
-            </button>
-          </div>
-        ))}
-        {filteredRooms.length === 0 && (
-          <div className="col-span-5 text-center text-gray-500 font-medium">
-            ไม่มีห้องที่ตรงกับตัวเลือก
-          </div>
-        )}
-      </div>
-
-      {/* Popup แสดงข้อมูลห้อง */}
-      {selectedRoom && !showAddEditModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white/80 backdrop-blur-md p-6 rounded-xl shadow-2xl w-80 relative">
-            <h2 className="text-xl font-bold mb-2 text-gray-800">
-              ข้อมูลห้อง {selectedRoom.name}
-            </h2>
-            <p className="text-gray-700 mb-2">{selectedRoom.description}</p>
-            <p className="text-sm text-gray-600 mb-4">
-              ประเภท: {selectedRoom.type} | ชั้น {selectedRoom.floor} |{' '}
-              {selectedRoom.available ? 'ว่าง' : 'ไม่ว่าง'}
-            </p>
-            {selectedRoom.image && (
-              <img
-                src={selectedRoom.image}
-                alt={`ห้อง ${selectedRoom.name}`}
-                className="w-full h-40 object-cover rounded mb-4"
-              />
-            )}
-            <div className="flex justify-between">
-              <button
-                className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded"
-                onClick={() => {
-                  setShowAddEditModal(true);
-                }}
-              >
-                แก้ไข
-              </button>
-              <button
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-                onClick={() => setSelectedRoom(null)}
-              >
-                ปิด
-              </button>
+            {/* Filter & Action Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex flex-wrap gap-4">
+                    <div>
+                        <label className="block mb-1 text-xs font-bold text-gray-400 uppercase">ชั้น</label>
+                        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
+                            {['ทั้งหมด', 1, 2, 3, 4].map(f => (
+                                <button key={f} onClick={() => setSelectedFloor(f)}
+                                    className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${selectedFloor === f ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                                    {f}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block mb-1 text-xs font-bold text-gray-400 uppercase">สถานะ</label>
+                        <select className="px-4 py-1.5 rounded-xl bg-gray-100 text-sm font-bold outline-none border-none"
+                            value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+                            <option value="ทั้งหมด">ทั้งหมด</option>
+                            <option value="ว่าง">ว่าง</option>
+                            <option value="มีผู้เช่า">มีผู้เช่า</option>
+                            <option value="ปิดปรับปรุง">ปิดปรับปรุง</option>
+                        </select>
+                    </div>
+                </div>
+                <button onClick={() => openModal()}
+                    className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg shadow-blue-100 transition-all active:scale-95">
+                    + เพิ่มห้องใหม่
+                </button>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Modal ฟอร์มเพิ่ม/แก้ไขห้อง */}
-      {showAddEditModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 overflow-auto p-4">
-          <form
-            onSubmit={handleSaveRoom}
-            className="bg-white/90 backdrop-blur-md p-6 rounded-xl shadow-2xl w-full max-w-md relative"
-          >
-            <h2 className="text-2xl font-bold mb-4">
-              {form.id ? `แก้ไขข้อมูลห้อง ${form.name}` : 'เพิ่มข้อมูลห้อง'}
-            </h2>
-
-            <label className="block mb-2 font-semibold">
-              ชื่อห้อง
-              <input
-                type="text"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                required
-                className="w-full p-2 border rounded mt-1"
-              />
-            </label>
-
-            <label className="block mb-2 font-semibold">
-              ชั้น
-              <select
-                name="floor"
-                value={form.floor}
-                onChange={handleChange}
-                className="w-full p-2 border rounded mt-1"
-              >
-                {[1, 2, 3, 4].map((floor) => (
-                  <option key={floor} value={floor}>
-                    ชั้น {floor}
-                  </option>
+            {/* Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                {filteredRooms.map((room) => (
+                    <button key={room.id} onClick={() => setSelectedRoom(room)}
+                        className={`relative rounded-3xl p-6 text-white transition-all transform hover:-translate-y-2 shadow-xl ${statusColor(room.status)}`}>
+                        <div className="text-3xl font-black mb-1">{room.number}</div>
+                        <div className="text-[10px] bg-white/20 backdrop-blur-md px-3 py-1 rounded-full inline-block font-bold">
+                            {room.status}
+                        </div>
+                    </button>
                 ))}
-              </select>
-            </label>
+            </div>
 
-            <label className="block mb-2 font-semibold">
-              ประเภท
-              <select
-                name="type"
-                value={form.type}
-                onChange={handleChange}
-                className="w-full p-2 border rounded mt-1"
-              >
-                <option value="รายเดือน">รายเดือน</option>
-                <option value="รายวัน">รายวัน</option>
-              </select>
-            </label>
-
-            <label className="block mb-2 font-semibold flex items-center">
-              <input
-                type="checkbox"
-                name="available"
-                checked={form.available}
-                onChange={handleChange}
-                className="mr-2"
-              />
-              ว่าง
-            </label>
-
-            <label className="block mb-4 font-semibold">
-              รายละเอียด
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                rows="3"
-                className="w-full p-2 border rounded mt-1"
-              />
-            </label>
-
-            <label className="block mb-4 font-semibold">
-              รูปภาพ
-              <input type="file" name="image" onChange={handleChange} accept="image/*" />
-            </label>
-
-            {form.image && typeof form.image === 'string' && (
-              <img src={form.image} alt="preview" className="mb-4 w-full h-40 object-cover rounded" />
+            {/* Detail Popup */}
+            {selectedRoom && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className={`p-8 text-white ${statusHeaderColor(selectedRoom.status)}`}>
+                            <h2 className="text-4xl font-black">ห้อง {selectedRoom.number}</h2>
+                            <p className="opacity-80 font-medium">{selectedRoom.typeName || 'ไม่ระบุประเภท'} • {selectedRoom.status}</p>
+                        </div>
+                        <div className="p-8">
+                            <div className="space-y-4 mb-8 text-gray-600">
+                                <div className="flex justify-between border-b pb-2">
+                                    <span className="font-bold">ประเภทห้อง:</span>
+                                    <span className="text-blue-600 font-black">{selectedRoom.typeName || '-'}</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-2">
+                                    <span className="font-bold">ราคา/วัน:</span>
+                                    <span className="text-blue-600 font-black">
+                                        {selectedRoom.price ? `฿${Number(selectedRoom.price).toLocaleString()}` : '-'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between border-b pb-2">
+                                    <span className="font-bold">ราคา/เดือน:</span>
+                                    <span className="text-blue-600 font-black">
+                                        {selectedRoom.priceMonthly ? `฿${Number(selectedRoom.priceMonthly).toLocaleString()}` : '-'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between border-b pb-2">
+                                    <span className="font-bold">ค่ามัดจำ:</span>
+                                    <span className="text-blue-600 font-black">
+                                        {selectedRoom.depositAmount ? `฿${Number(selectedRoom.depositAmount).toLocaleString()}` : '-'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                                <button onClick={() => { openModal(selectedRoom); setSelectedRoom(null); }}
+                                    className="bg-amber-400 text-white py-3 rounded-2xl font-bold hover:bg-amber-500 transition-colors">แก้ไข</button>
+                                <button onClick={() => handleDelete(selectedRoom.id)}
+                                    className="bg-rose-100 text-rose-600 py-3 rounded-2xl font-bold hover:bg-rose-200 transition-colors">ลบ</button>
+                                <button onClick={() => setSelectedRoom(null)}
+                                    className="bg-gray-100 text-gray-500 py-3 rounded-2xl font-bold hover:bg-gray-200">ปิด</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
-            <div className="flex justify-end space-x-4">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="px-4 py-2 rounded border border-gray-400 hover:bg-gray-100"
-              >
-                ยกเลิก
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                บันทึก
-              </button>
-            </div>
-          </form>
+            {/* Add/Edit Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-md flex items-center justify-center z-[60] p-4">
+                    <form onSubmit={handleSave} className="bg-white rounded-[2.5rem] p-10 w-full max-w-lg shadow-2xl">
+                        <h2 className="text-3xl font-black text-gray-800 mb-8">
+                            {form.id ? 'แก้ไขข้อมูลห้อง' : 'สร้างห้องพักใหม่'}
+                        </h2>
+
+                        <div className="grid grid-cols-2 gap-6 mb-6">
+                            {/* หมายเลขห้อง */}
+                            <div>
+                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">หมายเลขห้อง *</label>
+                                <input required type="text" value={form.number}
+                                    onChange={(e) => setForm({ ...form, number: e.target.value })}
+                                    className="w-full bg-gray-50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+                            </div>
+
+                            {/* ประเภทห้อง */}
+                            <div>
+                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">ประเภทห้อง</label>
+                                <input type="text" value={form.type_name}
+                                    onChange={(e) => setForm({ ...form, type_name: e.target.value })}
+                                    placeholder="เช่น Standard, Deluxe"
+                                    className="w-full bg-gray-50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+                            </div>
+
+                            {/* ราคา/วัน */}
+                            <div>
+                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">ราคา/วัน (฿)</label>
+                                <input type="number" min="0" value={form.room_price}
+                                    onChange={(e) => setForm({ ...form, room_price: e.target.value })}
+                                    className="w-full bg-gray-50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+                            </div>
+
+                            {/* ราคา/เดือน */}
+                            <div>
+                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">ราคา/เดือน (฿)</label>
+                                <input type="number" min="0" value={form.price_monthly}
+                                    onChange={(e) => setForm({ ...form, price_monthly: e.target.value })}
+                                    className="w-full bg-gray-50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+                            </div>
+
+                            {/* ค่ามัดจำ */}
+                            <div>
+                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">ค่ามัดจำ (฿)</label>
+                                <input type="number" min="0" value={form.deposit_amount}
+                                    onChange={(e) => setForm({ ...form, deposit_amount: e.target.value })}
+                                    className="w-full bg-gray-50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+                            </div>
+
+                            {/* URL รูปห้อง */}
+                            <div className="col-span-2">
+                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">URL รูปห้อง</label>
+                                <input type="url" value={form.image_url}
+                                    onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                                    placeholder="https://..."
+                                    className="w-full bg-gray-50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+                            </div>
+
+                            {/* สถานะห้อง */}
+                            <div className="col-span-2">
+                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">สถานะห้อง</label>
+                                <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl">
+                                    {[
+                                        { value: 'ว่าง', active: 'bg-emerald-500 text-white shadow-md' },
+                                        { value: 'มีผู้เช่า', active: 'bg-rose-500 text-white shadow-md' },
+                                        { value: 'ปิดปรับปรุง', active: 'bg-gray-500 text-white shadow-md' },
+                                    ].map(({ value, active }) => (
+                                        <button key={value} type="button"
+                                            onClick={() => setForm({ ...form, room_status: value })}
+                                            className={`flex-1 py-3 rounded-xl font-bold transition-all text-sm ${form.room_status === value ? active : 'text-gray-500 hover:text-gray-700'}`}>
+                                            {value}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4">
+                            <button type="submit"
+                                className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all active:scale-95">
+                                บันทึกข้อมูล
+                            </button>
+                            <button type="button" onClick={() => setShowModal(false)}
+                                className="px-8 py-4 bg-gray-100 text-gray-500 rounded-2xl font-bold hover:bg-gray-200">
+                                ยกเลิก
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 };
 
 export default Rooms;

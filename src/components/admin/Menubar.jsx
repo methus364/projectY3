@@ -47,6 +47,12 @@ const Menubar = () => {
             </NavLink>
           </li>
           <li>
+            <NavLink to="/admin/Bookingmanagement" className={navLinkStyles}>
+              <CalendarDaysIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
+              <span className="ml-3">Booking</span>
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/admin/products" className={navLinkStyles}>
               <ShoppingBagIcon className="h-6 w-6" />
               <span className="ml-3">Products</span>
@@ -64,12 +70,7 @@ const Menubar = () => {
               <span className="ml-3">Bill</span>
             </NavLink>
           </li>
-          <li>
-            <NavLink to="/admin/booking" className={navLinkStyles}>
-              <CalendarDaysIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
-              <span className="ml-3">Booking</span>
-            </NavLink>
-          </li>
+
           <li>
             <NavLink to="/admin/repair" className={navLinkStyles}>
               <CalendarDaysIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}

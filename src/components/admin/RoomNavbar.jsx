@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 
-const BookingNavbar = () => {
+const RoomNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <div>
@@ -9,8 +9,8 @@ const BookingNavbar = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="hidden md:flex space-x-8">
-              <NavLink to="/admin/bookingmanagement" className="text-gray-700 dark:text-white hover:text-indigo-600">จัดการการจองห้องพัก</NavLink>
-              <NavLink to="/admin/booking" className="text-gray-700 dark:text-white hover:text-indigo-600">ปฏิทินการจองห้องพัก</NavLink>
+              <NavLink to="/admin/booking" className="text-gray-700 dark:text-white hover:text-indigo-600">ห้องพัก</NavLink>
+              <NavLink to="/admin/bookingmanagement" className="text-gray-700 dark:text-white hover:text-indigo-600">จัดการข้อมูลห้องพัก</NavLink>
 
             </div>
             {/* Mobile toggle */}
@@ -37,8 +37,8 @@ const BookingNavbar = () => {
         {isOpen && (
           <div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
             <div className="px-4 py-3 space-y-2">
+               <NavLink to="/admin/booking" className="text-gray-700 dark:text-white hover:text-indigo-600">ปฏิทินการจองห้องพัก</NavLink>
               <NavLink to="/admin/bookingmanagement" className="text-gray-700 dark:text-white hover:text-indigo-600">จัดการการจองห้องพัก</NavLink>
-              <NavLink to="/admin/booking" className="text-gray-700 dark:text-white hover:text-indigo-600">ปฏิทินการจองห้องพัก</NavLink>
             </div>
           </div>
         )}
@@ -47,4 +47,4 @@ const BookingNavbar = () => {
   )
 }
 
-export default BookingNavbar
+export default RoomNavbar

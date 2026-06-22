@@ -20,7 +20,7 @@ export default function Contact() {
         <p className="text-gray-600 mb-6">
           หากคุณมีคำถามเกี่ยวกับการจองห้องพัก สามารถติดต่อเราผ่านเบอร์โทรศัพท์ หรือส่งข้อความหาเราได้เลย
         </p>
-
+    
         {/* เบอร์ติดต่อ */}
         <div className="mb-8">
           <p className="text-lg font-medium text-gray-800">📞 โทร: <a href="tel:0123456789" className="text-indigo-600 hover:underline">012-345-6789</a></p>
