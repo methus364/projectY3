@@ -1,343 +1,213 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import axios from 'axios';
 
-// --- ข้อมูลสมมติ (Mock Data) ---
-const mockTransactions = [
-  { id: 1, date: '2025-11-09', description: 'ค่าเช่าห้อง 101 (เดือน พ.ย.)', type: 'Income', amount: 4500, note: 'โอนผ่าน SCB', paymentMethod: 'โอน' },
-  { id: 2, date: '2025-11-08', description: 'ค่าเช่าห้อง 102 (เดือน พ.ย.)', type: 'Income', amount: 4500, note: 'จ่ายเงินสดที่เคาน์เตอร์', paymentMethod: 'เงินสด' },
-  { id: 3, date: '2025-11-05', description: 'ค่าจ้างแม่บ้านทำความสะอาด', type: 'Expense', amount: 1200, note: 'รอบบิล 1-5 พ.ย.', paymentMethod: 'โอน' },
-  { id: 4, date: '2025-11-09', description: 'ค่าน้ำประปา (รอบบิล ต.ค.)', type: 'Expense', amount: 850, note: '', paymentMethod: 'โอน' },
-  { id: 5, date: '2025-11-01', description: 'ซื้อหลอดไฟเปลี่ยนทางเดิน', type: 'Expense', amount: 300, note: 'ร้านช่างไฟหน้าหอ', paymentMethod: 'เงินสด' },
-];
-// ---------------------------------
+const API = 'http://localhost:5000/api';
 
-// --- (ฟังก์ชัน Helper) ---
-
-// ป้ายประเภท (รายรับ/รายจ่าย)
-const renderTypeBadge = (type) => {
-  if (type === 'Income') {
-    return (
-      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-        รายรับ
-      </span>
-    );
-  }
-  return (
-    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-      รายจ่าย
-    </span>
-  );
+const getAuthHeader = () => {
+  const token = localStorage.getItem('token');
+  return { headers: { Authorization: `Bearer ${token}` } };
 };
 
-// ป้ายช่องทางการชำระเงิน
-const renderPaymentMethod = (method) => {
-  if (method === 'โอน') {
-    return (
-      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-        โอน
-      </span>
-    );
-  }
-  if (method === 'เงินสด') {
-    return (
-      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-        เงินสด
-      </span>
-    );
-  }
-  // กรณีอื่นๆ (ถ้ามี)
-  return (
-    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-      {method || 'N/A'}
-    </span>
-  );
+// สีป้ายสถานะการชำระ
+const statusBadge = (status) => {
+  if (status === 'ยืนยันแล้ว') return 'bg-green-100 text-green-800';
+  if (status === 'ปฏิเสธ') return 'bg-red-100 text-red-800';
+  return 'bg-yellow-100 text-yellow-800'; // รอตรวจ
 };
 
-// จัดรูปแบบตัวเลข
-const formatNumber = (num) => {
-  // ใช้ toLocaleString เพื่อใส่ comma และ .00
-  // ถ้าไม่ต้องการทศนิยม ใช้ { maximumFractionDigits: 0 }
-  return num.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-};
-// ---------------------------------
-
+const money = (val) => (Number(val) || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 });
 
 function Money() {
-  const [transactions, setTransactions] = useState(mockTransactions);
-  
-  // State สำหรับเก็บ "ช่วงวันที่"
-  const [dateRange, setDateRange] = useState({
-    startDate: '',
-    endDate: '',
-  });
+  const [statusFilter, setStatusFilter] = useState('');
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [slipUrl, setSlipUrl] = useState(null); // modal ดูสลิป
 
-  // ฟังก์ชันอัปเดต State ช่วงวันที่
-  const handleDateChange = (e) => {
-    const { name, value } = e.target;
-    setDateRange((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  // ==========================================
+  // โหลดรายการชำระเงินตามสถานะที่เลือก
+  // ==========================================
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (statusFilter) params.append('status', statusFilter);
+
+      const res = await axios.get(`${API}/payments?${params.toString()}`, getAuthHeader());
+      if (res.data.success) {
+        setPayments(res.data.data);
+      }
+    } catch (err) {
+      console.error('โหลดรายการชำระเงินไม่สำเร็จ:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // กรองรายการตาม "ช่วงวันที่"
-  const filteredTransactions = useMemo(() => {
-    const { startDate, endDate } = dateRange;
-    
-    // ถ้าไม่กำหนดค่าใดเลย
-    if (!startDate && !endDate) {
-      return transactions;
+  useEffect(() => {
+    fetchPayments();
+  }, [statusFilter]);
+
+  // ==========================================
+  // ยืนยัน/ปฏิเสธการชำระ
+  // ==========================================
+  const handleVerify = async (paymentId, action) => {
+    const label = action === 'approve' ? 'ยืนยัน' : 'ปฏิเสธ';
+    if (!window.confirm(`ต้องการ${label}การชำระเงินรายการนี้?`)) return;
+    try {
+      const res = await axios.put(
+        `${API}/payment/${paymentId}/verify`,
+        { action },
+        getAuthHeader()
+      );
+      if (res.data.success) {
+        alert(res.data.message);
+        fetchPayments();
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'ดำเนินการไม่สำเร็จ');
     }
+  };
 
-    return transactions.filter((t) => {
-      const tDate = t.date;
-      // กรณี 1: มีแค่วันที่เริ่มต้น
-      if (startDate && !endDate) {
-        return tDate >= startDate;
-      }
-      // กรณี 2: มีแค่วันที่สิ้นสุด
-      if (!startDate && endDate) {
-        return tDate <= endDate;
-      }
-      // กรณี 3: มีทั้งคู่
-      return tDate >= startDate && tDate <= endDate;
-    });
-  }, [transactions, dateRange]);
-
-
-  // คำนวณสรุปยอด (แยกตามช่องทาง)
+  // สรุปยอด: ยืนยันแล้วรวม + จำนวนรายการรอตรวจ
   const summary = useMemo(() => {
-    // ใช้ .reduce() เพื่อวน loop แค่ครั้งเดียว
-    const stats = filteredTransactions.reduce((acc, t) => {
-      if (t.type === 'Income') {
-        acc.totalIncome += t.amount;
-        if (t.paymentMethod === 'โอน') {
-          acc.incomeByTransfer += t.amount;
-        } else if (t.paymentMethod === 'เงินสด') {
-          acc.incomeByCash += t.amount;
-        }
-      } else if (t.type === 'Expense') {
-        acc.totalExpense += t.amount;
-        if (t.paymentMethod === 'โอน') {
-          acc.expenseByTransfer += t.amount;
-        } else if (t.paymentMethod === 'เงินสด') {
-          acc.expenseByCash += t.amount;
-        }
-      }
-      return acc;
-    }, {
-      // ค่าเริ่มต้น
-      totalIncome: 0,
-      incomeByTransfer: 0,
-      incomeByCash: 0,
-      totalExpense: 0,
-      expenseByTransfer: 0,
-      expenseByCash: 0,
-    });
-
-    const balance = stats.totalIncome - stats.totalExpense;
-
-    return { ...stats, balance };
-  }, [filteredTransactions]); // อัปเดตเมื่อ filter เปลี่ยน
-
+    let confirmedTotal = 0;
+    let pendingCount = 0;
+    for (const p of payments) {
+      if (p.payment_status === 'ยืนยันแล้ว') confirmedTotal += Number(p.amount_paid) || 0;
+      if (p.payment_status === 'รอตรวจ') pendingCount += 1;
+    }
+    return { confirmedTotal, pendingCount };
+  }, [payments]);
 
   return (
-    <div className="p-6">
-      
-      {/* ส่วนหัวของหน้า + ตัวกรองช่วงวันที่ */}
-      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-        <h1 className="text-3xl font-bold text-gray-800">
-          บันทึกรายรับ - รายจ่าย
-        </h1>
-        
-        {/* ส่วนควบคุม (ปฏิทิน และ ปุ่ม) */}
-        <div className="flex flex-wrap items-center space-x-3">
-          
-          {/* ปฏิทิน: วันที่เริ่มต้น */}
-          <label htmlFor="startDate" className="text-sm font-medium text-gray-700 ml-2">
-            จาก:
-          </label>
-          <input
-            type="date"
-            id="startDate"
-            name="startDate"
-            value={dateRange.startDate}
-            onChange={handleDateChange}
-            className="border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
+    <>
+      <div className="flex w-full flex-col bg-white p-6">
 
-          {/* ปฏิทิน: วันที่สิ้นสุด */}
-          <label htmlFor="endDate" className="text-sm font-medium text-gray-700 ml-2">
-            ถึง:
-          </label>
-          <input
-            type="date"
-            id="endDate"
-            name="endDate"
-            value={dateRange.endDate}
-            onChange={handleDateChange}
-            className="border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
+        {/* ส่วนหัว + filter */}
+        <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+          <h1 className="text-3xl font-bold text-gray-800">ตรวจสอบการชำระเงิน</h1>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">ทุกสถานะ</option>
+            <option value="รอตรวจ">รอตรวจ</option>
+            <option value="ยืนยันแล้ว">ยืนยันแล้ว</option>
+            <option value="ปฏิเสธ">ปฏิเสธ</option>
+          </select>
+        </div>
 
-          {/* ปุ่มล้าง */}
-          {(dateRange.startDate || dateRange.endDate) && (
-            <button
-              onClick={() => setDateRange({ startDate: '', endDate: '' })}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-bold py-2 px-3 rounded-lg transition duration-300"
-            >
-              ล้าง
-            </button>
+        {/* การ์ดสรุป */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="bg-white shadow-md rounded-lg p-6">
+            <h2 className="text-sm font-medium text-gray-500 mb-2">ยอดที่ยืนยันแล้ว (บาท)</h2>
+            <p className="text-3xl font-bold text-green-600">{money(summary.confirmedTotal)}</p>
+          </div>
+          <div className="bg-white shadow-md rounded-lg p-6">
+            <h2 className="text-sm font-medium text-gray-500 mb-2">รายการรอตรวจสอบ</h2>
+            <p className="text-3xl font-bold text-yellow-600">{summary.pendingCount}</p>
+          </div>
+        </div>
+
+        {/* ตารางรายการชำระ */}
+        <div className="bg-white shadow-md rounded-lg overflow-x-auto">
+          {loading ? (
+            <div className="text-center py-10 text-gray-500">กำลังโหลดข้อมูล...</div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">บิล</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">ห้อง</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">ผู้เช่า</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase">จำนวนเงิน</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">วิธีชำระ</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 uppercase">สลิป</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 uppercase">สถานะ</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase">ดำเนินการ</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {payments.map((p) => (
+                  <tr key={p.payment_id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
+                      INV-{new Date(p.payment_date).getFullYear()}-{String(p.invoice_id).padStart(4, '0')}
+                    </td>
+                    <td className="px-4 py-3 text-gray-800">{p.room_number}</td>
+                    <td className="px-4 py-3 text-gray-600">{p.guest_name || '—'}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-gray-900">{money(p.amount_paid)}</td>
+                    <td className="px-4 py-3 text-gray-700">{p.payment_method}</td>
+                    <td className="px-4 py-3 text-center">
+                      {p.payment_evidence ? (
+                        <button
+                          onClick={() => setSlipUrl(p.payment_evidence)}
+                          className="text-blue-600 hover:text-blue-900 underline"
+                        >
+                          ดูสลิป
+                        </button>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge(p.payment_status)}`}>
+                        {p.payment_status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap space-x-2">
+                      {/* ยืนยัน/ปฏิเสธ ได้เฉพาะรายการที่ยังรอตรวจ */}
+                      {p.payment_status === 'รอตรวจ' ? (
+                        <>
+                          <button
+                            onClick={() => handleVerify(p.payment_id, 'approve')}
+                            className="text-sm text-green-600 hover:text-green-900"
+                          >
+                            ยืนยัน
+                          </button>
+                          <button
+                            onClick={() => handleVerify(p.payment_id, 'reject')}
+                            className="text-sm text-red-600 hover:text-red-900"
+                          >
+                            ปฏิเสธ
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+
+                {payments.length === 0 && (
+                  <tr>
+                    <td colSpan="8" className="text-center py-10 text-gray-500">
+                      ไม่พบรายการชำระเงิน
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           )}
-          
-          {/* ปุ่มเพิ่มรายการ */}
-          <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ml-3">
-            + เพิ่มรายการใหม่
-          </button>
         </div>
       </div>
 
-      {/* ส่วนการ์ดสรุปยอด */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        
-        {/* การ์ด: รายรับรวม (พร้อมรายละเอียด) */}
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-sm font-medium text-gray-500 mb-2">รายรับรวม (บาท)</h2>
-          <p className="text-3xl font-bold text-green-600 mb-3">
-            {formatNumber(summary.totalIncome)}
-          </p>
-          {/* ส่วนรายละเอียดช่องทาง */}
-          <div className="text-sm text-gray-700 space-y-1 border-t pt-2">
-            <div className="flex justify-between">
-              <span className="text-blue-600">โอน:</span>
-              <span className="font-medium">{formatNumber(summary.incomeByTransfer)}</span>
+      {/* Modal ดูสลิป */}
+      {slipUrl && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setSlipUrl(null)}
+        >
+          <div className="bg-white rounded-xl shadow-xl p-4 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-bold text-gray-800">สลิปการโอนเงิน</h2>
+              <button onClick={() => setSlipUrl(null)} className="text-gray-400 hover:text-gray-700">✕</button>
             </div>
-            <div className="flex justify-between">
-              <span className="text-yellow-600">เงินสด:</span>
-              <span className="font-medium">{formatNumber(summary.incomeByCash)}</span>
-            </div>
+            <img src={slipUrl} alt="สลิปการโอนเงิน" className="w-full rounded-lg" />
           </div>
         </div>
-        
-        {/* การ์ด: รายจ่ายรวม (พร้อมรายละเอียด) */}
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-sm font-medium text-gray-500 mb-2">รายจ่ายรวม (บาท)</h2>
-          <p className="text-3xl font-bold text-red-600 mb-3">
-            {formatNumber(summary.totalExpense)}
-          </p>
-          {/* ส่วนรายละเอียดช่องทาง */}
-          <div className="text-sm text-gray-700 space-y-1 border-t pt-2">
-            <div className="flex justify-between">
-              <span className="text-blue-600">โอน:</span>
-              <span className="font-medium">{formatNumber(summary.expenseByTransfer)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-yellow-600">เงินสด:</span>
-              <span className="font-medium">{formatNumber(summary.expenseByCash)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* การ์ด: คงเหลือสุทธิ */}
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-sm font-medium text-gray-500 mb-2">คงเหลือสุทธิ (บาท)</h2>
-          <p className="text-3xl font-bold text-gray-800">
-            {formatNumber(summary.balance)}
-          </p>
-          {/* เว้นว่างไว้เพื่อให้ดูสะอาดตา */}
-           <div className="text-sm text-gray-700 space-y-1 border-t pt-2 mt-9">
-             <div className="flex justify-between invisible">
-               <span>-</span><span>-</span>
-             </div>
-             <div className="flex justify-between invisible">
-               <span>-</span><span>-</span>
-             </div>
-           </div>
-        </div>
-      </div>
-
-      {/* ตารางแสดงรายการ */}
-      <div className="bg-white shadow-md rounded-lg overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                วันที่
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                รายการ / โน๊ต
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ประเภท
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ช่องทาง
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                จำนวนเงิน (บาท)
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ดำเนินการ
-              </th>
-            </tr>
-          </thead>
-
-          <tbody className="bg-white divide-y divide-gray-200">
-            {/* map จาก 'filteredTransactions' */}
-            {filteredTransactions.map((t) => (
-              <tr key={t.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-700">{t.date}</div>
-                </td>
-                
-                <td className="px-6 py-4">
-                  <div className="text-sm font-medium text-gray-900">{t.description}</div>
-                  {/* แสดงโน๊ตถ้ามี */}
-                  {t.note && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      (โน๊ต: {t.note})
-                    </div>
-                  )}
-                </td>
-                
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {renderTypeBadge(t.type)}
-                </td>
-                
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {renderPaymentMethod(t.paymentMethod)}
-                </td>
-                
-                <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-medium ${
-                  t.type === 'Income' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {t.type === 'Expense' ? '-' : ''}
-                  {formatNumber(t.amount)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button className="text-indigo-600 hover:text-indigo-900 mr-4 transition duration-300">
-                    แก้ไข
-                  </button>
-                  <button className="text-red-600 hover:text-red-900 transition duration-300">
-                    ลบ
-                  </button>
-                </td>
-              </tr>
-            ))}
-            
-            {/* แสดงผลเมื่อไม่พบข้อมูลที่กรอง */}
-            {filteredTransactions.length === 0 && (
-              <tr>
-                <td colSpan="6" className="text-center py-10 text-gray-500">
-                  ไม่พบรายการในช่วงวันที่ที่เลือก
-                </td>
-              </tr>
-            )}
-
-          </tbody>
-        </table>
-      </div>
-
-    </div>
+      )}
+    </>
   );
 }
 

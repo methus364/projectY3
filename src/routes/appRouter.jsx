@@ -19,6 +19,7 @@ import Contact from "../page/user/Contact";
 import Money from "../page/admin/Money";
 import Bookingmanagement from "../page/admin/Bookingmanagement";
 import RepairRequest from "../page/user/RepairRequest";
+import MyBills from "../page/user/MyBills";
 
 // รวม Router สำหรับเปลี่ยนไปหน้าต่างๆ
 const router = createBrowserRouter([
@@ -53,6 +54,7 @@ const router = createBrowserRouter([
       { path: "Editprofile", element: <Editprofile/> },
       { path: "contact", element: <Contact/> },
       { path: "repairrequest", element: <RepairRequest/> },
+      { path: "mybills", element: <MyBills/> },
 
     ],
   },

@@ -19,8 +19,9 @@ export default function Navbar() {
             <Link to="/Home" className="text-gray-700 dark:text-white hover:text-indigo-600">หน้าแรก</Link>
             <Link to="/Roomuser" className="text-gray-700 dark:text-white hover:text-indigo-600">ค้นหาห้องพัก</Link>
             <Link to="/Roomhistory" className="text-gray-700 dark:text-white hover:text-indigo-600">ประวัติการจอง</Link>
+            <Link to="/mybills" className="text-gray-700 dark:text-white hover:text-indigo-600">บิล/ชำระเงิน</Link>
             {/* <Link to="/Profile" className="text-gray-700 dark:text-white hover:text-indigo-600">บัญชีผู้ใช้</Link> */}
-            
+
           </div>
 
           {/* Mobile toggle */}
@@ -50,6 +51,7 @@ export default function Navbar() {
             <Link to="/Home" className="block text-gray-700 dark:text-white hover:text-indigo-600">หน้าแรก</Link>
             <Link to="/Roomuser" className="block text-gray-700 dark:text-white hover:text-indigo-600">ค้นหาห้องพัก</Link>
             <Link to="/Roomhistory" className="block text-gray-700 dark:text-white hover:text-indigo-600">ประวัติการจอง</Link>
+            <Link to="/mybills" className="block text-gray-700 dark:text-white hover:text-indigo-600">บิล/ชำระเงิน</Link>
             <Link to="/Profile" className="block text-gray-700 dark:text-white hover:text-indigo-600">บัญชีผู้ใช้</Link>
           </div>
         </div>
