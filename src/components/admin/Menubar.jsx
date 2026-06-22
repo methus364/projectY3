@@ -72,6 +72,12 @@ const Menubar = () => {
           </li>
 
           <li>
+            <NavLink to="/admin/contracts" className={navLinkStyles}>
+              <KeyIcon className="h-6 w-6" />
+              <span className="ml-3">Contracts</span>
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/admin/repair" className={navLinkStyles}>
               <CalendarDaysIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
               <span className="ml-3">Repair</span>

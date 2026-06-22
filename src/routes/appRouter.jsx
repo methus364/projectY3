@@ -20,6 +20,7 @@ import Money from "../page/admin/Money";
 import Bookingmanagement from "../page/admin/Bookingmanagement";
 import RepairRequest from "../page/user/RepairRequest";
 import MyBills from "../page/user/MyBills";
+import Contracts from "../page/admin/Contracts";
 
 // รวม Router สำหรับเปลี่ยนไปหน้าต่างๆ
 const router = createBrowserRouter([
@@ -33,6 +34,7 @@ const router = createBrowserRouter([
       { path: "products", element: <Products /> },
       { path: "customers", element: <Customer /> },
       { path: "bill", element: <Bill /> },
+      { path: "contracts", element: <Contracts /> },
       { path: "massage", element: <Massage /> },
       { path: "booking", element: <Booking /> },
       { path: "repair", element: <Repair /> },
