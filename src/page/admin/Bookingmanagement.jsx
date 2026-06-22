@@ -9,15 +9,7 @@ const getAuthHeader = () => {
     return { headers: { Authorization: `Bearer ${token}` } };
 };
 
-const getLoggedInUser = () => {
-    try {
-        return JSON.parse(localStorage.getItem('user')) || {};
-    } catch {
-        return {};
-    }
-};
-
-// แปลง booking_status ภาษาไทย (DB) → key ภาษาอังกฤษ (UI)
+// แมป booking_status (DB) → key ภาษาอังกฤษ (UI)
 const STATUS_TO_UI = {
     'รอชำระมัดจำ':  'pending',
     'ยืนยันการจอง': 'confirmed',
@@ -26,7 +18,6 @@ const STATUS_TO_UI = {
     'ย้ายออกแล้ว':  'checkout',
 };
 
-// แปลงกลับ UI key → ภาษาไทย (DB)
 const UI_TO_STATUS = {
     pending:   'รอชำระมัดจำ',
     confirmed: 'ยืนยันการจอง',
@@ -35,7 +26,6 @@ const UI_TO_STATUS = {
     checkout:  'ย้ายออกแล้ว',
 };
 
-// Label สำหรับแสดงใน UI
 const STATUS_LABEL = {
     pending:   'รอชำระมัดจำ',
     confirmed: 'ยืนยันการจอง',
@@ -44,7 +34,6 @@ const STATUS_LABEL = {
     checkout:  'ย้ายออกแล้ว',
 };
 
-// สีแต่ละสถานะ
 const STATUS_COLOR = {
     pending:   'bg-yellow-50 text-yellow-700 border-yellow-200',
     confirmed: 'bg-green-50 text-green-700 border-green-200',
@@ -53,9 +42,20 @@ const STATUS_COLOR = {
     checkout:  'bg-gray-50 text-gray-500 border-gray-200',
 };
 
+const RENT_TYPE_LABEL = {
+    daily:   'รายวัน',
+    monthly: 'รายเดือน',
+};
+
+const RENT_TYPE_COLOR = {
+    daily:   'bg-indigo-50 text-indigo-600',
+    monthly: 'bg-teal-50 text-teal-600',
+};
+
 const Bookingmanagement = () => {
     const [bookings, setBookings] = useState([]);
     const [rooms, setRooms] = useState([]);
+    const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -64,25 +64,27 @@ const Bookingmanagement = () => {
     const [currentBooking, setCurrentBooking] = useState(null);
 
     // ==========================================
-    // 1. ดึงการจองทั้งหมด (Admin endpoint)
+    // 1. ดึงการจองทั้งหมด
     // ==========================================
     const fetchBookings = async () => {
         try {
             setLoading(true);
             const response = await axios.get(`${API}/admin/bookings`, getAuthHeader());
             if (response.data.success) {
-                const formattedData = response.data.data.map(item => ({
-                    id: item.bookingId,
-                    memberId: item.memberId,
-                    roomId: item.roomId,
-                    guestName: item.guestName || item.username || 'ไม่ระบุชื่อ',
-                    checkInDate: item.checkInDate ? item.checkInDate.split('T')[0] : '',
-                    checkOutDate: item.checkOutDate ? item.checkOutDate.split('T')[0] : '',
-                    status: STATUS_TO_UI[item.bookingStatus] || 'pending',
-                    roomName: item.roomNumber,
-                    pricePerDay: item.pricePerDay,
+                const formatted = response.data.data.map(item => ({
+                    id:            item.bookingId,
+                    memberId:      item.memberId,
+                    roomId:        item.roomId,
+                    guestName:     item.guestName || item.username || 'ไม่ระบุชื่อ',
+                    checkInDate:   item.checkInDate  ? item.checkInDate.split('T')[0]  : '',
+                    checkOutDate:  item.checkOutDate ? item.checkOutDate.split('T')[0] : '',
+                    status:        STATUS_TO_UI[item.bookingStatus] || 'pending',
+                    rentType:      item.rentType || 'daily',
+                    roomName:      item.roomNumber,
+                    pricePerDay:   item.pricePerDay,
+                    priceMonthly:  item.priceMonthly,
                 }));
-                setBookings(formattedData);
+                setBookings(formatted);
             }
         } catch (error) {
             console.error("Fetch Bookings Error:", error);
@@ -93,7 +95,7 @@ const Bookingmanagement = () => {
     };
 
     // ==========================================
-    // 2. ดึงห้องพักทั้งหมดสำหรับตัวเลือกใน Modal
+    // 2. ดึงห้องพักทั้งหมด
     // ==========================================
     const fetchRooms = async () => {
         try {
@@ -106,13 +108,28 @@ const Bookingmanagement = () => {
         }
     };
 
+    // ==========================================
+    // 3. ดึงรายชื่อสมาชิกทั้งหมด (สำหรับเลือกตอนสร้างการจอง)
+    // ==========================================
+    const fetchMembers = async () => {
+        try {
+            const res = await axios.get(`${API}/members`, getAuthHeader());
+            if (res.data.success) {
+                setMembers(res.data.data);
+            }
+        } catch (error) {
+            console.error("Error fetching members:", error);
+        }
+    };
+
     useEffect(() => {
         fetchBookings();
         fetchRooms();
+        fetchMembers();
     }, []);
 
     // ==========================================
-    // 3. Logic การกรองข้อมูล
+    // 4. Logic การกรองข้อมูล
     // ==========================================
     const filteredBookings = bookings.filter(booking => {
         const matchesSearch =
@@ -125,17 +142,19 @@ const Bookingmanagement = () => {
     });
 
     // ==========================================
-    // 4. จัดการเปิด/ปิด Modal
+    // 5. Modal จัดการการจอง
     // ==========================================
     const openBookingModal = (booking = null) => {
         const availableRoom = rooms.find(r => r.status === 'ว่าง');
         setCurrentBooking(booking || {
-            id: null,
-            roomId: availableRoom?.id || '',
-            guestName: '',
-            checkInDate: new Date().toISOString().split('T')[0],
+            id:           null,
+            roomId:       availableRoom?.id || '',
+            memberId:     '',
+            guestName:    '',
+            checkInDate:  new Date().toISOString().split('T')[0],
             checkOutDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-            status: 'pending',
+            status:       'pending',
+            rentType:     'daily',
         });
         setIsBookingModalOpen(true);
     };
@@ -151,12 +170,11 @@ const Bookingmanagement = () => {
     };
 
     // ==========================================
-    // 5. บันทึกข้อมูลการจอง (สร้างใหม่ / แก้ไข)
+    // 6. บันทึกการจอง (สร้างใหม่ / แก้ไข)
     // ==========================================
     const handleSaveBooking = async (e) => {
         e.preventDefault();
         const dbStatus = UI_TO_STATUS[currentBooking.status] || 'รอชำระมัดจำ';
-        const currentUser = getLoggedInUser();
 
         try {
             if (currentBooking.id) {
@@ -164,23 +182,28 @@ const Bookingmanagement = () => {
                 await axios.put(
                     `${API}/editBooking/${currentBooking.id}`,
                     {
-                        roomId: parseInt(currentBooking.roomId),
+                        roomId:    parseInt(currentBooking.roomId),
                         startDate: currentBooking.checkInDate,
-                        endDate: currentBooking.checkOutDate,
-                        status: dbStatus,
+                        endDate:   currentBooking.checkOutDate,
+                        status:    dbStatus,
                     },
                     getAuthHeader()
                 );
                 alert("แก้ไขข้อมูลการจองสำเร็จ");
             } else {
-                // สร้างการจองใหม่โดย Admin (ใช้ userId ของ admin)
+                // สร้างการจองใหม่โดย Admin — ต้องระบุสมาชิกที่จอง
+                if (!currentBooking.memberId) {
+                    alert("กรุณาเลือกสมาชิกที่ต้องการจอง");
+                    return;
+                }
                 await axios.post(
                     `${API}/admin/booking`,
                     {
-                        roomId: parseInt(currentBooking.roomId),
-                        userId: currentUser.id,
+                        roomId:    parseInt(currentBooking.roomId),
+                        userId:    parseInt(currentBooking.memberId),
                         startDate: currentBooking.checkInDate,
-                        endDate: currentBooking.checkOutDate,
+                        endDate:   currentBooking.checkOutDate,
+                        rentType:  currentBooking.rentType,
                     },
                     getAuthHeader()
                 );
@@ -194,16 +217,12 @@ const Bookingmanagement = () => {
     };
 
     // ==========================================
-    // 6. ยกเลิกรายการจอง
+    // 7. ยกเลิกการจอง
     // ==========================================
-    const handleDeleteBooking = async (id) => {
+    const handleCancelBooking = async (id) => {
         if (window.confirm("คุณต้องการยกเลิกการจองนี้ใช่หรือไม่?")) {
             try {
-                await axios.put(
-                    `${API}/editBooking/${id}`,
-                    { status: 'ยกเลิก' },
-                    getAuthHeader()
-                );
+                await axios.put(`${API}/editBooking/${id}`, { status: 'ยกเลิก' }, getAuthHeader());
                 alert("ยกเลิกการจองสำเร็จ");
                 fetchBookings();
             } catch (error) {
@@ -213,9 +232,43 @@ const Bookingmanagement = () => {
         }
     };
 
+    // ==========================================
+    // 8. เช็คอิน / เช็คเอาท์ (Quick Action)
+    // ==========================================
+    const handleCheckIn = async (id) => {
+        if (window.confirm("ยืนยันเช็คอินสำหรับการจองนี้?")) {
+            try {
+                await axios.put(`${API}/admin/booking/${id}/checkin`, {}, getAuthHeader());
+                alert("เช็คอินสำเร็จ");
+                fetchBookings();
+            } catch (error) {
+                alert(error.response?.data?.message || "เช็คอินไม่สำเร็จ");
+            }
+        }
+    };
+
+    const handleCheckOut = async (id) => {
+        if (window.confirm("ยืนยันเช็คเอาท์สำหรับการจองนี้?")) {
+            try {
+                await axios.put(`${API}/admin/booking/${id}/checkout`, {}, getAuthHeader());
+                alert("เช็คเอาท์สำเร็จ");
+                fetchBookings();
+            } catch (error) {
+                alert(error.response?.data?.message || "เช็คเอาท์ไม่สำเร็จ");
+            }
+        }
+    };
+
     if (loading) return <div className="p-10 text-center font-bold text-gray-500">กำลังโหลดข้อมูลระบบจอง...</div>;
 
+    // กรองห้องว่างสำหรับ dropdown สร้างการจอง
     const availableRooms = rooms.filter(r => r.status === 'ว่าง');
+
+    // กรองห้องตาม rentType ที่เลือก (แสดงเฉพาะห้องที่มีราคาประเภทนั้น)
+    const filteredRoomsByRentType = availableRooms.filter(r => {
+        if (currentBooking?.rentType === 'monthly') return r.priceMonthly != null;
+        return r.price != null;
+    });
 
     return (
         <div className="bg-gray-50 min-h-screen pb-10">
@@ -232,7 +285,7 @@ const Bookingmanagement = () => {
                     </button>
                 </div>
 
-                {/* Filter Section */}
+                {/* ส่วน Filter */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-gray-50 p-5 rounded-2xl border border-gray-100">
                     <div>
                         <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">ค้นหาห้อง/ชื่อลูกค้า</label>
@@ -280,36 +333,76 @@ const Bookingmanagement = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-800 text-white text-xs uppercase">
                             <tr>
-                                <th className="px-6 py-4 text-left font-bold">ห้อง</th>
-                                <th className="px-6 py-4 text-left font-bold">ลูกค้า</th>
-                                <th className="px-6 py-4 text-left font-bold">เช็คอิน - เช็คเอาท์</th>
-                                <th className="px-6 py-4 text-left font-bold">ราคา/วัน</th>
-                                <th className="px-6 py-4 text-left font-bold">สถานะ</th>
-                                <th className="px-6 py-4 text-center font-bold">จัดการ</th>
+                                <th className="px-4 py-4 text-left font-bold">ห้อง</th>
+                                <th className="px-4 py-4 text-left font-bold">ลูกค้า</th>
+                                <th className="px-4 py-4 text-left font-bold">เช็คอิน — เช็คเอาท์</th>
+                                <th className="px-4 py-4 text-left font-bold">ประเภท / ราคา</th>
+                                <th className="px-4 py-4 text-left font-bold">สถานะ</th>
+                                <th className="px-4 py-4 text-center font-bold">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-100">
                             {filteredBookings.length > 0 ? (
                                 filteredBookings.map(booking => (
                                     <tr key={booking.id} className="hover:bg-blue-50/30 transition-colors">
-                                        <td className="px-6 py-4 font-black text-blue-600">ห้อง {booking.roomName}</td>
-                                        <td className="px-6 py-4 font-medium">{booking.guestName}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">
+                                        <td className="px-4 py-4 font-black text-blue-600">ห้อง {booking.roomName}</td>
+                                        <td className="px-4 py-4 font-medium">{booking.guestName}</td>
+                                        <td className="px-4 py-4 text-sm text-gray-500">
                                             {booking.checkInDate} <span className="mx-1 text-gray-300">|</span> {booking.checkOutDate}
                                         </td>
-                                        <td className="px-6 py-4 font-bold text-gray-700">
-                                            ฿{booking.pricePerDay ? Number(booking.pricePerDay).toLocaleString() : '0'}
+                                        <td className="px-4 py-4">
+                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${RENT_TYPE_COLOR[booking.rentType] || 'bg-gray-100 text-gray-500'}`}>
+                                                {RENT_TYPE_LABEL[booking.rentType] || booking.rentType}
+                                            </span>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {booking.rentType === 'monthly'
+                                                    ? `฿${booking.priceMonthly ? Number(booking.priceMonthly).toLocaleString() : '0'}/เดือน`
+                                                    : `฿${booking.pricePerDay  ? Number(booking.pricePerDay).toLocaleString()  : '0'}/วัน`
+                                                }
+                                            </p>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-4">
                                             <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${STATUS_COLOR[booking.status] || 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                                                 {STATUS_LABEL[booking.status] || booking.status}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 flex justify-center gap-4 text-sm">
-                                            <button onClick={() => openBookingModal(booking)} className="text-blue-500 font-bold hover:underline">แก้ไข</button>
-                                            {booking.status !== 'cancelled' && booking.status !== 'checkout' && (
-                                                <button onClick={() => handleDeleteBooking(booking.id)} className="text-red-400 font-bold hover:underline">ยกเลิก</button>
-                                            )}
+                                        <td className="px-4 py-4">
+                                            <div className="flex flex-wrap justify-center gap-2 text-xs">
+                                                {/* Quick action: เช็คอิน */}
+                                                {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                                                    <button
+                                                        onClick={() => handleCheckIn(booking.id)}
+                                                        className="px-2 py-1 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600"
+                                                    >
+                                                        เช็คอิน
+                                                    </button>
+                                                )}
+                                                {/* Quick action: เช็คเอาท์ */}
+                                                {booking.status === 'checkin' && (
+                                                    <button
+                                                        onClick={() => handleCheckOut(booking.id)}
+                                                        className="px-2 py-1 bg-gray-600 text-white rounded-lg font-bold hover:bg-gray-700"
+                                                    >
+                                                        เช็คเอาท์
+                                                    </button>
+                                                )}
+                                                {/* แก้ไข */}
+                                                <button
+                                                    onClick={() => openBookingModal(booking)}
+                                                    className="text-blue-500 font-bold hover:underline"
+                                                >
+                                                    แก้ไข
+                                                </button>
+                                                {/* ยกเลิก */}
+                                                {booking.status !== 'cancelled' && booking.status !== 'checkout' && (
+                                                    <button
+                                                        onClick={() => handleCancelBooking(booking.id)}
+                                                        className="text-red-400 font-bold hover:underline"
+                                                    >
+                                                        ยกเลิก
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -336,6 +429,45 @@ const Bookingmanagement = () => {
                             {currentBooking.id ? 'แก้ไขข้อมูลการจอง' : 'เพิ่มการจองใหม่'}
                         </h2>
                         <div className="space-y-5">
+
+                            {/* เลือกสมาชิก (เฉพาะสร้างใหม่) */}
+                            {!currentBooking.id && (
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">เลือกสมาชิก</label>
+                                    <select
+                                        name="memberId"
+                                        value={currentBooking.memberId}
+                                        onChange={handleBookingChange}
+                                        required
+                                        className="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 focus:border-blue-500 outline-none transition-all"
+                                    >
+                                        <option value="">-- เลือกสมาชิก --</option>
+                                        {members.map(m => (
+                                            <option key={m.member_id} value={m.member_id}>
+                                                {m.full_name} ({m.username})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* เลือกประเภทการเช่า (เฉพาะสร้างใหม่) */}
+                            {!currentBooking.id && (
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">ประเภทการเช่า</label>
+                                    <select
+                                        name="rentType"
+                                        value={currentBooking.rentType}
+                                        onChange={handleBookingChange}
+                                        className="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 focus:border-blue-500 outline-none transition-all"
+                                    >
+                                        <option value="daily">รายวัน</option>
+                                        <option value="monthly">รายเดือน</option>
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* เลือกห้องพัก */}
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">เลือกห้องพัก</label>
                                 <select
@@ -347,17 +479,23 @@ const Bookingmanagement = () => {
                                 >
                                     {currentBooking.id ? (
                                         <option value={currentBooking.roomId}>ห้อง {currentBooking.roomName}</option>
-                                    ) : availableRooms.length > 0 ? (
-                                        availableRooms.map(room => (
+                                    ) : filteredRoomsByRentType.length > 0 ? (
+                                        filteredRoomsByRentType.map(room => (
                                             <option key={room.id} value={room.id}>
-                                                ห้อง {room.number} ({room.typeName || 'ทั่วไป'} - ฿{room.price}/วัน)
+                                                ห้อง {room.number} ({room.typeName || 'ทั่วไป'} —{' '}
+                                                {currentBooking.rentType === 'monthly'
+                                                    ? `฿${room.priceMonthly}/เดือน`
+                                                    : `฿${room.price}/วัน`
+                                                })
                                             </option>
                                         ))
                                     ) : (
-                                        <option value="">--- ไม่มีห้องว่างให้เลือก ---</option>
+                                        <option value="">--- ไม่มีห้องว่างสำหรับประเภทนี้ ---</option>
                                     )}
                                 </select>
                             </div>
+
+                            {/* วันเช็คอิน/เช็คเอาท์ */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">เช็คอิน</label>
@@ -368,17 +506,22 @@ const Bookingmanagement = () => {
                                     <input type="date" name="checkOutDate" value={currentBooking.checkOutDate} onChange={handleBookingChange} className="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none focus:border-blue-500" />
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">สถานะการจอง</label>
-                                <select name="status" value={currentBooking.status} onChange={handleBookingChange} className="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none focus:border-blue-500">
-                                    <option value="pending">รอชำระมัดจำ</option>
-                                    <option value="confirmed">ยืนยันการจอง</option>
-                                    <option value="checkin">กำลังเข้าพัก</option>
-                                    <option value="cancelled">ยกเลิก</option>
-                                    <option value="checkout">ย้ายออกแล้ว</option>
-                                </select>
-                            </div>
+
+                            {/* สถานะ (เฉพาะแก้ไข) */}
+                            {currentBooking.id && (
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">สถานะการจอง</label>
+                                    <select name="status" value={currentBooking.status} onChange={handleBookingChange} className="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none focus:border-blue-500">
+                                        <option value="pending">รอชำระมัดจำ</option>
+                                        <option value="confirmed">ยืนยันการจอง</option>
+                                        <option value="checkin">กำลังเข้าพัก</option>
+                                        <option value="cancelled">ยกเลิก</option>
+                                        <option value="checkout">ย้ายออกแล้ว</option>
+                                    </select>
+                                </div>
+                            )}
                         </div>
+
                         <div className="flex justify-end gap-3 mt-8">
                             <button type="button" onClick={closeBookingModal} className="px-6 py-3 text-gray-400 font-bold hover:bg-gray-100 rounded-xl transition-all">ยกเลิก</button>
                             <button type="submit" className="bg-blue-600 text-white px-8 py-3 rounded-xl font-black shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all">
