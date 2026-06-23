@@ -1,4 +1,5 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { AdminRoute, PrivateRoute } from './ProtectedRoute';
 import Home from "../page/user/Home";
 import Login from "../page/user/Login";
 import Rooms from "../page/admin/Rooms";
@@ -27,9 +28,9 @@ import AuditLogs from "../page/admin/AuditLogs";
 // รวม Router สำหรับเปลี่ยนไปหน้าต่างๆ
 const router = createBrowserRouter([
   {
-    // router ฝั่ง admin
+    // router ฝั่ง admin — ต้องเป็น Admin เท่านั้น (AdminRoute กัน tenant เข้าไม่ได้)
     path: "/admin",
-    element: <LayoutAdmin />,
+    element: <AdminRoute><LayoutAdmin /></AdminRoute>,
     children: [
       { index: true, element: <Dashbord /> },
       { path: "rooms", element: <Rooms /> },
@@ -45,23 +46,24 @@ const router = createBrowserRouter([
       { path: "bookingmanagement", element: <Bookingmanagement /> },
     ],
   },
-// router ฝั่ง user
+  // router ฝั่ง user
   {
     path: "/",
     children: [
-      { index: true, element: <Home/> },
+      // หน้าสาธารณะ — เข้าได้ทุกคน
+      { index: true, element: <Home /> },
       { path: "home", element: <Home /> },
       { path: "login", element: <Login /> },
       { path: "register", element: <Register /> },
+      { path: "contact", element: <Contact /> },
       { path: "roomuser", element: <Roomuser /> },
-      { path: "roomhistory", element: <Roomhistory/> },
-      { path: "profile", element: <Profile/> },
-      { path: "Editprofile", element: <Editprofile/> },
-      { path: "contact", element: <Contact/> },
-      { path: "repairrequest", element: <RepairRequest/> },
-      { path: "mybills", element: <MyBills/> },
-      { path: "auth/line/callback", element: <LineCallback/> },
-
+      { path: "auth/line/callback", element: <LineCallback /> },
+      // หน้าส่วนตัว — ต้อง login (PrivateRoute redirect ไป /login ถ้ายังไม่มี token)
+      { path: "roomhistory", element: <PrivateRoute><Roomhistory /></PrivateRoute> },
+      { path: "profile", element: <PrivateRoute><Profile /></PrivateRoute> },
+      { path: "Editprofile", element: <PrivateRoute><Editprofile /></PrivateRoute> },
+      { path: "repairrequest", element: <PrivateRoute><RepairRequest /></PrivateRoute> },
+      { path: "mybills", element: <PrivateRoute><MyBills /></PrivateRoute> },
     ],
   },
 ]);
