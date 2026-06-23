@@ -1,1 +1,69 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+/* ============================================================
+   CSS variables — โทนสีหอพัก Around Loei (teal + blue)
+   ค่าด้านล่างใช้ได้ทั้ง light/dark โดยพลิกที่ .dark เท่านั้น
+   ============================================================ */
+:root {
+  --primary:           #0F766E;
+  --primary-fg:        #ffffff;
+  --secondary:         #14B8A6;
+  --accent:            #0369A1;
+  --background:        #F0FDFA;
+  --foreground:        #134E4A;
+  --card:              #ffffff;
+  --card-fg:           #134E4A;
+  --muted:             #CCFBF1;
+  --muted-fg:          #0F766E;
+  --border-col:        #99F6E4;
+  --destructive:       #DC2626;
+  --destructive-fg:    #ffffff;
+  --shadow-color:      0 1px 3px rgb(15 118 110 / 0.12);
+}
+
+/* Dark mode — พลิกค่าที่นี่ที่เดียว หน้าที่ใช้ token ได้ dark เลย */
+.dark {
+  --primary:           #14B8A6;
+  --primary-fg:        #0C1C1A;
+  --background:        #0C1C1A;
+  --foreground:        #CCFBF1;
+  --card:              #1A2E2B;
+  --card-fg:           #CCFBF1;
+  --muted:             #1F3A36;
+  --muted-fg:          #5EEAD4;
+  --border-col:        #2D4A46;
+  --destructive:       #EF4444;
+  --destructive-fg:    #ffffff;
+  --shadow-color:      0 1px 3px rgb(0 0 0 / 0.4);
+}
+
+/* map CSS variable → Tailwind utility (bg-primary, text-foreground ฯลฯ)
+   @theme inline: ให้ Tailwind อ่านค่าจาก var() แบบ dynamic (เปลี่ยนตาม .dark) */
+@theme inline {
+  --color-primary:              var(--primary);
+  --color-primary-foreground:   var(--primary-fg);
+  --color-secondary:            var(--secondary);
+  --color-accent:               var(--accent);
+  --color-background:           var(--background);
+  --color-foreground:           var(--foreground);
+  --color-card:                 var(--card);
+  --color-card-foreground:      var(--card-fg);
+  --color-muted:                var(--muted);
+  --color-muted-foreground:     var(--muted-fg);
+  --color-border:               var(--border-col);
+  --color-destructive:          var(--destructive);
+  --color-destructive-foreground: var(--destructive-fg);
+  --font-sans:                  'Sarabun', sans-serif;
+  --radius:                     0.5rem;
+}
+
+/* Base — ทำให้ฟอนต์ Sarabun ใช้ทั้งระบบ */
+html {
+  font-family: 'Sarabun', sans-serif;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}

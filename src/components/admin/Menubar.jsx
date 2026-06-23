@@ -1,117 +1,82 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-
-// Import icons จาก Heroicons (อัปเดตรายการไอคอน)
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   ChartPieIcon,
+  KeyIcon,
+  CalendarDaysIcon,
   ShoppingBagIcon,
   UsersIcon,
-  Cog6ToothIcon,
+  ReceiptPercentIcon,
+  DocumentTextIcon,
+  WrenchScrewdriverIcon,
+  BanknotesIcon,
+  ClipboardDocumentListIcon,
   ArrowRightOnRectangleIcon,
-  KeyIcon, // ไอคอนสำหรับ Rooms
-  ReceiptPercentIcon, // ไอคอนสำหรับ Bill
-  HandRaisedIcon, // ไอคอนสำหรับ Massage
-  CalendarDaysIcon, // ไอคอนสำหรับ Booking
 } from '@heroicons/react/24/solid';
+import ThemeToggle from '../ui/ThemeToggle';
+
+// สไตล์ลิงก์ sidebar: active = primary, ปกติ = foreground พ่น hover
+const navLinkClass = ({ isActive }) =>
+  isActive
+    ? 'flex items-center gap-3 rounded-lg px-3 py-2 bg-primary text-primary-foreground'
+    : 'flex items-center gap-3 rounded-lg px-3 py-2 text-card-foreground hover:bg-muted transition';
+
+const menuItems = [
+  { to: '/admin',                  icon: ChartPieIcon,              label: 'แดชบอร์ด',     end: true },
+  { to: '/admin/rooms',            icon: KeyIcon,                   label: 'ห้องพัก' },
+  { to: '/admin/bookingmanagement',icon: CalendarDaysIcon,          label: 'การจอง' },
+  { to: '/admin/booking',          icon: CalendarDaysIcon,          label: 'ปฏิทินจอง' },
+  { to: '/admin/products',         icon: ShoppingBagIcon,           label: 'สินค้า/ขายของ' },
+  { to: '/admin/customers',        icon: UsersIcon,                 label: 'สมาชิก' },
+  { to: '/admin/bill',             icon: ReceiptPercentIcon,        label: 'บิล/ใบแจ้งหนี้' },
+  { to: '/admin/money',            icon: BanknotesIcon,             label: 'การชำระเงิน' },
+  { to: '/admin/contracts',        icon: DocumentTextIcon,          label: 'สัญญาเช่า' },
+  { to: '/admin/repair',           icon: WrenchScrewdriverIcon,     label: 'แจ้งซ่อม' },
+  { to: '/admin/audit-logs',       icon: ClipboardDocumentListIcon, label: 'บันทึกกิจกรรม' },
+];
 
 const Menubar = () => {
-  // ฟังก์ชันสำหรับจัดการสไตล์ของ NavLink
-  const navLinkStyles = ({ isActive }) =>
-    isActive
-      ? 'flex items-center p-2 rounded-lg bg-blue-600 text-white' // สไตล์เมื่อ Active
-      : 'flex items-center p-2 rounded-lg text-gray-100 hover:bg-gray-700'; // สไตล์ปกติ
+  const navigate = useNavigate();
+
+  // ล้าง session แล้ว redirect ไปหน้า login
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
 
   return (
-    <div className="flex h-screen w-72 flex-col bg-gray-900 p-4 text-white">
-      {/* ส่วนหัวของ Sidebar */}
-      <div className="mb-6 flex items-center">
-        <svg className="mr-3 h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h12A2.25 2.25 0 0 0 20.25 14.25V3m-16.5 0h16.5m-16.5 0v6.75A2.25 2.25 0 0 0 6 12h12a2.25 2.25 0 0 0 2.25-2.25V3" />
-        </svg>
-        <span className="text-2xl font-semibold">Admin Panel</span>
+    <div className="flex h-screen w-64 flex-col bg-card border-r border-border p-4">
+
+      {/* หัว sidebar — text logo + ปุ่ม dark mode */}
+      <div className="mb-6 flex items-center justify-between">
+        <span className="text-xl font-bold text-primary">Around Loei</span>
+        <ThemeToggle />
       </div>
 
       {/* รายการเมนู */}
-      <nav className="flex-grow">
-        <ul className="space-y-2">
-          <li>
-            <NavLink to="/admin" className={navLinkStyles}>
-              <ChartPieIcon className="h-6 w-6" />
-              <span className="ml-3">Dashboard</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/admin/rooms" className={navLinkStyles}>
-              <KeyIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
-              <span className="ml-3">Rooms</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/admin/Bookingmanagement" className={navLinkStyles}>
-              <CalendarDaysIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
-              <span className="ml-3">Booking</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/admin/products" className={navLinkStyles}>
-              <ShoppingBagIcon className="h-6 w-6" />
-              <span className="ml-3">Products</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/admin/customers" className={navLinkStyles}>
-              <UsersIcon className="h-6 w-6" />
-              <span className="ml-3">Customers</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/admin/bill" className={navLinkStyles}>
-              <ReceiptPercentIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
-              <span className="ml-3">Bill</span>
-            </NavLink>
-          </li>
-
-          <li>
-            <NavLink to="/admin/contracts" className={navLinkStyles}>
-              <KeyIcon className="h-6 w-6" />
-              <span className="ml-3">Contracts</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/admin/repair" className={navLinkStyles}>
-              <CalendarDaysIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
-              <span className="ml-3">Repair</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/admin/money" className={navLinkStyles}>
-              <CalendarDaysIcon className="h-6 w-6" /> {/* เปลี่ยนไอคอน */}
-              <span className="ml-3">Money</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/admin/audit-logs" className={navLinkStyles}>
-              <Cog6ToothIcon className="h-6 w-6" />
-              <span className="ml-3">Audit Log</span>
-            </NavLink>
-          </li>
+      <nav className="flex-1 overflow-y-auto">
+        <ul className="space-y-1">
+          {menuItems.map(({ to, icon: Icon, label, end }) => (
+            <li key={to}>
+              <NavLink to={to} end={end} className={navLinkClass}>
+                <Icon className="h-5 w-5 shrink-0" />
+                <span>{label}</span>
+              </NavLink>
+            </li>
+          ))}
         </ul>
       </nav>
 
-      {/* ส่วนโปรไฟล์ผู้ใช้ด้านล่าง */}
-      <div className="mt-auto">
-        <div className="p-2">
-          <a href="#" className={navLinkStyles({ isActive: false })}>
-            <Cog6ToothIcon className="h-6 w-6" />
-            <span className="ml-3">Settings</span>
-          </a>
-        </div>
-        <div className="border-t border-gray-700 p-2">
-          <a href="#" className={navLinkStyles({ isActive: false })}>
-            <ArrowRightOnRectangleIcon className="h-6 w-6" />
-            <span className="ml-3">Sign Out</span>
-          </a>
-        </div>
+      {/* ปุ่ม Sign Out ด้านล่าง */}
+      <div className="border-t border-border pt-3">
+        <button
+          onClick={handleSignOut}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-destructive hover:bg-muted transition"
+        >
+          <ArrowRightOnRectangleIcon className="h-5 w-5 shrink-0" />
+          <span>ออกจากระบบ</span>
+        </button>
       </div>
     </div>
   );
