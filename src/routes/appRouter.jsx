@@ -21,6 +21,7 @@ import Bookingmanagement from "../page/admin/Bookingmanagement";
 import RepairRequest from "../page/user/RepairRequest";
 import MyBills from "../page/user/MyBills";
 import Contracts from "../page/admin/Contracts";
+import AuditLogs from "../page/admin/AuditLogs";
 
 // รวม Router สำหรับเปลี่ยนไปหน้าต่างๆ
 const router = createBrowserRouter([
@@ -35,6 +36,7 @@ const router = createBrowserRouter([
       { path: "customers", element: <Customer /> },
       { path: "bill", element: <Bill /> },
       { path: "contracts", element: <Contracts /> },
+      { path: "audit-logs", element: <AuditLogs /> },
       { path: "massage", element: <Massage /> },
       { path: "booking", element: <Booking /> },
       { path: "repair", element: <Repair /> },

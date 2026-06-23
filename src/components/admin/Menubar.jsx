@@ -89,6 +89,12 @@ const Menubar = () => {
               <span className="ml-3">Money</span>
             </NavLink>
           </li>
+          <li>
+            <NavLink to="/admin/audit-logs" className={navLinkStyles}>
+              <Cog6ToothIcon className="h-6 w-6" />
+              <span className="ml-3">Audit Log</span>
+            </NavLink>
+          </li>
         </ul>
       </nav>
 
