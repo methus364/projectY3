@@ -26,6 +26,9 @@ const Rooms = () => {
         deposit_amount: '',
         image_url: '',
         room_status: 'ว่าง',
+        description: '',
+        amenities: '',   // กรอกคั่นด้วยจุลภาค เช่น "แอร์,ตู้เย็น,Wi-Fi"
+        room_size: '',
     };
     const [form, setForm] = useState(initialForm);
 
@@ -57,6 +60,10 @@ const Rooms = () => {
                 deposit_amount: room.depositAmount || '',
                 image_url: room.imageUrl || '',
                 room_status: room.status,
+                description: room.description || '',
+                // amenities เก็บเป็น array ใน DB → แสดงเป็น string คั่นจุลภาคในฟอร์ม
+                amenities: Array.isArray(room.amenities) ? room.amenities.join(', ') : '',
+                room_size: room.roomSize || '',
             });
         } else {
             setForm(initialForm);
@@ -68,6 +75,11 @@ const Rooms = () => {
     const handleSave = async (e) => {
         e.preventDefault();
         try {
+            // แปลง amenities string → array ก่อนส่ง backend
+            const amenitiesArray = form.amenities
+                ? form.amenities.split(',').map(s => s.trim()).filter(Boolean)
+                : null;
+
             const payload = {
                 number: form.number,
                 room_status: form.room_status,
@@ -76,6 +88,9 @@ const Rooms = () => {
                 price_monthly: form.price_monthly !== '' ? Number(form.price_monthly) : null,
                 deposit_amount: form.deposit_amount !== '' ? Number(form.deposit_amount) : null,
                 image_url: form.image_url || null,
+                description: form.description || null,
+                amenities: amenitiesArray,
+                room_size: form.room_size !== '' ? Number(form.room_size) : null,
             };
 
             if (form.id) {
@@ -209,6 +224,28 @@ const Rooms = () => {
                                         {selectedRoom.depositAmount ? `฿${Number(selectedRoom.depositAmount).toLocaleString()}` : '-'}
                                     </span>
                                 </div>
+                                {selectedRoom.roomSize && (
+                                    <div className="flex justify-between border-b pb-2">
+                                        <span className="font-bold">ขนาดห้อง:</span>
+                                        <span className="text-blue-600 font-black">{selectedRoom.roomSize} ตร.ม.</span>
+                                    </div>
+                                )}
+                                {selectedRoom.description && (
+                                    <div className="border-b pb-2">
+                                        <span className="font-bold block mb-1">คำอธิบาย:</span>
+                                        <span className="text-gray-600 text-sm">{selectedRoom.description}</span>
+                                    </div>
+                                )}
+                                {selectedRoom.amenities?.length > 0 && (
+                                    <div>
+                                        <span className="font-bold block mb-2">สิ่งอำนวยความสะดวก:</span>
+                                        <div className="flex flex-wrap gap-1">
+                                            {selectedRoom.amenities.map((a, i) => (
+                                                <span key={i} className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">{a}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div className="grid grid-cols-3 gap-3">
                                 <button onClick={() => { openModal(selectedRoom); setSelectedRoom(null); }}
@@ -280,6 +317,35 @@ const Rooms = () => {
                                     onChange={(e) => setForm({ ...form, image_url: e.target.value })}
                                     placeholder="https://..."
                                     className="w-full bg-gray-50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+                            </div>
+
+                            {/* ขนาดห้อง */}
+                            <div>
+                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">ขนาดห้อง (ตร.ม.)</label>
+                                <input type="number" min="0" value={form.room_size}
+                                    onChange={(e) => setForm({ ...form, room_size: e.target.value })}
+                                    placeholder="เช่น 25"
+                                    className="w-full bg-gray-50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+                            </div>
+
+                            {/* สิ่งอำนวยความสะดวก */}
+                            <div>
+                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">สิ่งอำนวยความสะดวก</label>
+                                <input type="text" value={form.amenities}
+                                    onChange={(e) => setForm({ ...form, amenities: e.target.value })}
+                                    placeholder="แอร์, Wi-Fi, ตู้เย็น"
+                                    className="w-full bg-gray-50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+                                <p className="text-xs text-gray-400 mt-1">คั่นด้วยจุลภาค (,)</p>
+                            </div>
+
+                            {/* คำอธิบายห้อง */}
+                            <div className="col-span-2">
+                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">คำอธิบายห้อง</label>
+                                <textarea value={form.description}
+                                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                                    placeholder="รายละเอียดเพิ่มเติมเกี่ยวกับห้องพัก..."
+                                    rows={3}
+                                    className="w-full bg-gray-50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
                             </div>
 
                             {/* สถานะห้อง */}
