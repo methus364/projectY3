@@ -48,9 +48,12 @@ export default function Navbar() {
               <>
                 <Link to="/roomhistory" className="text-foreground hover:text-primary transition">ประวัติการจอง</Link>
                 <Link to="/mybills" className="text-foreground hover:text-primary transition">บิล/ชำระเงิน</Link>
-                {/* แจ้งซ่อม — แสดงเฉพาะผู้เช่ารายเดือน (Monthly_Tenant มีสัญญาเช่า) */}
+                {/* สัญญาเช่า + แจ้งซ่อม — เฉพาะผู้เช่ารายเดือน */}
                 {isMonthly && (
-                  <Link to="/repairrequest" className="text-foreground hover:text-primary transition">แจ้งซ่อม</Link>
+                  <>
+                    <Link to="/mycontracts" className="text-foreground hover:text-primary transition">สัญญาเช่า</Link>
+                    <Link to="/repairrequest" className="text-foreground hover:text-primary transition">แจ้งซ่อม</Link>
+                  </>
                 )}
                 <Link to="/profile" className="text-foreground hover:text-primary transition">บัญชีผู้ใช้</Link>
                 <button
@@ -99,7 +102,10 @@ export default function Navbar() {
                 <Link to="/roomhistory" className="block text-foreground hover:text-primary" onClick={closeMenu}>ประวัติการจอง</Link>
                 <Link to="/mybills" className="block text-foreground hover:text-primary" onClick={closeMenu}>บิล/ชำระเงิน</Link>
                 {isMonthly && (
-                  <Link to="/repairrequest" className="block text-foreground hover:text-primary" onClick={closeMenu}>แจ้งซ่อม</Link>
+                  <>
+                    <Link to="/mycontracts" className="block text-foreground hover:text-primary" onClick={closeMenu}>สัญญาเช่า</Link>
+                    <Link to="/repairrequest" className="block text-foreground hover:text-primary" onClick={closeMenu}>แจ้งซ่อม</Link>
+                  </>
                 )}
                 <Link to="/profile" className="block text-foreground hover:text-primary" onClick={closeMenu}>บัญชีผู้ใช้</Link>
                 <button

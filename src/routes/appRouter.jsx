@@ -3,12 +3,12 @@ import { AdminRoute, PrivateRoute } from './ProtectedRoute';
 import Home from "../page/user/Home";
 import Login from "../page/user/Login";
 import Rooms from "../page/admin/Rooms";
-import Massage from "../page/admin/Massage";
 import Products from "../page/admin/Products";
 import Customer from "../page/admin/Customer";
 import Bill from "../page/admin/Bill";
 import Booking from "../page/admin/Booking";
 import Repair from "../page/admin/Repair";
+import Meter from "../page/admin/Meter";
 import Register from "../page/user/Register";
 import Dashbord from "../page/admin/Dashbord";
 import LayoutAdmin from "../layouts/LayoutAdmin";
@@ -21,6 +21,7 @@ import Money from "../page/admin/Money";
 import Bookingmanagement from "../page/admin/Bookingmanagement";
 import RepairRequest from "../page/user/RepairRequest";
 import MyBills from "../page/user/MyBills";
+import MyContracts from "../page/user/MyContracts";
 import LineCallback from "../page/user/LineCallback";
 import Contracts from "../page/admin/Contracts";
 import AuditLogs from "../page/admin/AuditLogs";
@@ -39,7 +40,7 @@ const router = createBrowserRouter([
       { path: "bill", element: <Bill /> },
       { path: "contracts", element: <Contracts /> },
       { path: "audit-logs", element: <AuditLogs /> },
-      { path: "massage", element: <Massage /> },
+      { path: "meter", element: <Meter /> },
       { path: "booking", element: <Booking /> },
       { path: "repair", element: <Repair /> },
       { path: "money", element: <Money /> },
@@ -64,6 +65,7 @@ const router = createBrowserRouter([
       { path: "Editprofile", element: <PrivateRoute><Editprofile /></PrivateRoute> },
       { path: "repairrequest", element: <PrivateRoute><RepairRequest /></PrivateRoute> },
       { path: "mybills", element: <PrivateRoute><MyBills /></PrivateRoute> },
+      { path: "mycontracts", element: <PrivateRoute><MyContracts /></PrivateRoute> },
     ],
   },
 ]);

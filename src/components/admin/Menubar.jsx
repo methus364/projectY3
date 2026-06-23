@@ -13,6 +13,7 @@ import {
   BanknotesIcon,
   ClipboardDocumentListIcon,
   ArrowRightOnRectangleIcon,
+  BeakerIcon,
 } from '@heroicons/react/24/solid';
 import ThemeToggle from '../ui/ThemeToggle';
 
@@ -51,6 +52,7 @@ const menuGroups = [
     items: [
       { to: '/admin/customers',   icon: UsersIcon,                 label: 'สมาชิก' },
       { to: '/admin/products',    icon: ShoppingBagIcon,           label: 'สินค้า/ขายของ' },
+      { to: '/admin/meter',       icon: BeakerIcon,                label: 'มิเตอร์น้ำ-ไฟ' },
       { to: '/admin/repair',      icon: WrenchScrewdriverIcon,     label: 'แจ้งซ่อม' },
       { to: '/admin/audit-logs',  icon: ClipboardDocumentListIcon, label: 'บันทึกกิจกรรม' },
     ],

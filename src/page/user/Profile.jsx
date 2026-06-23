@@ -1,20 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-const API = 'http://localhost:5000/api';
+import api from '../../lib/api';
+import Navbar from '../../components/user/Navbar';
 
 export default function Profile() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [socialAccounts, setSocialAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
 
-    axios.get(`${API}/current-user`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => setUser(res.data.data))
+    // โหลดข้อมูลผู้ใช้ + บัญชี social พร้อมกัน
+    Promise.all([
+      api.get('/current-user'),
+      api.get('/my-social-accounts'),
+    ])
+      .then(([userRes, socialRes]) => {
+        if (userRes.data.success) setUser(userRes.data.data);
+        if (socialRes.data.success) setSocialAccounts(socialRes.data.data || []);
+      })
       .catch(() => { alert('กรุณาเข้าสู่ระบบใหม่'); navigate('/login'); })
       .finally(() => setLoading(false));
   }, [navigate]);
@@ -25,56 +32,103 @@ export default function Profile() {
     return 'ผู้เช่ารายวัน';
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-blue-600 font-bold animate-pulse">กำลังโหลด...</div>;
+  // แมปชื่อ provider → ป้ายสี
+  const providerStyle = {
+    line:   'bg-green-100 text-green-700',
+    google: 'bg-blue-100 text-blue-700',
+  };
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center text-primary font-bold animate-pulse">
+      กำลังโหลด...
+    </div>
+  );
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-100 py-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-xl p-8">
-        <h2 className="text-2xl font-bold text-center text-indigo-700 mb-6">โปรไฟล์ของฉัน</h2>
+    <div className="min-h-screen bg-background">
+      <Navbar />
 
-        <div className="flex flex-col items-center">
-          <div className="w-24 h-24 mb-4 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-3xl font-bold">
-            {user.full_name?.charAt(0) || '?'}
-          </div>
+      <div className="pt-20 pb-10 px-4">
+        <div className="max-w-2xl mx-auto bg-card shadow-lg rounded-xl p-8">
+          <h2 className="text-2xl font-bold text-center text-primary mb-6">โปรไฟล์ของฉัน</h2>
 
-          <div className="w-full space-y-4">
-            <div>
-              <label className="text-gray-600 font-medium">ชื่อ - นามสกุล</label>
-              <div className="mt-1 bg-gray-50 px-4 py-2 rounded-md border">{user.full_name}</div>
+          <div className="flex flex-col items-center">
+            {/* Avatar ตัวอักษรแรก */}
+            <div className="w-24 h-24 mb-4 rounded-full bg-primary/10 text-primary flex items-center justify-center text-3xl font-bold">
+              {user.full_name?.charAt(0) || '?'}
             </div>
 
-            <div>
-              <label className="text-gray-600 font-medium">Username</label>
-              <div className="mt-1 bg-gray-50 px-4 py-2 rounded-md border text-gray-500">{user.username}</div>
+            {/* ข้อมูลพื้นฐาน */}
+            <div className="w-full space-y-4">
+              <Field label="ชื่อ - นามสกุล" value={user.full_name} />
+              <Field label="Username" value={user.username} />
+              <Field label="อีเมล" value={user.email || '-'} />
+              <Field label="เบอร์โทรศัพท์" value={user.phone_number || '-'} />
+              <Field label="บทบาท" value={roleLabel(user.user_role)} />
             </div>
 
-            <div>
-              <label className="text-gray-600 font-medium">อีเมล</label>
-              <div className="mt-1 bg-gray-50 px-4 py-2 rounded-md border">{user.email || '-'}</div>
+            {/* ส่วน Social accounts */}
+            <div className="w-full mt-8">
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+                บัญชีที่เชื่อมต่อ
+              </h3>
+              {socialAccounts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">ยังไม่มีบัญชีที่เชื่อมต่อ</p>
+              ) : (
+                <div className="space-y-2">
+                  {socialAccounts.map((acc) => (
+                    <div
+                      key={acc.social_id}
+                      className="flex items-center gap-3 bg-muted rounded-lg px-4 py-2"
+                    >
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-bold capitalize ${
+                          providerStyle[acc.provider] || 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        {acc.provider}
+                      </span>
+                      <span className="text-sm text-foreground">{acc.provider_user_id}</span>
+                      {acc.connected_at && (
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          {acc.connected_at.split('T')[0]}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div>
-              <label className="text-gray-600 font-medium">เบอร์โทรศัพท์</label>
-              <div className="mt-1 bg-gray-50 px-4 py-2 rounded-md border">{user.phone_number || '-'}</div>
+            {/* ปุ่มดำเนินการ */}
+            <div className="flex gap-4 mt-8">
+              <button
+                onClick={() => navigate('/Editprofile')}
+                className="px-6 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition"
+              >
+                แก้ไขโปรไฟล์
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="px-6 py-2 bg-muted text-foreground font-medium rounded-lg hover:bg-muted/80 transition"
+              >
+                กลับหน้าแรก
+              </button>
             </div>
-
-            <div>
-              <label className="text-gray-600 font-medium">บทบาท</label>
-              <div className="mt-1 bg-gray-50 px-4 py-2 rounded-md border">{roleLabel(user.user_role)}</div>
-            </div>
-          </div>
-
-          <div className="flex gap-4 mt-8">
-            <button onClick={() => navigate('/Editprofile')} className="px-6 py-2 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700 transition">
-              แก้ไขโปรไฟล์
-            </button>
-            <button onClick={() => navigate('/')} className="px-6 py-2 bg-gray-300 text-gray-800 font-medium rounded-md hover:bg-gray-400 transition">
-              กลับหน้าแรก
-            </button>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ช่องแสดงข้อมูล read-only
+function Field({ label, value }) {
+  return (
+    <div>
+      <label className="text-muted-foreground text-sm font-medium">{label}</label>
+      <div className="mt-1 bg-muted px-4 py-2 rounded-lg text-foreground">{value}</div>
     </div>
   );
 }
