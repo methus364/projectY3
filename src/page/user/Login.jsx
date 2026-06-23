@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { isConfigured, getGoogleIdToken, getFacebookAccessToken, startLineLogin } from '../../lib/socialAuth';
 
 const API = 'http://localhost:5000/api';
 
@@ -34,26 +35,32 @@ export default function Login() {
   };
 
   // เข้าสู่ระบบด้วย Social (Google / Facebook / LINE)
-  // หมายเหตุ: production ต้องต่อ SDK ของแต่ละ provider ให้คืน provider_id/email/name
-  //   ตอนนี้ยังไม่ได้ตั้งค่า OAuth จึงใช้การกรอกข้อมูลทดสอบ (prompt) เพื่อเดโม flow auto-link/register
+  //   - ดึง token จาก SDK ของ provider แล้วส่งให้ backend ตรวจ (backend ไม่เชื่อ client ตรงๆ)
+  //   - LINE เป็น redirect flow → ออกจากหน้านี้ไปแล้วกลับมาที่ /auth/line/callback
   const handleSocial = async (provider) => {
     setError('');
-    const providerId = window.prompt(`[ทดสอบ ${provider}] กรอกรหัสบัญชี (provider_id):`);
-    if (!providerId) return; // ยกเลิก
-    const email = window.prompt('อีเมล (เว้นว่างได้ — ใช้ผูกกับสมาชิกเดิมถ้าตรง):') || undefined;
-    const fullName = window.prompt('ชื่อ-นามสกุล (เว้นว่างได้):') || undefined;
+    if (!isConfigured(provider)) {
+      setError(`ยังไม่ได้ตั้งค่า ${provider} (ดูวิธีใน docs/SOCIAL_LOGIN_SETUP.md)`);
+      return;
+    }
 
-    setLoading(true);
     try {
-      const res = await axios.post(`${API}/auth/social`, {
-        provider,
-        provider_id: providerId,
-        email,
-        full_name: fullName,
-      });
+      // LINE: redirect ออกไปเลย (ไม่ต้อง setLoading ค้าง)
+      if (provider === 'line') {
+        startLineLogin();
+        return;
+      }
+
+      setLoading(true);
+      // Google/Facebook: ได้ token จาก SDK → ส่งให้ backend
+      const token = provider === 'google'
+        ? await getGoogleIdToken()
+        : await getFacebookAccessToken();
+
+      const res = await axios.post(`${API}/auth/social`, { provider, token });
       saveSessionAndRedirect(res.data);
     } catch (err) {
-      setError(err.response?.data?.message || 'เข้าสู่ระบบด้วย social ไม่สำเร็จ');
+      setError(err.response?.data?.message || err.message || 'เข้าสู่ระบบด้วย social ไม่สำเร็จ');
     } finally {
       setLoading(false);
     }

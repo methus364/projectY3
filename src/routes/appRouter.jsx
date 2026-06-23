@@ -20,6 +20,7 @@ import Money from "../page/admin/Money";
 import Bookingmanagement from "../page/admin/Bookingmanagement";
 import RepairRequest from "../page/user/RepairRequest";
 import MyBills from "../page/user/MyBills";
+import LineCallback from "../page/user/LineCallback";
 import Contracts from "../page/admin/Contracts";
 import AuditLogs from "../page/admin/AuditLogs";
 
@@ -59,6 +60,7 @@ const router = createBrowserRouter([
       { path: "contact", element: <Contact/> },
       { path: "repairrequest", element: <RepairRequest/> },
       { path: "mybills", element: <MyBills/> },
+      { path: "auth/line/callback", element: <LineCallback/> },
 
     ],
   },
