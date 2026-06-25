@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-const API = 'http://localhost:5000/api';
+import api from '../../lib/api';
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -22,22 +20,19 @@ export default function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
-
     if (form.password !== form.confirmPassword) {
       setError('รหัสผ่านไม่ตรงกัน');
       return;
     }
-
     setLoading(true);
     try {
-      await axios.post(`${API}/register`, {
+      await api.post('/register', {
         username: form.username,
         password: form.password,
         full_name: form.full_name,
         email: form.email || undefined,
         phone_number: form.phone_number || undefined,
       });
-
       navigate('/login');
     } catch (err) {
       setError(err.response?.data?.message || 'สมัครสมาชิกไม่สำเร็จ');
@@ -47,23 +42,21 @@ export default function Register() {
   };
 
   const fields = [
-    { name: 'username',        label: 'ชื่อผู้ใช้ (Username) *', type: 'text',     placeholder: 'ใช้สำหรับเข้าสู่ระบบ',  required: true },
-    { name: 'full_name',       label: 'ชื่อ-นามสกุล *',          type: 'text',     placeholder: 'ชื่อจริงของคุณ',         required: true },
-    { name: 'email',           label: 'อีเมล',                    type: 'email',    placeholder: 'you@example.com',         required: false },
-    { name: 'phone_number',    label: 'เบอร์โทรศัพท์',            type: 'tel',      placeholder: '08x-xxx-xxxx',            required: false },
-    { name: 'password',        label: 'รหัสผ่าน *',               type: 'password', placeholder: '********',                required: true },
-    { name: 'confirmPassword', label: 'ยืนยันรหัสผ่าน *',         type: 'password', placeholder: '********',                required: true },
+    { name: 'username',        label: 'ชื่อผู้ใช้ (Username) *', type: 'text',     placeholder: 'ใช้สำหรับเข้าสู่ระบบ', required: true },
+    { name: 'full_name',       label: 'ชื่อ-นามสกุล *',          type: 'text',     placeholder: 'ชื่อจริงของคุณ',        required: true },
+    { name: 'email',           label: 'อีเมล',                    type: 'email',    placeholder: 'you@example.com',        required: false },
+    { name: 'phone_number',    label: 'เบอร์โทรศัพท์',            type: 'tel',      placeholder: '08x-xxx-xxxx',           required: false },
+    { name: 'password',        label: 'รหัสผ่าน *',               type: 'password', placeholder: '********',               required: true },
+    { name: 'confirmPassword', label: 'ยืนยันรหัสผ่าน *',         type: 'password', placeholder: '********',               required: true },
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-gray-900 dark:to-gray-800">
-      <div className="bg-white dark:bg-gray-900 shadow-xl rounded-2xl p-8 w-full max-w-md">
-        <h2 className="text-3xl font-bold text-center text-gray-800 dark:text-white mb-6">
-          สมัครสมาชิก
-        </h2>
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
+      <div className="bg-card shadow-xl rounded-2xl p-8 w-full max-w-md border border-border">
+        <h2 className="text-3xl font-bold text-center text-foreground mb-6">สมัครสมาชิก</h2>
 
         {error && (
-          <div className="text-red-600 bg-red-100 border border-red-300 px-3 py-2 rounded mb-4 text-sm text-center">
+          <div className="text-destructive bg-destructive/10 border border-destructive/30 px-3 py-2 rounded mb-4 text-sm text-center">
             {error}
           </div>
         )}
@@ -71,9 +64,7 @@ export default function Register() {
         <form onSubmit={handleRegister} className="space-y-4">
           {fields.map(({ name, label, type, placeholder, required }) => (
             <div key={name}>
-              <label className="block text-gray-700 dark:text-gray-200 mb-1 text-sm">
-                {label}
-              </label>
+              <label className="block text-foreground mb-1 text-sm">{label}</label>
               <input
                 type={type}
                 name={name}
@@ -81,7 +72,7 @@ export default function Register() {
                 value={form[name]}
                 onChange={handleChange}
                 placeholder={placeholder}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-gray-800 dark:text-white"
+                className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
               />
             </div>
           ))}
@@ -89,17 +80,15 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-2 px-4 rounded-lg transition duration-300"
+            className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition"
           >
             {loading ? 'กำลังสมัคร...' : 'สมัครสมาชิก'}
           </button>
         </form>
 
-        <p className="mt-4 text-sm text-center text-gray-600 dark:text-gray-400">
+        <p className="mt-4 text-sm text-center text-muted-foreground">
           มีบัญชีอยู่แล้ว?{' '}
-          <Link to="/login" className="text-indigo-600 hover:underline">
-            เข้าสู่ระบบ
-          </Link>
+          <Link to="/login" className="text-primary hover:underline">เข้าสู่ระบบ</Link>
         </p>
       </div>
     </div>

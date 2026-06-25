@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../lib/api';
 import { isConfigured, getGoogleIdToken, getFacebookAccessToken, startLineLogin } from '../../lib/socialAuth';
-
-const API = 'http://localhost:5000/api';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -23,9 +21,8 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
-      const res = await axios.post(`${API}/login`, { username, password });
+      const res = await api.post('/login', { username, password });
       saveSessionAndRedirect(res.data);
     } catch (err) {
       setError(err.response?.data?.message || 'เข้าสู่ระบบไม่สำเร็จ');
@@ -34,30 +31,20 @@ export default function Login() {
     }
   };
 
-  // เข้าสู่ระบบด้วย Social (Google / Facebook / LINE)
-  //   - ดึง token จาก SDK ของ provider แล้วส่งให้ backend ตรวจ (backend ไม่เชื่อ client ตรงๆ)
-  //   - LINE เป็น redirect flow → ออกจากหน้านี้ไปแล้วกลับมาที่ /auth/line/callback
+  // เข้าสู่ระบบด้วย Social — ดึง token จาก SDK แล้วส่ง backend ตรวจ
   const handleSocial = async (provider) => {
     setError('');
     if (!isConfigured(provider)) {
       setError(`ยังไม่ได้ตั้งค่า ${provider} (ดูวิธีใน docs/SOCIAL_LOGIN_SETUP.md)`);
       return;
     }
-
     try {
-      // LINE: redirect ออกไปเลย (ไม่ต้อง setLoading ค้าง)
-      if (provider === 'line') {
-        startLineLogin();
-        return;
-      }
-
+      if (provider === 'line') { startLineLogin(); return; }
       setLoading(true);
-      // Google/Facebook: ได้ token จาก SDK → ส่งให้ backend
       const token = provider === 'google'
         ? await getGoogleIdToken()
         : await getFacebookAccessToken();
-
-      const res = await axios.post(`${API}/auth/social`, { provider, token });
+      const res = await api.post('/auth/social', { provider, token });
       saveSessionAndRedirect(res.data);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'เข้าสู่ระบบด้วย social ไม่สำเร็จ');
@@ -66,67 +53,58 @@ export default function Login() {
     }
   };
 
-  // ปุ่ม social: provider key + ป้าย + สี
   const socialButtons = [
-    { provider: 'google', label: 'Google', style: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50' },
+    { provider: 'google',   label: 'Google',   style: 'bg-card text-foreground border border-border hover:bg-muted' },
     { provider: 'facebook', label: 'Facebook', style: 'bg-blue-600 text-white hover:bg-blue-700' },
-    { provider: 'line', label: 'LINE', style: 'bg-green-500 text-white hover:bg-green-600' },
+    { provider: 'line',     label: 'LINE',     style: 'bg-green-500 text-white hover:bg-green-600' },
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-gray-900 dark:to-gray-800">
-      <div className="bg-white dark:bg-gray-900 shadow-xl rounded-2xl p-8 w-full max-w-md">
-        <h2 className="text-3xl font-bold text-center text-gray-800 dark:text-white mb-6">
-          เข้าสู่ระบบ
-        </h2>
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="bg-card shadow-xl rounded-2xl p-8 w-full max-w-md border border-border">
+        <h2 className="text-3xl font-bold text-center text-foreground mb-6">เข้าสู่ระบบ</h2>
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-gray-700 dark:text-gray-200 mb-1">
-              ชื่อผู้ใช้
-            </label>
+            <label className="block text-foreground mb-1">ชื่อผู้ใช้</label>
             <input
               type="text"
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-gray-800 dark:text-white"
+              className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
               placeholder="กรอกชื่อผู้ใช้"
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 dark:text-gray-200 mb-1">
-              รหัสผ่าน
-            </label>
+            <label className="block text-foreground mb-1">รหัสผ่าน</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-gray-800 dark:text-white"
+              className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
               placeholder="********"
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-red-500 text-center">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive text-center">{error}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-2 px-4 rounded-lg transition duration-300"
+            className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition"
           >
             {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
           </button>
         </form>
 
-        {/* ตัวคั่น + ปุ่มเข้าสู่ระบบด้วย social */}
+        {/* ตัวคั่น + ปุ่ม social */}
         <div className="flex items-center my-5">
-          <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-          <span className="px-3 text-sm text-gray-400">หรือเข้าสู่ระบบด้วย</span>
-          <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+          <div className="flex-grow border-t border-border"></div>
+          <span className="px-3 text-sm text-muted-foreground">หรือเข้าสู่ระบบด้วย</span>
+          <div className="flex-grow border-t border-border"></div>
         </div>
         <div className="space-y-2">
           {socialButtons.map((b) => (
@@ -142,16 +120,12 @@ export default function Login() {
           ))}
         </div>
 
-        <p className="mt-4 text-sm text-center text-gray-600 dark:text-gray-400">
+        <p className="mt-4 text-sm text-center text-muted-foreground">
           ยังไม่มีบัญชี?{' '}
-          <Link to="/register" className="text-indigo-600 hover:underline">
-            สมัครสมาชิก
-          </Link>
+          <Link to="/register" className="text-primary hover:underline">สมัครสมาชิก</Link>
         </p>
-        <p className="mt-2 text-sm text-center text-gray-600 dark:text-gray-400">
-          <Link to="/" className="text-indigo-500 hover:underline">
-            ← กลับหน้าแรก
-          </Link>
+        <p className="mt-2 text-sm text-center text-muted-foreground">
+          <Link to="/" className="text-primary hover:underline">← กลับหน้าแรก</Link>
         </p>
       </div>
     </div>

@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-const API = 'http://localhost:5000/api';
+import api from '../../lib/api';
 
 // หน้าปลายทางหลัง LINE login → รับ code มาแลกเป็น JWT ผ่าน backend
 export default function LineCallback() {
@@ -29,7 +27,7 @@ export default function LineCallback() {
         // redirect_uri ต้องตรงกับตอนเริ่ม login เป๊ะ
         const redirectUri = `${window.location.origin}/auth/line/callback`;
 
-        axios.post(`${API}/auth/line/exchange`, { code, redirect_uri: redirectUri })
+        api.post('/auth/line/exchange', { code, redirect_uri: redirectUri })
             .then((res) => {
                 const { token, payload } = res.data;
                 localStorage.setItem('token', token);
@@ -42,17 +40,17 @@ export default function LineCallback() {
     }, [navigate]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200">
-            <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md text-center">
+        <div className="min-h-screen flex items-center justify-center bg-background">
+            <div className="bg-card shadow-xl rounded-2xl p-8 w-full max-w-md text-center">
                 {error ? (
                     <>
                         <p className="text-red-500 mb-4">{error}</p>
-                        <button onClick={() => navigate('/login')} className="text-indigo-600 hover:underline">
+                        <button onClick={() => navigate('/login')} className="text-primary hover:underline">
                             ← กลับไปหน้าเข้าสู่ระบบ
                         </button>
                     </>
                 ) : (
-                    <p className="text-gray-700">กำลังเข้าสู่ระบบด้วย LINE...</p>
+                    <p className="text-foreground">กำลังเข้าสู่ระบบด้วย LINE...</p>
                 )}
             </div>
         </div>

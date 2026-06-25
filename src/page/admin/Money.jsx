@@ -1,12 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
-
-const API = 'http://localhost:5000/api';
-
-const getAuthHeader = () => {
-  const token = localStorage.getItem('token');
-  return { headers: { Authorization: `Bearer ${token}` } };
-};
+import api from '../../lib/api';
 
 // สีป้ายสถานะการชำระ
 const statusBadge = (status) => {
@@ -32,7 +25,7 @@ function Money() {
       const params = new URLSearchParams();
       if (statusFilter) params.append('status', statusFilter);
 
-      const res = await axios.get(`${API}/payments?${params.toString()}`, getAuthHeader());
+      const res = await api.get(`/payments?${params.toString()}`);
       if (res.data.success) {
         setPayments(res.data.data);
       }
@@ -54,11 +47,7 @@ function Money() {
     const label = action === 'approve' ? 'ยืนยัน' : 'ปฏิเสธ';
     if (!window.confirm(`ต้องการ${label}การชำระเงินรายการนี้?`)) return;
     try {
-      const res = await axios.put(
-        `${API}/payment/${paymentId}/verify`,
-        { action },
-        getAuthHeader()
-      );
+      const res = await api.put(`/payment/${paymentId}/verify`, { action });
       if (res.data.success) {
         alert(res.data.message);
         fetchPayments();
@@ -81,15 +70,15 @@ function Money() {
 
   return (
     <>
-      <div className="flex w-full flex-col bg-white p-6">
+      <div className="flex w-full flex-col bg-background p-6">
 
         {/* ส่วนหัว + filter */}
         <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-          <h1 className="text-3xl font-bold text-gray-800">ตรวจสอบการชำระเงิน</h1>
+          <h1 className="text-3xl font-bold text-foreground">ตรวจสอบการชำระเงิน</h1>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">ทุกสถานะ</option>
             <option value="รอตรวจ">รอตรวจ</option>
@@ -100,54 +89,54 @@ function Money() {
 
         {/* การ์ดสรุป */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white shadow-md rounded-lg p-6">
-            <h2 className="text-sm font-medium text-gray-500 mb-2">ยอดที่ยืนยันแล้ว (บาท)</h2>
+          <div className="bg-card shadow-md rounded-lg p-6">
+            <h2 className="text-sm font-medium text-muted-foreground mb-2">ยอดที่ยืนยันแล้ว (บาท)</h2>
             <p className="text-3xl font-bold text-green-600">{money(summary.confirmedTotal)}</p>
           </div>
-          <div className="bg-white shadow-md rounded-lg p-6">
-            <h2 className="text-sm font-medium text-gray-500 mb-2">รายการรอตรวจสอบ</h2>
+          <div className="bg-card shadow-md rounded-lg p-6">
+            <h2 className="text-sm font-medium text-muted-foreground mb-2">รายการรอตรวจสอบ</h2>
             <p className="text-3xl font-bold text-yellow-600">{summary.pendingCount}</p>
           </div>
         </div>
 
         {/* ตารางรายการชำระ */}
-        <div className="bg-white shadow-md rounded-lg overflow-x-auto">
+        <div className="bg-card shadow-md rounded-lg overflow-x-auto">
           {loading ? (
-            <div className="text-center py-10 text-gray-500">กำลังโหลดข้อมูล...</div>
+            <div className="text-center py-10 text-muted-foreground">กำลังโหลดข้อมูล...</div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-100">
+            <table className="min-w-full divide-y divide-border text-sm">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">บิล</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">ห้อง</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">ผู้เช่า</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase">จำนวนเงิน</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">วิธีชำระ</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 uppercase">สลิป</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 uppercase">สถานะ</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase">ดำเนินการ</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase">บิล</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase">ห้อง</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase">ผู้เช่า</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground uppercase">จำนวนเงิน</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase">วิธีชำระ</th>
+                  <th className="px-4 py-3 text-center font-medium text-muted-foreground uppercase">สลิป</th>
+                  <th className="px-4 py-3 text-center font-medium text-muted-foreground uppercase">สถานะ</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground uppercase">ดำเนินการ</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 {payments.map((p) => (
-                  <tr key={p.payment_id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
+                  <tr key={p.payment_id} className="hover:bg-muted/50">
+                    <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
                       INV-{new Date(p.payment_date).getFullYear()}-{String(p.invoice_id).padStart(4, '0')}
                     </td>
-                    <td className="px-4 py-3 text-gray-800">{p.room_number}</td>
-                    <td className="px-4 py-3 text-gray-600">{p.guest_name || '—'}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-900">{money(p.amount_paid)}</td>
-                    <td className="px-4 py-3 text-gray-700">{p.payment_method}</td>
+                    <td className="px-4 py-3 text-foreground">{p.room_number}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{p.guest_name || '—'}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-foreground">{money(p.amount_paid)}</td>
+                    <td className="px-4 py-3 text-foreground">{p.payment_method}</td>
                     <td className="px-4 py-3 text-center">
                       {p.payment_evidence ? (
                         <button
                           onClick={() => setSlipUrl(p.payment_evidence)}
-                          className="text-blue-600 hover:text-blue-900 underline"
+                          className="text-primary hover:text-primary/70 underline"
                         >
                           ดูสลิป
                         </button>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -173,7 +162,7 @@ function Money() {
                           </button>
                         </>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </td>
                   </tr>
@@ -181,7 +170,7 @@ function Money() {
 
                 {payments.length === 0 && (
                   <tr>
-                    <td colSpan="8" className="text-center py-10 text-gray-500">
+                    <td colSpan="8" className="text-center py-10 text-muted-foreground">
                       ไม่พบรายการชำระเงิน
                     </td>
                   </tr>
@@ -198,10 +187,10 @@ function Money() {
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
           onClick={() => setSlipUrl(null)}
         >
-          <div className="bg-white rounded-xl shadow-xl p-4 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card rounded-xl shadow-xl p-4 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-bold text-gray-800">สลิปการโอนเงิน</h2>
-              <button onClick={() => setSlipUrl(null)} className="text-gray-400 hover:text-gray-700">✕</button>
+              <h2 className="text-lg font-bold text-foreground">สลิปการโอนเงิน</h2>
+              <button onClick={() => setSlipUrl(null)} className="text-muted-foreground hover:text-foreground">✕</button>
             </div>
             <img src={slipUrl} alt="สลิปการโอนเงิน" className="w-full rounded-lg" />
           </div>

@@ -11,7 +11,7 @@ const Booking = () => {
     <>
       <BookingNavbar />
       {/* (ปรับ Layout หลัก) */}
-      <div className="flex w-full flex-col bg-white p-6">
+      <div className="flex w-full flex-col bg-background p-6">
         
         {/* --- (ส่วนที่ 1: ปฏิทิน) --- */}
         <div className="mb-8">

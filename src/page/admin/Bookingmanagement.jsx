@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import BookingNavbar from '../../components/admin/BookingNavbar';
-import axios from 'axios';
-
-const API = 'http://localhost:5000/api';
-
-const getAuthHeader = () => {
-    const token = localStorage.getItem('token');
-    return { headers: { Authorization: `Bearer ${token}` } };
-};
+import api from '../../lib/api';
 
 // แมป booking_status (DB) → key ภาษาอังกฤษ (UI)
 const STATUS_TO_UI = {
@@ -39,7 +32,7 @@ const STATUS_COLOR = {
     confirmed: 'bg-green-50 text-green-700 border-green-200',
     checkin:   'bg-blue-50 text-blue-700 border-blue-200',
     cancelled: 'bg-red-50 text-red-700 border-red-200',
-    checkout:  'bg-gray-50 text-gray-500 border-gray-200',
+    checkout:  'bg-muted/30 text-muted-foreground border-border',
 };
 
 const RENT_TYPE_LABEL = {
@@ -69,7 +62,7 @@ const Bookingmanagement = () => {
     const fetchBookings = async () => {
         try {
             setLoading(true);
-            const response = await axios.get(`${API}/admin/bookings`, getAuthHeader());
+            const response = await api.get('/admin/bookings');
             if (response.data.success) {
                 const formatted = response.data.data.map(item => ({
                     id:            item.bookingId,
@@ -99,7 +92,7 @@ const Bookingmanagement = () => {
     // ==========================================
     const fetchRooms = async () => {
         try {
-            const res = await axios.get(`${API}/getRoom`);
+            const res = await api.get('/getRoom');
             if (res.data.success) {
                 setRooms(res.data.data);
             }
@@ -113,7 +106,7 @@ const Bookingmanagement = () => {
     // ==========================================
     const fetchMembers = async () => {
         try {
-            const res = await axios.get(`${API}/members`, getAuthHeader());
+            const res = await api.get('/members');
             if (res.data.success) {
                 setMembers(res.data.data);
             }
@@ -179,16 +172,12 @@ const Bookingmanagement = () => {
         try {
             if (currentBooking.id) {
                 // แก้ไขการจอง
-                await axios.put(
-                    `${API}/editBooking/${currentBooking.id}`,
-                    {
-                        roomId:    parseInt(currentBooking.roomId),
-                        startDate: currentBooking.checkInDate,
-                        endDate:   currentBooking.checkOutDate,
-                        status:    dbStatus,
-                    },
-                    getAuthHeader()
-                );
+                await api.put(`/editBooking/${currentBooking.id}`, {
+                    roomId:    parseInt(currentBooking.roomId),
+                    startDate: currentBooking.checkInDate,
+                    endDate:   currentBooking.checkOutDate,
+                    status:    dbStatus,
+                });
                 alert("แก้ไขข้อมูลการจองสำเร็จ");
             } else {
                 // สร้างการจองใหม่โดย Admin — ต้องระบุสมาชิกที่จอง
@@ -196,17 +185,13 @@ const Bookingmanagement = () => {
                     alert("กรุณาเลือกสมาชิกที่ต้องการจอง");
                     return;
                 }
-                await axios.post(
-                    `${API}/admin/booking`,
-                    {
-                        roomId:    parseInt(currentBooking.roomId),
-                        userId:    parseInt(currentBooking.memberId),
-                        startDate: currentBooking.checkInDate,
-                        endDate:   currentBooking.checkOutDate,
-                        rentType:  currentBooking.rentType,
-                    },
-                    getAuthHeader()
-                );
+                await api.post('/admin/booking', {
+                    roomId:    parseInt(currentBooking.roomId),
+                    userId:    parseInt(currentBooking.memberId),
+                    startDate: currentBooking.checkInDate,
+                    endDate:   currentBooking.checkOutDate,
+                    rentType:  currentBooking.rentType,
+                });
                 alert("สร้างการจองใหม่สำเร็จ");
             }
             fetchBookings();
@@ -222,7 +207,7 @@ const Bookingmanagement = () => {
     const handleCancelBooking = async (id) => {
         if (window.confirm("คุณต้องการยกเลิกการจองนี้ใช่หรือไม่?")) {
             try {
-                await axios.put(`${API}/editBooking/${id}`, { status: 'ยกเลิก' }, getAuthHeader());
+                await api.put(`/editBooking/${id}`, { status: 'ยกเลิก' });
                 alert("ยกเลิกการจองสำเร็จ");
                 fetchBookings();
             } catch (error) {
@@ -238,7 +223,7 @@ const Bookingmanagement = () => {
     const handleCheckIn = async (id) => {
         if (window.confirm("ยืนยันเช็คอินสำหรับการจองนี้?")) {
             try {
-                await axios.put(`${API}/admin/booking/${id}/checkin`, {}, getAuthHeader());
+                await api.put(`/admin/booking/${id}/checkin`, {});
                 alert("เช็คอินสำเร็จ");
                 fetchBookings();
             } catch (error) {
@@ -250,7 +235,7 @@ const Bookingmanagement = () => {
     const handleCheckOut = async (id) => {
         if (window.confirm("ยืนยันเช็คเอาท์สำหรับการจองนี้?")) {
             try {
-                await axios.put(`${API}/admin/booking/${id}/checkout`, {}, getAuthHeader());
+                await api.put(`/admin/booking/${id}/checkout`, {});
                 alert("เช็คเอาท์สำเร็จ");
                 fetchBookings();
             } catch (error) {
@@ -259,7 +244,7 @@ const Bookingmanagement = () => {
         }
     };
 
-    if (loading) return <div className="p-10 text-center font-bold text-gray-500">กำลังโหลดข้อมูลระบบจอง...</div>;
+    if (loading) return <div className="p-10 text-center font-bold text-muted-foreground">กำลังโหลดข้อมูลระบบจอง...</div>;
 
     // กรองห้องว่างสำหรับ dropdown สร้างการจอง
     const availableRooms = rooms.filter(r => r.status === 'ว่าง');
@@ -271,40 +256,40 @@ const Bookingmanagement = () => {
     });
 
     return (
-        <div className="bg-gray-50 min-h-screen pb-10">
+        <div className="bg-background min-h-screen pb-10">
             <BookingNavbar />
-            <div className="container mx-auto bg-white p-6 shadow-md rounded-xl mt-6">
+            <div className="container mx-auto bg-card p-6 shadow-md rounded-xl mt-6">
 
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-black text-gray-800">จัดการรายการจอง</h1>
+                    <h1 className="text-2xl font-black text-foreground">จัดการรายการจอง</h1>
                     <button
                         onClick={() => openBookingModal()}
-                        className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-all active:scale-95"
+                        className="bg-primary text-primary-foreground px-6 py-2 rounded-xl font-bold hover:bg-primary/90 shadow-lg transition-all active:scale-95"
                     >
                         + สร้างการจอง
                     </button>
                 </div>
 
                 {/* ส่วน Filter */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-muted/50 p-5 rounded-2xl border border-border">
                     <div>
-                        <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">ค้นหาห้อง/ชื่อลูกค้า</label>
+                        <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">ค้นหาห้อง/ชื่อลูกค้า</label>
                         <input
                             type="text"
                             placeholder="ค้นหาเลขห้อง หรือชื่อลูกค้า..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full border-0 bg-white p-3 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full border-0 bg-background p-3 rounded-xl shadow-sm focus:ring-2 focus:ring-primary outline-none"
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">แสดงการจองของวันที่</label>
+                        <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">แสดงการจองของวันที่</label>
                         <div className="flex gap-2">
                             <input
                                 type="date"
                                 value={selectedDate}
                                 onChange={(e) => setSelectedDate(e.target.value)}
-                                className="w-full border-0 bg-white p-3 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full border-0 bg-background p-3 rounded-xl shadow-sm focus:ring-2 focus:ring-primary outline-none"
                             />
                             {selectedDate && (
                                 <button onClick={() => setSelectedDate('')} className="text-red-500 text-sm font-bold hover:underline px-2">ล้าง</button>
@@ -312,11 +297,11 @@ const Bookingmanagement = () => {
                         </div>
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">กรองสถานะ</label>
+                        <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase">กรองสถานะ</label>
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="w-full border-0 bg-white p-3 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full border-0 bg-background p-3 rounded-xl shadow-sm focus:ring-2 focus:ring-primary outline-none"
                         >
                             <option value="all">ทั้งหมด</option>
                             <option value="pending">รอชำระมัดจำ</option>
@@ -330,8 +315,8 @@ const Bookingmanagement = () => {
 
                 {/* ตารางแสดงข้อมูล */}
                 <div className="overflow-x-auto border rounded-2xl overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-800 text-white text-xs uppercase">
+                    <table className="min-w-full divide-y divide-border">
+                        <thead className="bg-muted text-foreground text-xs uppercase">
                             <tr>
                                 <th className="px-4 py-4 text-left font-bold">ห้อง</th>
                                 <th className="px-4 py-4 text-left font-bold">ลูกค้า</th>
@@ -341,20 +326,20 @@ const Bookingmanagement = () => {
                                 <th className="px-4 py-4 text-center font-bold">จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
+                        <tbody className="bg-card divide-y divide-border">
                             {filteredBookings.length > 0 ? (
                                 filteredBookings.map(booking => (
-                                    <tr key={booking.id} className="hover:bg-blue-50/30 transition-colors">
-                                        <td className="px-4 py-4 font-black text-blue-600">ห้อง {booking.roomName}</td>
+                                    <tr key={booking.id} className="hover:bg-muted/30 transition-colors">
+                                        <td className="px-4 py-4 font-black text-primary">ห้อง {booking.roomName}</td>
                                         <td className="px-4 py-4 font-medium">{booking.guestName}</td>
-                                        <td className="px-4 py-4 text-sm text-gray-500">
-                                            {booking.checkInDate} <span className="mx-1 text-gray-300">|</span> {booking.checkOutDate}
+                                        <td className="px-4 py-4 text-sm text-muted-foreground">
+                                            {booking.checkInDate} <span className="mx-1 text-muted-foreground">|</span> {booking.checkOutDate}
                                         </td>
                                         <td className="px-4 py-4">
-                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${RENT_TYPE_COLOR[booking.rentType] || 'bg-gray-100 text-gray-500'}`}>
+                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${RENT_TYPE_COLOR[booking.rentType] || 'bg-muted text-muted-foreground'}`}>
                                                 {RENT_TYPE_LABEL[booking.rentType] || booking.rentType}
                                             </span>
-                                            <p className="text-xs text-gray-500 mt-1">
+                                            <p className="text-xs text-muted-foreground mt-1">
                                                 {booking.rentType === 'monthly'
                                                     ? `฿${booking.priceMonthly ? Number(booking.priceMonthly).toLocaleString() : '0'}/เดือน`
                                                     : `฿${booking.pricePerDay  ? Number(booking.pricePerDay).toLocaleString()  : '0'}/วัน`
@@ -362,7 +347,7 @@ const Bookingmanagement = () => {
                                             </p>
                                         </td>
                                         <td className="px-4 py-4">
-                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${STATUS_COLOR[booking.status] || 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${STATUS_COLOR[booking.status] || 'bg-muted/30 text-muted-foreground border-border'}`}>
                                                 {STATUS_LABEL[booking.status] || booking.status}
                                             </span>
                                         </td>
@@ -372,7 +357,7 @@ const Bookingmanagement = () => {
                                                 {(booking.status === 'pending' || booking.status === 'confirmed') && (
                                                     <button
                                                         onClick={() => handleCheckIn(booking.id)}
-                                                        className="px-2 py-1 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600"
+                                                        className="px-2 py-1 bg-primary text-primary-foreground rounded-lg font-bold hover:bg-primary/80"
                                                     >
                                                         เช็คอิน
                                                     </button>
@@ -381,7 +366,7 @@ const Bookingmanagement = () => {
                                                 {booking.status === 'checkin' && (
                                                     <button
                                                         onClick={() => handleCheckOut(booking.id)}
-                                                        className="px-2 py-1 bg-gray-600 text-white rounded-lg font-bold hover:bg-gray-700"
+                                                        className="px-2 py-1 bg-muted text-foreground rounded-lg font-bold hover:bg-muted/80"
                                                     >
                                                         เช็คเอาท์
                                                     </button>
@@ -389,7 +374,7 @@ const Bookingmanagement = () => {
                                                 {/* แก้ไข */}
                                                 <button
                                                     onClick={() => openBookingModal(booking)}
-                                                    className="text-blue-500 font-bold hover:underline"
+                                                    className="text-primary font-bold hover:underline"
                                                 >
                                                     แก้ไข
                                                 </button>
@@ -408,7 +393,7 @@ const Bookingmanagement = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-20 text-center text-gray-400">
+                                    <td colSpan="6" className="px-6 py-20 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center gap-2">
                                             <span className="text-4xl">🔍</span>
                                             <p className="font-bold">ไม่พบรายการจองที่ตรงกับเงื่อนไข</p>
@@ -424,8 +409,8 @@ const Bookingmanagement = () => {
             {/* Modal ฟอร์ม */}
             {isBookingModalOpen && currentBooking && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <form onSubmit={handleSaveBooking} className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
-                        <h2 className="text-2xl font-black mb-6 text-gray-800 border-b pb-4">
+                    <form onSubmit={handleSaveBooking} className="bg-card rounded-3xl p-8 w-full max-w-md shadow-2xl">
+                        <h2 className="text-2xl font-black mb-6 text-foreground border-b pb-4">
                             {currentBooking.id ? 'แก้ไขข้อมูลการจอง' : 'เพิ่มการจองใหม่'}
                         </h2>
                         <div className="space-y-5">
@@ -433,13 +418,13 @@ const Bookingmanagement = () => {
                             {/* เลือกสมาชิก (เฉพาะสร้างใหม่) */}
                             {!currentBooking.id && (
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">เลือกสมาชิก</label>
+                                    <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">เลือกสมาชิก</label>
                                     <select
                                         name="memberId"
                                         value={currentBooking.memberId}
                                         onChange={handleBookingChange}
                                         required
-                                        className="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 focus:border-blue-500 outline-none transition-all"
+                                        className="w-full border border-border rounded-xl p-3 bg-muted/50 focus:border-primary outline-none transition-all"
                                     >
                                         <option value="">-- เลือกสมาชิก --</option>
                                         {members.map(m => (
@@ -454,12 +439,12 @@ const Bookingmanagement = () => {
                             {/* เลือกประเภทการเช่า (เฉพาะสร้างใหม่) */}
                             {!currentBooking.id && (
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">ประเภทการเช่า</label>
+                                    <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">ประเภทการเช่า</label>
                                     <select
                                         name="rentType"
                                         value={currentBooking.rentType}
                                         onChange={handleBookingChange}
-                                        className="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 focus:border-blue-500 outline-none transition-all"
+                                        className="w-full border border-border rounded-xl p-3 bg-muted/50 focus:border-primary outline-none transition-all"
                                     >
                                         <option value="daily">รายวัน</option>
                                         <option value="monthly">รายเดือน</option>
@@ -469,12 +454,12 @@ const Bookingmanagement = () => {
 
                             {/* เลือกห้องพัก */}
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">เลือกห้องพัก</label>
+                                <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">เลือกห้องพัก</label>
                                 <select
                                     name="roomId"
                                     value={currentBooking.roomId}
                                     onChange={handleBookingChange}
-                                    className="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 focus:border-blue-500 outline-none transition-all"
+                                    className="w-full border border-border rounded-xl p-3 bg-muted/50 focus:border-primary outline-none transition-all"
                                     disabled={!!currentBooking.id}
                                 >
                                     {currentBooking.id ? (
@@ -498,20 +483,20 @@ const Bookingmanagement = () => {
                             {/* วันเช็คอิน/เช็คเอาท์ */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">เช็คอิน</label>
-                                    <input type="date" name="checkInDate" value={currentBooking.checkInDate} onChange={handleBookingChange} className="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none focus:border-blue-500" />
+                                    <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">เช็คอิน</label>
+                                    <input type="date" name="checkInDate" value={currentBooking.checkInDate} onChange={handleBookingChange} className="w-full border border-border rounded-xl p-3 bg-muted/50 outline-none focus:border-primary" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">เช็คเอาท์</label>
-                                    <input type="date" name="checkOutDate" value={currentBooking.checkOutDate} onChange={handleBookingChange} className="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none focus:border-blue-500" />
+                                    <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">เช็คเอาท์</label>
+                                    <input type="date" name="checkOutDate" value={currentBooking.checkOutDate} onChange={handleBookingChange} className="w-full border border-border rounded-xl p-3 bg-muted/50 outline-none focus:border-primary" />
                                 </div>
                             </div>
 
                             {/* สถานะ (เฉพาะแก้ไข) */}
                             {currentBooking.id && (
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">สถานะการจอง</label>
-                                    <select name="status" value={currentBooking.status} onChange={handleBookingChange} className="w-full border-2 border-gray-100 rounded-xl p-3 bg-gray-50 outline-none focus:border-blue-500">
+                                    <label className="block text-xs font-bold text-muted-foreground mb-1 uppercase">สถานะการจอง</label>
+                                    <select name="status" value={currentBooking.status} onChange={handleBookingChange} className="w-full border border-border rounded-xl p-3 bg-muted/50 outline-none focus:border-primary">
                                         <option value="pending">รอชำระมัดจำ</option>
                                         <option value="confirmed">ยืนยันการจอง</option>
                                         <option value="checkin">กำลังเข้าพัก</option>
@@ -523,8 +508,8 @@ const Bookingmanagement = () => {
                         </div>
 
                         <div className="flex justify-end gap-3 mt-8">
-                            <button type="button" onClick={closeBookingModal} className="px-6 py-3 text-gray-400 font-bold hover:bg-gray-100 rounded-xl transition-all">ยกเลิก</button>
-                            <button type="submit" className="bg-blue-600 text-white px-8 py-3 rounded-xl font-black shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all">
+                            <button type="button" onClick={closeBookingModal} className="px-6 py-3 text-muted-foreground font-bold hover:bg-muted rounded-xl transition-all">ยกเลิก</button>
+                            <button type="submit" className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-black shadow-lg hover:bg-primary/90 active:scale-95 transition-all">
                                 บันทึกข้อมูล
                             </button>
                         </div>

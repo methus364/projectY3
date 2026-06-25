@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-
-const API = 'http://localhost:5000/api';
-const getAuthHeader = () => ({
-  headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-});
+import api from '../../lib/api';
 
 const ROLES = ['Daily_Tenant', 'Monthly_Tenant', 'Admin'];
 
@@ -20,7 +15,7 @@ const Customers = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/members`, getAuthHeader());
+      const res = await api.get('/members');
       setCustomers(res.data.data || []);
     } catch (err) {
       console.error('Fetch members error:', err);
@@ -69,20 +64,16 @@ const Customers = () => {
     setSaving(true);
     try {
       if (isEdit) {
-        await axios.put(
-          `${API}/members/${form.member_id}`,
-          { full_name: form.full_name, phone_number: form.phone_number || null, email: form.email || null, user_role: form.user_role },
-          getAuthHeader()
-        );
+        await api.put(`/members/${form.member_id}`, {
+          full_name: form.full_name, phone_number: form.phone_number || null,
+          email: form.email || null, user_role: form.user_role,
+        });
       } else {
         if (!form.password) { alert('กรุณาระบุรหัสผ่าน'); setSaving(false); return; }
-        await axios.post(`${API}/register`, {
-          username: form.username,
-          password: form.password,
-          full_name: form.full_name,
-          phone_number: form.phone_number || undefined,
-          email: form.email || undefined,
-          user_role: form.user_role,
+        await api.post('/register', {
+          username: form.username, password: form.password,
+          full_name: form.full_name, phone_number: form.phone_number || undefined,
+          email: form.email || undefined, user_role: form.user_role,
         });
       }
       await fetchCustomers();
@@ -97,7 +88,7 @@ const Customers = () => {
   const handleDelete = async (id, name) => {
     if (!window.confirm(`ยืนยันลบสมาชิก "${name}" ?`)) return;
     try {
-      await axios.delete(`${API}/members/${id}`, getAuthHeader());
+      await api.delete(`/members/${id}`);
       setCustomers((prev) => prev.filter((c) => c.member_id !== id));
     } catch (err) {
       alert('ไม่สามารถลบได้: ' + (err.response?.data?.message || err.message));
@@ -106,11 +97,11 @@ const Customers = () => {
 
   const roleLabel = (role) => {
     if (role === 'Admin') return <span className="text-purple-600 font-semibold">Admin</span>;
-    if (role === 'Monthly_Tenant') return <span className="text-blue-600 font-semibold">รายเดือน</span>;
+    if (role === 'Monthly_Tenant') return <span className="text-primary font-semibold">รายเดือน</span>;
     return <span className="text-green-600 font-semibold">รายวัน</span>;
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center font-bold text-blue-600 animate-pulse">กำลังโหลดข้อมูล...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center font-bold text-primary animate-pulse">กำลังโหลดข้อมูล...</div>;
 
   return (
     <div className="min-h-screen flex flex-col p-4 max-w-6xl mx-auto">
@@ -124,33 +115,33 @@ const Customers = () => {
           onChange={(e) => setSearch(e.target.value)}
           className="border rounded px-4 py-2 flex-grow min-w-[200px]"
         />
-        <button onClick={openAddModal} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded flex-shrink-0">
+        <button onClick={openAddModal} className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded flex-shrink-0">
           เพิ่มสมาชิกใหม่
         </button>
       </div>
 
-      <div className="flex-grow overflow-auto border border-gray-300 rounded">
-        <table className="w-full border-collapse border border-gray-300 min-w-[700px]">
-          <thead className="bg-gray-200 sticky top-0 z-10">
+      <div className="flex-grow overflow-auto border border-border rounded">
+        <table className="w-full border-collapse border border-border min-w-[700px]">
+          <thead className="bg-muted sticky top-0 z-10">
             <tr>
-              <th className="border border-gray-300 px-4 py-2 text-left">ชื่อ-นามสกุล</th>
-              <th className="border border-gray-300 px-4 py-2 text-left">Username</th>
-              <th className="border border-gray-300 px-4 py-2 text-left">เบอร์โทร</th>
-              <th className="border border-gray-300 px-4 py-2 text-left">อีเมล</th>
-              <th className="border border-gray-300 px-4 py-2 text-left">บทบาท</th>
-              <th className="border border-gray-300 px-4 py-2 text-center">จัดการ</th>
+              <th className="border border-border px-4 py-2 text-left">ชื่อ-นามสกุล</th>
+              <th className="border border-border px-4 py-2 text-left">Username</th>
+              <th className="border border-border px-4 py-2 text-left">เบอร์โทร</th>
+              <th className="border border-border px-4 py-2 text-left">อีเมล</th>
+              <th className="border border-border px-4 py-2 text-left">บทบาท</th>
+              <th className="border border-border px-4 py-2 text-center">จัดการ</th>
             </tr>
           </thead>
           <tbody>
             {filteredCustomers.length > 0 ? (
               filteredCustomers.map((customer) => (
-                <tr key={customer.member_id} className="hover:bg-gray-100">
-                  <td className="border border-gray-300 px-4 py-2">{customer.full_name}</td>
-                  <td className="border border-gray-300 px-4 py-2 text-gray-500">{customer.username}</td>
-                  <td className="border border-gray-300 px-4 py-2">{customer.phone_number || '-'}</td>
-                  <td className="border border-gray-300 px-4 py-2">{customer.email || '-'}</td>
-                  <td className="border border-gray-300 px-4 py-2">{roleLabel(customer.user_role)}</td>
-                  <td className="border border-gray-300 px-4 py-2 text-center space-x-2">
+                <tr key={customer.member_id} className="hover:bg-muted/50">
+                  <td className="border border-border px-4 py-2">{customer.full_name}</td>
+                  <td className="border border-border px-4 py-2 text-muted-foreground">{customer.username}</td>
+                  <td className="border border-border px-4 py-2">{customer.phone_number || '-'}</td>
+                  <td className="border border-border px-4 py-2">{customer.email || '-'}</td>
+                  <td className="border border-border px-4 py-2">{roleLabel(customer.user_role)}</td>
+                  <td className="border border-border px-4 py-2 text-center space-x-2">
                     <button onClick={() => openEditModal(customer)} className="bg-yellow-400 hover:bg-yellow-500 px-3 py-1 rounded text-white">
                       แก้ไข
                     </button>
@@ -162,7 +153,7 @@ const Customers = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="6" className="text-center py-4 text-gray-500">ไม่พบข้อมูลสมาชิก</td>
+                <td colSpan="6" className="text-center py-4 text-muted-foreground">ไม่พบข้อมูลสมาชิก</td>
               </tr>
             )}
           </tbody>
@@ -171,7 +162,7 @@ const Customers = () => {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+          <form onSubmit={handleSubmit} className="bg-card p-6 rounded-lg shadow-lg max-w-md w-full">
             <h2 className="text-xl font-bold mb-4">{isEdit ? 'แก้ไขสมาชิก' : 'เพิ่มสมาชิกใหม่'}</h2>
 
             {!isEdit && (
@@ -212,8 +203,8 @@ const Customers = () => {
             </label>
 
             <div className="flex justify-end space-x-4">
-              <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border rounded hover:bg-gray-100">ยกเลิก</button>
-              <button type="submit" disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+              <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border rounded hover:bg-muted/50">ยกเลิก</button>
+              <button type="submit" disabled={saving} className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50">
                 {saving ? 'กำลังบันทึก...' : 'บันทึก'}
               </button>
             </div>
