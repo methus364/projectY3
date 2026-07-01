@@ -17,11 +17,11 @@ import {
 } from '@heroicons/react/24/solid';
 import ThemeToggle from '../ui/ThemeToggle';
 
-// สไตล์ลิงก์ sidebar: active = primary, ปกติ = foreground พ่น hover
+// สไตล์ลิงก์ sidebar (บนพื้นม่วงเข้ม): active = แดง Agoda, ปกติ = ขาว hover ม่วงอ่อน
 const navLinkClass = ({ isActive }) =>
   isActive
-    ? 'flex items-center gap-3 rounded-lg px-3 py-2 bg-primary text-primary-foreground'
-    : 'flex items-center gap-3 rounded-lg px-3 py-2 text-card-foreground hover:bg-muted transition';
+    ? 'flex items-center gap-3 rounded-lg px-3 py-2 bg-[#D32F2F] text-white'
+    : 'flex items-center gap-3 rounded-lg px-3 py-2 text-white/80 hover:bg-white/10 transition';
 
 // เมนูจัดกลุ่ม — ไอคอนไม่ซ้ำกัน
 const menuGroups = [
@@ -70,11 +70,13 @@ const Menubar = () => {
   };
 
   return (
-    <div className="flex h-screen w-64 flex-col bg-card border-r border-border p-4">
+    <div className="flex h-screen w-64 flex-col bg-[#2C1338] p-4">
 
       {/* หัว sidebar — text logo + ปุ่ม dark mode */}
       <div className="mb-6 flex items-center justify-between">
-        <span className="text-xl font-bold text-primary">Around Loei</span>
+        <span className="flex items-center gap-2 text-xl font-black text-white">
+          <span className="text-[#D32F2F]">◆</span> Around Loei
+        </span>
         <ThemeToggle />
       </div>
 
@@ -83,7 +85,7 @@ const Menubar = () => {
         {menuGroups.map((group) => (
           <div key={group.label} className="mb-4">
             {/* หัวกลุ่ม — ตัวเล็ก สีจาง */}
-            <p className="px-3 mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="px-3 mb-1 text-xs font-semibold uppercase tracking-wider text-white/50">
               {group.label}
             </p>
             <ul className="space-y-1">
@@ -101,10 +103,10 @@ const Menubar = () => {
       </nav>
 
       {/* ปุ่ม Sign Out ด้านล่าง */}
-      <div className="border-t border-border pt-3">
+      <div className="border-t border-white/10 pt-3">
         <button
           onClick={handleSignOut}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-destructive hover:bg-muted transition"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[#FF8A80] hover:bg-white/10 transition"
         >
           <ArrowRightOnRectangleIcon className="h-5 w-5 shrink-0" />
           <span>ออกจากระบบ</span>
