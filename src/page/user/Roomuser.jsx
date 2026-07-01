@@ -2,46 +2,77 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import Navbar from '../../components/user/Navbar';
+import BookingStepper from '../../components/user/booking/BookingStepper';
+import RoomResultCard from '../../components/user/booking/RoomResultCard';
+import RoomDetailModal from '../../components/user/booking/RoomDetailModal';
+import BookingSummary from '../../components/user/booking/BookingSummary';
+import BookingSuccess from '../../components/user/booking/BookingSuccess';
+
+// ชื่อสเต็ปในแถบ progress (ใช้กับ BookingStepper)
+const STEP_LABELS = ['ค้นหา', 'เลือกห้อง', 'ยืนยัน', 'สำเร็จ'];
+
+// นับจำนวนวันระหว่างวันเข้า-ออก (ให้ตรงกับที่ backend คำนวณ)
+function countNights(checkIn, checkOut) {
+  const diffMs = Math.abs(new Date(checkOut) - new Date(checkIn));
+  return Math.ceil(diffMs / 86400000) || 1;
+}
 
 export default function Roomuser() {
   const navigate = useNavigate();
 
-  const [rentType, setRentType]             = useState('');
-  const [checkIn, setCheckIn]               = useState('');
-  const [checkOut, setCheckOut]             = useState('');
+  // สเต็ปปัจจุบันของ wizard (1=ค้นหา, 2=เลือกห้อง, 3=ยืนยัน, 4=สำเร็จ)
+  const [step, setStep] = useState(1);
+
+  // ข้อมูลการค้นหา
+  const [rentType, setRentType] = useState('');
+  const [checkIn, setCheckIn]   = useState('');
+  const [checkOut, setCheckOut] = useState('');
+
+  // ผลการค้นหา + ห้องที่เลือก
   const [rooms, setRooms]                   = useState([]);
-  const [searched, setSearched]             = useState(false);
   const [searching, setSearching]           = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [detailRoom, setDetailRoom]         = useState(null);
-  const [submitting, setSubmitting]         = useState(false);
 
-  const selectedRoom = rooms.find(r => r.id === selectedRoomId);
+  // ข้อมูลผู้เข้าพัก (โหลดจากโปรไฟล์ตอนเข้าสเต็ปยืนยัน)
+  const [guest, setGuest] = useState(null);
 
+  // ระหว่างส่งคำขอจอง + ผลลัพธ์ตอนจองสำเร็จ
+  const [submitting, setSubmitting]     = useState(false);
+  const [bookingResult, setBookingResult] = useState(null);
+
+  const selectedRoom = rooms.find((r) => r.id === selectedRoomId);
+  const nights = checkIn && checkOut ? countNights(checkIn, checkOut) : 0;
+
+  // เริ่มจองใหม่ทั้งหมด (ล้างทุก state กลับไปสเต็ป 1)
   const handleReset = () => {
+    setStep(1);
     setRentType('');
     setCheckIn('');
     setCheckOut('');
     setRooms([]);
-    setSearched(false);
     setSelectedRoomId(null);
+    setDetailRoom(null);
+    setGuest(null);
+    setBookingResult(null);
   };
 
-  // ค้นหาห้องว่างจริงจาก backend (เช็ค overlap ถูกต้อง)
+  // สเต็ป 1: ค้นหาห้องว่างจริงจาก backend แล้วไปสเต็ปเลือกห้อง
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!checkIn || !checkOut) return;
     try {
       setSearching(true);
       const res = await api.post('/search-rooms', { checkIn, checkOut });
-      const filtered = (res.data.data || []).filter(room => {
+      // กรองตามประเภทที่เลือก (รายวันต้องมีราคา/วัน, รายเดือนต้องมีราคา/เดือน)
+      const filtered = (res.data.data || []).filter((room) => {
         if (rentType === 'daily')   return room.price != null;
         if (rentType === 'monthly') return room.priceMonthly != null;
         return false;
       });
       setRooms(filtered);
-      setSearched(true);
       setSelectedRoomId(null);
+      setStep(2);
     } catch (err) {
       alert(err.response?.data?.error || 'ค้นหาห้องไม่สำเร็จ');
     } finally {
@@ -49,10 +80,10 @@ export default function Roomuser() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedRoomId || !checkIn || !checkOut) {
-      alert('กรุณาเลือกห้องและระบุวันที่ให้ครบถ้วน');
+  // สเต็ป 2 → 3: โหลดข้อมูลผู้เข้าพักจากโปรไฟล์ แล้วไปหน้ายืนยัน
+  const handleGoToSummary = async () => {
+    if (!selectedRoomId) {
+      alert('กรุณาเลือกห้องก่อน');
       return;
     }
     const token = localStorage.getItem('token');
@@ -62,10 +93,27 @@ export default function Roomuser() {
       return;
     }
     try {
+      const res = await api.get('/current-user');
+      setGuest(res.data.data);
+    } catch {
+      // โหลดโปรไฟล์ไม่สำเร็จก็ยังจองต่อได้ (แสดง '-' ในหน้าสรุป)
+      setGuest(null);
+    }
+    setStep(3);
+  };
+
+  // สเต็ป 3: ยืนยันการจอง → ยิง API แล้วไปหน้าสำเร็จ
+  const handleConfirmBooking = async () => {
+    try {
       setSubmitting(true);
-      await api.post('/booking', { roomId: selectedRoomId, startDate: checkIn, endDate: checkOut, rentType });
-      alert(`จองห้อง ${selectedRoom?.number} สำเร็จ!`);
-      navigate('/roomhistory');
+      const res = await api.post('/booking', {
+        roomId: selectedRoomId,
+        startDate: checkIn,
+        endDate: checkOut,
+        rentType,
+      });
+      setBookingResult(res.data);
+      setStep(4);
     } catch (err) {
       alert(err.response?.data?.message || 'จองไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
     } finally {
@@ -74,229 +122,192 @@ export default function Roomuser() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#F8F9FA]">
       <Navbar />
 
-      <div className="pt-20 pb-10 px-4 max-w-3xl mx-auto">
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-8">
+      <div className="pt-20 pb-10 px-4 max-w-2xl mx-auto">
 
-          <div className="flex justify-between items-center mb-8">
-            <button onClick={() => navigate('/')} className="text-sm text-muted-foreground hover:text-primary">
-              &larr; กลับหน้า Home
-            </button>
-            <h2 className="text-2xl font-bold text-primary">จองห้องพัก</h2>
-            <div className="w-24" />
-          </div>
+        <div className="mb-5">
+          <h2 className="text-[#1E293B] text-xl font-black">จองห้องพัก</h2>
+          <p className="text-[#64748B] text-sm mt-1">ค้นหาและจองห้องพักที่ต้องการ</p>
+        </div>
 
-          {/* Step 1: เลือกประเภทห้อง */}
-          {!rentType ? (
-            <div className="space-y-6 text-center">
-              <p className="text-foreground text-lg">กรุณาเลือกประเภทห้องที่ต้องการจอง</p>
-              <div className="flex justify-center gap-6 flex-wrap">
+        <BookingStepper steps={STEP_LABELS} currentStep={step} />
+
+        {/* ===== สเต็ป 1: เลือกประเภท + วันที่ ===== */}
+        {step === 1 && (
+          !rentType ? (
+            <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-6">
+              <p className="text-[#1E293B] font-black text-base mb-5 text-center">เลือกประเภทห้องพัก</p>
+              <div className="flex flex-col gap-4">
                 <button
                   onClick={() => setRentType('daily')}
-                  className="px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-lg shadow-sm transition"
+                  className="flex items-center gap-4 bg-[#EFF6FF] border border-[#BAE6FD] p-5 rounded-2xl hover:bg-[#DBEAFE] transition group"
                 >
-                  ห้องรายวัน
+                  <span className="text-3xl">🌅</span>
+                  <div className="flex-1 text-left">
+                    <p className="text-[#0369A1] font-black text-base">ห้องพักรายวัน</p>
+                    <p className="text-[#0284C7] text-xs font-semibold mt-0.5">เหมาะสำหรับพักระยะสั้น 1-30 วัน</p>
+                  </div>
+                  <span className="text-[#BAE6FD] group-hover:translate-x-1 transition text-xl">›</span>
                 </button>
                 <button
                   onClick={() => setRentType('monthly')}
-                  className="px-6 py-3 bg-secondary hover:bg-secondary/80 text-white rounded-xl text-lg shadow-sm transition"
+                  className="flex items-center gap-4 bg-[#F0FDF4] border border-[#BBF7D0] p-5 rounded-2xl hover:bg-[#DCFCE7] transition group"
                 >
-                  ห้องรายเดือน
-                </button>
-              </div>
-            </div>
-
-          ) : (
-            <div className="space-y-6">
-              <div className="text-right">
-                <button type="button" onClick={handleReset} className="text-sm text-muted-foreground hover:text-destructive">
-                  &larr; เปลี่ยนประเภทห้อง
+                  <span className="text-3xl">🏠</span>
+                  <div className="flex-1 text-left">
+                    <p className="text-[#15803D] font-black text-base">ห้องพักรายเดือน</p>
+                    <p className="text-[#16A34A] text-xs font-semibold mt-0.5">เหมาะสำหรับพักระยะยาว 1 เดือนขึ้นไป</p>
+                  </div>
+                  <span className="text-[#BBF7D0] group-hover:translate-x-1 transition text-xl">›</span>
                 </button>
               </div>
 
-              <h3 className="text-xl font-semibold text-center text-primary">
-                จองห้อง{rentType === 'daily' ? 'รายวัน' : 'รายเดือน'}
-              </h3>
-
-              {/* Step 2: เลือกวันที่ + ค้นหา */}
-              <form onSubmit={handleSearch} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-foreground mb-1">วันที่เข้าพัก</label>
-                    <input
-                      type="date"
-                      value={checkIn}
-                      onChange={(e) => setCheckIn(e.target.value)}
-                      required
-                      className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-foreground mb-1">วันที่ออก</label>
-                    <input
-                      type="date"
-                      value={checkOut}
-                      onChange={(e) => setCheckOut(e.target.value)}
-                      required
-                      className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
-                    />
-                  </div>
-                </div>
+              <div className="mt-5 flex justify-center">
                 <button
-                  type="submit"
-                  disabled={searching}
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50"
+                  onClick={() => navigate('/')}
+                  className="text-[#94A3B8] text-sm font-semibold hover:text-[#0194F3]"
                 >
-                  {searching ? 'กำลังค้นหา...' : 'ค้นหาห้องว่าง'}
+                  ← กลับหน้าแรก
                 </button>
-              </form>
-
-              {/* Step 3: แสดงผลห้องว่าง */}
-              {searched && (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <label className="block text-foreground font-medium">เลือกห้องที่ต้องการจอง</label>
-
-                  {rooms.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">ไม่มีห้องว่างในช่วงวันที่เลือก</p>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {rooms.map(room => (
-                        <div
-                          key={room.id}
-                          onClick={() => setSelectedRoomId(room.id)}
-                          className={`p-4 rounded-xl border shadow-sm transition cursor-pointer
-                            ${selectedRoomId === room.id
-                              ? 'ring-2 ring-primary bg-primary/5 border-primary'
-                              : 'border-border bg-card hover:ring-2 ring-primary/40'
-                            }`}
-                        >
-                          {room.imageUrl && (
-                            <img
-                              src={room.imageUrl}
-                              alt={`ห้อง ${room.number}`}
-                              className="w-full h-32 object-cover rounded-lg mb-3"
-                            />
-                          )}
-
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-semibold text-lg text-primary">ห้อง {room.number}</h4>
-                              <p className="text-sm text-muted-foreground">{room.typeName || 'ทั่วไป'}</p>
-                              {room.roomSize && (
-                                <p className="text-xs text-muted-foreground">{room.roomSize} ตร.ม.</p>
-                              )}
-                            </div>
-                            <div className="text-right">
-                              <p className="font-bold text-foreground">
-                                {rentType === 'monthly'
-                                  ? `฿${Number(room.priceMonthly).toLocaleString()} / เดือน`
-                                  : `฿${Number(room.price).toLocaleString()} / วัน`}
-                              </p>
-                              {room.depositAmount && (
-                                <p className="text-xs text-muted-foreground">
-                                  มัดจำ ฿{Number(room.depositAmount).toLocaleString()}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {room.amenities?.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {room.amenities.map((a, i) => (
-                                <span key={i} className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">{a}</span>
-                              ))}
-                            </div>
-                          )}
-
-                          {(room.description || room.amenities?.length > 0) && (
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); setDetailRoom(room); }}
-                              className="mt-2 text-xs text-primary hover:text-primary/70 underline"
-                            >
-                              ดูรายละเอียดเพิ่มเติม
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {rooms.length > 0 && (
-                    <button
-                      type="submit"
-                      disabled={!selectedRoomId || submitting}
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-4 rounded-lg mt-2 transition disabled:opacity-50"
-                    >
-                      {submitting
-                        ? 'กำลังส่งคำขอ...'
-                        : `ยืนยันการจอง${selectedRoom ? ` (ห้อง ${selectedRoom.number})` : ''}`}
-                    </button>
-                  )}
-                </form>
-              )}
+              </div>
             </div>
-          )}
-        </div>
-      </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Badge ประเภทที่เลือก + เปลี่ยน */}
+              <div className="flex items-center justify-between">
+                <span className="bg-[#0194F3] text-white text-sm font-bold px-4 py-1.5 rounded-full">
+                  {rentType === 'daily' ? '🌅 รายวัน' : '🏠 รายเดือน'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRentType('')}
+                  className="text-sm text-[#64748B] hover:text-[#0194F3] font-semibold"
+                >
+                  เปลี่ยนประเภท
+                </button>
+              </div>
 
-      {/* Modal รายละเอียดห้อง */}
-      {detailRoom && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md p-6 border border-border">
-            <h3 className="text-2xl font-bold text-primary mb-4">ห้อง {detailRoom.number}</h3>
+              {/* เลือกวันที่ + ค้นหา */}
+              <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-5">
+                <p className="text-[#1E293B] font-black text-base mb-4">เลือกวันที่</p>
+                <form onSubmit={handleSearch} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[#334155] text-sm font-bold mb-2">วันที่เข้าพัก</label>
+                      <input
+                        type="date"
+                        value={checkIn}
+                        onChange={(e) => setCheckIn(e.target.value)}
+                        required
+                        className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#0194F3]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[#334155] text-sm font-bold mb-2">วันที่ออก</label>
+                      <input
+                        type="date"
+                        value={checkOut}
+                        onChange={(e) => setCheckOut(e.target.value)}
+                        required
+                        className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#0194F3]"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={searching}
+                    className="w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
+                  >
+                    {searching ? 'กำลังค้นหา...' : 'ค้นหาห้องว่าง'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )
+        )}
 
-            {detailRoom.imageUrl && (
-              <img
-                src={detailRoom.imageUrl}
-                alt={`ห้อง ${detailRoom.number}`}
-                className="w-full h-48 object-cover rounded-xl mb-4"
-              />
+        {/* ===== สเต็ป 2: เลือกห้อง ===== */}
+        {step === 2 && (
+          <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[#1E293B] font-black text-base">
+                {rooms.length > 0 ? `พบ ${rooms.length} ห้องว่าง` : 'ผลการค้นหา'}
+              </p>
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="text-sm text-[#64748B] hover:text-[#0194F3] font-semibold"
+              >
+                ← แก้ไขการค้นหา
+              </button>
+            </div>
+
+            {rooms.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-3xl mb-2">😔</p>
+                <p className="text-[#64748B] font-semibold">ไม่มีห้องว่างในช่วงวันที่เลือก</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {rooms.map((room) => (
+                  <RoomResultCard
+                    key={room.id}
+                    room={room}
+                    rentType={rentType}
+                    selected={selectedRoomId === room.id}
+                    onSelect={setSelectedRoomId}
+                    onViewDetail={setDetailRoom}
+                  />
+                ))}
+              </div>
             )}
 
-            <div className="space-y-3 text-foreground">
-              <p><span className="font-semibold">ประเภท:</span> {detailRoom.typeName || '-'}</p>
-              {detailRoom.roomSize && (
-                <p><span className="font-semibold">ขนาดห้อง:</span> {detailRoom.roomSize} ตร.ม.</p>
-              )}
-              <p>
-                <span className="font-semibold">ราคา:</span>{' '}
-                {rentType === 'monthly'
-                  ? `฿${Number(detailRoom.priceMonthly).toLocaleString()} / เดือน`
-                  : `฿${Number(detailRoom.price).toLocaleString()} / วัน`}
-              </p>
-              {detailRoom.depositAmount && (
-                <p><span className="font-semibold">ค่ามัดจำ:</span> ฿{Number(detailRoom.depositAmount).toLocaleString()}</p>
-              )}
-              {detailRoom.description && (
-                <div>
-                  <p className="font-semibold mb-1">คำอธิบาย:</p>
-                  <p className="text-sm text-muted-foreground">{detailRoom.description}</p>
-                </div>
-              )}
-              {detailRoom.amenities?.length > 0 && (
-                <div>
-                  <p className="font-semibold mb-2">สิ่งอำนวยความสะดวก:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {detailRoom.amenities.map((a, i) => (
-                      <span key={i} className="bg-primary/10 text-primary text-sm px-3 py-1 rounded-full font-medium">{a}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => setDetailRoom(null)}
-              className="mt-6 w-full bg-muted text-foreground py-2 rounded-xl font-semibold hover:bg-muted/80"
-            >
-              ปิด
-            </button>
+            {rooms.length > 0 && (
+              <button
+                type="button"
+                onClick={handleGoToSummary}
+                disabled={!selectedRoomId}
+                className="mt-4 w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
+              >
+                ถัดไป{selectedRoom ? ` (ห้อง ${selectedRoom.number})` : ''}
+              </button>
+            )}
           </div>
-        </div>
-      )}
+        )}
+
+        {/* ===== สเต็ป 3: ยืนยัน ===== */}
+        {step === 3 && selectedRoom && (
+          <BookingSummary
+            room={selectedRoom}
+            rentType={rentType}
+            checkIn={checkIn}
+            checkOut={checkOut}
+            nights={nights}
+            guest={guest}
+            submitting={submitting}
+            onConfirm={handleConfirmBooking}
+            onBack={() => setStep(2)}
+          />
+        )}
+
+        {/* ===== สเต็ป 4: สำเร็จ ===== */}
+        {step === 4 && bookingResult && (
+          <BookingSuccess
+            result={bookingResult}
+            onGoHistory={() => navigate('/roomhistory')}
+            onBookAgain={handleReset}
+          />
+        )}
+      </div>
+
+      {/* Modal รายละเอียดห้อง (ใช้ได้ทุกสเต็ปที่มีรายการห้อง) */}
+      <RoomDetailModal
+        room={detailRoom}
+        rentType={rentType}
+        onClose={() => setDetailRoom(null)}
+      />
     </div>
   );
 }
