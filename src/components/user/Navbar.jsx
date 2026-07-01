@@ -30,53 +30,66 @@ export default function Navbar() {
     navigate('/login');
   };
 
+  // ลิงก์เมนูฝั่งขวา (ใช้ซ้ำทั้ง desktop/mobile) — คลาสสีจัดแยกในแต่ละจุด
+  const navLinks = (
+    <>
+      <Link to="/" className="hover:text-white/70 transition">หน้าแรก</Link>
+      <Link to="/roomuser" className="hover:text-white/70 transition">ค้นหาห้องพัก</Link>
+      {isLoggedIn && (
+        <>
+          <Link to="/roomhistory" className="hover:text-white/70 transition">ประวัติการจอง</Link>
+          <Link to="/mybills" className="hover:text-white/70 transition">บิล/ชำระเงิน</Link>
+          {isMonthly && (
+            <>
+              <Link to="/mycontracts" className="hover:text-white/70 transition">สัญญาเช่า</Link>
+              <Link to="/repairrequest" className="hover:text-white/70 transition">แจ้งซ่อม</Link>
+            </>
+          )}
+          <Link to="/profile" className="hover:text-white/70 transition">บัญชีผู้ใช้</Link>
+        </>
+      )}
+    </>
+  );
+
   return (
-    <nav className="bg-card fixed top-0 w-full z-50 shadow border-b border-border">
+    <nav className="bg-[#2C1338] fixed top-0 w-full z-50 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
 
-          {/* Text logo "Around Loei" */}
-          <div className="flex items-center space-x-2">
-            <Link to="/" className="text-xl font-bold text-primary">Around Loei</Link>
-          </div>
+          {/* โลโก้ Around Loei */}
+          <Link to="/" className="flex items-center gap-2 text-xl font-black text-white">
+            <span className="text-[#D32F2F] text-2xl">◆</span>
+            Around Loei
+          </Link>
 
-          {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-foreground hover:text-primary transition">หน้าแรก</Link>
-            <Link to="/roomuser" className="text-foreground hover:text-primary transition">ค้นหาห้องพัก</Link>
-            {isLoggedIn && (
-              <>
-                <Link to="/roomhistory" className="text-foreground hover:text-primary transition">ประวัติการจอง</Link>
-                <Link to="/mybills" className="text-foreground hover:text-primary transition">บิล/ชำระเงิน</Link>
-                {/* สัญญาเช่า + แจ้งซ่อม — เฉพาะผู้เช่ารายเดือน */}
-                {isMonthly && (
-                  <>
-                    <Link to="/mycontracts" className="text-foreground hover:text-primary transition">สัญญาเช่า</Link>
-                    <Link to="/repairrequest" className="text-foreground hover:text-primary transition">แจ้งซ่อม</Link>
-                  </>
-                )}
-                <Link to="/profile" className="text-foreground hover:text-primary transition">บัญชีผู้ใช้</Link>
-                <button
-                  onClick={handleSignOut}
-                  className="text-destructive hover:text-destructive/80 transition text-sm"
-                >
-                  ออกจากระบบ
-                </button>
-              </>
-            )}
-            {!isLoggedIn && (
-              <Link to="/login" className="text-foreground hover:text-primary transition">เข้าสู่ระบบ</Link>
+          {/* เมนู desktop */}
+          <div className="hidden md:flex items-center gap-6 text-sm font-semibold text-white">
+            {navLinks}
+            {isLoggedIn ? (
+              <button
+                onClick={handleSignOut}
+                className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white text-sm font-bold px-4 py-1.5 rounded-lg transition"
+              >
+                ออกจากระบบ
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-bold px-4 py-1.5 rounded-lg transition"
+              >
+                เข้าสู่ระบบ
+              </Link>
             )}
             <ThemeToggle />
           </div>
 
-          {/* Mobile: toggle + hamburger */}
-          <div className="md:hidden flex items-center space-x-2">
+          {/* mobile: toggle + hamburger */}
+          <div className="md:hidden flex items-center gap-2">
             <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}
               type="button"
-              className="text-foreground hover:text-primary focus:outline-none"
+              className="text-white focus:outline-none"
               aria-label="toggle menu"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -91,33 +104,33 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* เมนู mobile */}
       {isOpen && (
-        <div className="md:hidden bg-card border-t border-border">
-          <div className="px-4 py-3 space-y-2">
-            <Link to="/" className="block text-foreground hover:text-primary" onClick={closeMenu}>หน้าแรก</Link>
-            <Link to="/roomuser" className="block text-foreground hover:text-primary" onClick={closeMenu}>ค้นหาห้องพัก</Link>
+        <div className="md:hidden bg-[#3B1E52] border-t border-white/10">
+          <div className="px-4 py-3 space-y-2 text-white font-semibold" onClick={closeMenu}>
+            <Link to="/" className="block hover:text-white/70">หน้าแรก</Link>
+            <Link to="/roomuser" className="block hover:text-white/70">ค้นหาห้องพัก</Link>
             {isLoggedIn && (
               <>
-                <Link to="/roomhistory" className="block text-foreground hover:text-primary" onClick={closeMenu}>ประวัติการจอง</Link>
-                <Link to="/mybills" className="block text-foreground hover:text-primary" onClick={closeMenu}>บิล/ชำระเงิน</Link>
+                <Link to="/roomhistory" className="block hover:text-white/70">ประวัติการจอง</Link>
+                <Link to="/mybills" className="block hover:text-white/70">บิล/ชำระเงิน</Link>
                 {isMonthly && (
                   <>
-                    <Link to="/mycontracts" className="block text-foreground hover:text-primary" onClick={closeMenu}>สัญญาเช่า</Link>
-                    <Link to="/repairrequest" className="block text-foreground hover:text-primary" onClick={closeMenu}>แจ้งซ่อม</Link>
+                    <Link to="/mycontracts" className="block hover:text-white/70">สัญญาเช่า</Link>
+                    <Link to="/repairrequest" className="block hover:text-white/70">แจ้งซ่อม</Link>
                   </>
                 )}
-                <Link to="/profile" className="block text-foreground hover:text-primary" onClick={closeMenu}>บัญชีผู้ใช้</Link>
+                <Link to="/profile" className="block hover:text-white/70">บัญชีผู้ใช้</Link>
                 <button
                   onClick={handleSignOut}
-                  className="block text-left text-destructive hover:text-destructive/80 text-sm w-full"
+                  className="block text-left text-[#FF8A80] hover:text-[#FFB4A9] text-sm w-full"
                 >
                   ออกจากระบบ
                 </button>
               </>
             )}
             {!isLoggedIn && (
-              <Link to="/login" className="block text-foreground hover:text-primary" onClick={closeMenu}>เข้าสู่ระบบ</Link>
+              <Link to="/login" className="block hover:text-white/70">เข้าสู่ระบบ</Link>
             )}
           </div>
         </div>

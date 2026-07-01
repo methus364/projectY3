@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import Navbar from '../../components/user/Navbar';
+import PageHeader from '../../components/user/PageHeader';
 
 // แมป status → ข้อความภาษาไทย + สี
 const REPAIR_STATUS = {
@@ -79,54 +80,56 @@ export default function RepairRequest() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        กำลังโหลดข้อมูล...
+      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
+        <p className="text-[#64748B] font-bold">กำลังโหลดข้อมูล...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#F8F9FA]">
       <Navbar />
+      <PageHeader title="แจ้งซ่อมห้องพัก" subtitle="แจ้งปัญหาที่พบในห้องพักได้ที่นี่" maxWidth="max-w-xl" />
 
-      <div className="pt-20 pb-10 px-4 max-w-xl mx-auto">
-        <h1 className="text-2xl font-bold text-foreground mb-6">แจ้งซ่อมห้องพัก</h1>
+      <div className="pt-6 pb-10 px-4 max-w-xl mx-auto">
 
         {/* กรณีไม่มีการจองที่ active */}
         {!activeBooking ? (
-          <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 rounded-xl p-5 text-center">
-            <p className="font-medium">ไม่พบการเข้าพักที่กำลังดำเนินอยู่</p>
-            <p className="text-sm mt-1">สามารถแจ้งซ่อมได้เฉพาะเมื่อเช็คอินแล้วเท่านั้น</p>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-3xl p-6 text-center">
+            <p className="text-4xl mb-3">🔧</p>
+            <p className="text-yellow-800 font-black">ไม่พบการเข้าพักที่กำลังดำเนินอยู่</p>
+            <p className="text-yellow-700 text-sm mt-1">สามารถแจ้งซ่อมได้เฉพาะเมื่อเช็คอินแล้วเท่านั้น</p>
           </div>
         ) : (
           <>
             {/* ข้อมูลห้องที่กำลังเข้าพัก */}
-            <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-6">
-              <p className="text-sm text-primary">
-                กำลังเข้าพักห้อง <strong>{activeBooking.roomNumber || activeBooking.roomId}</strong>
-                {' '}(booking #{activeBooking.bookingId})
-              </p>
+            <div className="bg-[#F3EDF9] border border-[#D9C5EC] rounded-3xl px-5 py-4 mb-5 flex items-center gap-3">
+              <span className="bg-[#5A2D82] p-2.5 rounded-xl text-white">🏠</span>
+              <div>
+                <p className="text-[#46236A] font-black text-sm">กำลังเข้าพักห้อง {activeBooking.roomNumber || activeBooking.roomId}</p>
+                <p className="text-[#6A3A96] text-xs font-semibold">Booking #{activeBooking.bookingId}</p>
+              </div>
             </div>
 
             {/* ฟอร์มแจ้งซ่อม */}
-            <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">แจ้งปัญหาใหม่</h2>
+            <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-6 mb-5">
+              <p className="text-[#1E293B] font-black text-base mb-4">แจ้งปัญหาใหม่</p>
 
               {successMsg && (
-                <div className="mb-4 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 text-green-700 rounded-lg text-sm">
-                  {successMsg}
+                <div className="mb-4 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-4 py-3 text-sm font-semibold">
+                  ✅ {successMsg}
                 </div>
               )}
               {errorMsg && (
-                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 text-destructive rounded-lg text-sm">
+                <div className="mb-4 bg-red-50 border border-red-200 text-red-600 rounded-2xl px-4 py-3 text-sm font-semibold">
                   {errorMsg}
                 </div>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    หัวข้อปัญหา <span className="text-destructive">*</span>
+                  <label className="block text-[#334155] text-sm font-bold mb-2">
+                    หัวข้อปัญหา <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -134,23 +137,23 @@ export default function RepairRequest() {
                     onChange={(e) => setProblemTitle(e.target.value)}
                     placeholder="เช่น แอร์ไม่เย็น, น้ำรั่ว, หลอดไฟขาด"
                     required
-                    className="w-full border border-border bg-background text-foreground rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82] focus:ring-2 focus:ring-[#5A2D82]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">รายละเอียดเพิ่มเติม</label>
+                  <label className="block text-[#334155] text-sm font-bold mb-2">รายละเอียดเพิ่มเติม</label>
                   <textarea
                     value={problemDetails}
                     onChange={(e) => setProblemDetails(e.target.value)}
                     placeholder="อธิบายปัญหาเพิ่มเติม (ไม่บังคับ)"
                     rows={3}
-                    className="w-full border border-border bg-background text-foreground rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82] focus:ring-2 focus:ring-[#5A2D82]/20"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={submitting || !problemTitle.trim()}
-                  className="w-full py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg transition disabled:opacity-50"
+                  className="w-full py-3.5 bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black rounded-2xl transition disabled:opacity-50"
                 >
                   {submitting ? 'กำลังส่ง...' : 'ส่งคำร้องแจ้งซ่อม'}
                 </button>
@@ -159,22 +162,22 @@ export default function RepairRequest() {
 
             {/* รายการที่แจ้งซ่อมไปแล้ว */}
             {myRepairs.length > 0 && (
-              <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-                <h2 className="text-lg font-semibold text-foreground mb-4">รายการที่แจ้งไปแล้ว</h2>
+              <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-5">
+                <p className="text-[#1E293B] font-black text-base mb-4">รายการที่แจ้งไปแล้ว</p>
                 <div className="space-y-3">
                   {myRepairs.map((r) => {
-                    const cfg = REPAIR_STATUS[r.status] || { label: r.status, color: 'bg-muted text-foreground' };
+                    const cfg = REPAIR_STATUS[r.status] || { label: r.status, color: 'bg-gray-100 text-gray-600' };
                     return (
-                      <div key={r.repair_id} className="border border-border rounded-lg p-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{r.problem_title}</p>
+                      <div key={r.repair_id} className="border border-[#E2E8F0] rounded-2xl p-4">
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="flex-1">
+                            <p className="text-[#1E293B] text-sm font-bold">{r.problem_title}</p>
                             {r.problem_details && (
-                              <p className="text-xs text-muted-foreground mt-1">{r.problem_details}</p>
+                              <p className="text-[#64748B] text-xs mt-1">{r.problem_details}</p>
                             )}
-                            <p className="text-xs text-muted-foreground mt-1">{r.reported_date?.split('T')[0]}</p>
+                            <p className="text-[#94A3B8] text-xs mt-1">{r.reported_date?.split('T')[0]}</p>
                           </div>
-                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${cfg.color}`}>
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-bold whitespace-nowrap ${cfg.color}`}>
                             {cfg.label}
                           </span>
                         </div>
@@ -187,9 +190,14 @@ export default function RepairRequest() {
           </>
         )}
 
-        <button onClick={() => navigate(-1)} className="mt-6 text-sm text-muted-foreground hover:text-foreground underline">
-          ← ย้อนกลับ
-        </button>
+        <div className="flex justify-center mt-5">
+          <button
+            onClick={() => navigate(-1)}
+            className="px-6 py-2.5 bg-white border border-[#E2E8F0] text-[#64748B] font-bold rounded-2xl hover:bg-[#F8FAFC] transition"
+          >
+            ← ย้อนกลับ
+          </button>
+        </div>
       </div>
     </div>
   );

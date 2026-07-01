@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
+import Navbar from '../../components/user/Navbar';
+import PageHeader from '../../components/user/PageHeader';
 
 const money = (val) => (Number(val) || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 });
 
@@ -113,119 +115,139 @@ export default function MyBills() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        กำลังโหลดข้อมูล...
+      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
+        <p className="text-[#64748B] font-bold">กำลังโหลดข้อมูล...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-10 px-4">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold text-foreground mb-6">บิลค่าเช่าของฉัน</h1>
+    <div className="min-h-screen bg-[#F8F9FA]">
+      <Navbar />
+      <PageHeader title="บิลค่าเช่าของฉัน" subtitle="รายการใบแจ้งหนี้และการชำระเงิน" />
+
+      <div className="pt-6 pb-10 px-4 max-w-2xl mx-auto">
 
         {invoices.length === 0 ? (
-          <div className="bg-card rounded-xl shadow p-6 text-center text-muted-foreground">
-            ยังไม่มีใบแจ้งหนี้
+          <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-10 text-center">
+            <p className="text-4xl mb-3">🧾</p>
+            <p className="text-[#64748B] font-semibold">ยังไม่มีใบแจ้งหนี้</p>
           </div>
         ) : (
           <div className="space-y-4">
             {invoices.map((inv) => (
-              <div key={inv.invoice_id} className="bg-card rounded-xl shadow p-5">
-                <div className="flex justify-between items-start mb-3">
+              <div key={inv.invoice_id} className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-5">
+                {/* หัว: เลขบิล + สถานะ */}
+                <div className="flex items-start justify-between mb-3">
                   <div>
-                    <p className="font-semibold text-foreground">
+                    <p className="text-[#1E293B] font-black text-base">
                       INV-{new Date(inv.invoice_date).getFullYear()}-{String(inv.invoice_id).padStart(4, '0')}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-[#64748B] text-sm mt-0.5">
                       ห้อง {inv.room_number} · ครบกำหนด {inv.due_date?.split('T')[0] || '-'}
                     </p>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusBadge(inv.invoice_status)}`}>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${statusBadge(inv.invoice_status)}`}>
                     {inv.invoice_status}
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center border-t border-border pt-3">
-                  <p className="text-lg font-bold text-foreground">{money(inv.total_amount)} บาท</p>
-                  <div className="space-x-3">
+                {/* ยอดรวม */}
+                <div className="bg-[#F8FAFC] rounded-2xl px-4 py-3 mb-3">
+                  <p className="text-[#94A3B8] text-xs font-semibold">ยอดรวม</p>
+                  <p className="text-[#1E293B] font-black text-xl">{money(inv.total_amount)} <span className="text-sm font-semibold text-[#64748B]">บาท</span></p>
+                </div>
+
+                {/* ปุ่ม */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => openPdf(inv.invoice_id)}
+                    className="flex-1 py-2.5 bg-[#F1F5F9] text-[#334155] font-bold text-sm rounded-2xl hover:bg-[#E2E8F0] transition"
+                  >
+                    ดูบิล PDF
+                  </button>
+                  {/* แจ้งชำระได้เฉพาะบิลที่ยังไม่ชำระครบ */}
+                  {inv.invoice_status !== 'ชำระแล้ว' && inv.invoice_status !== 'ยกเลิก' && (
                     <button
-                      onClick={() => openPdf(inv.invoice_id)}
-                      className="text-sm text-muted-foreground hover:text-foreground"
+                      onClick={() => openPay(inv)}
+                      className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-2xl transition"
                     >
-                      ดูบิล (PDF)
+                      แจ้งชำระเงิน
                     </button>
-                    {/* แจ้งชำระได้เฉพาะบิลที่ยังไม่ชำระครบ */}
-                    {inv.invoice_status !== 'ชำระแล้ว' && inv.invoice_status !== 'ยกเลิก' && (
-                      <button
-                        onClick={() => openPay(inv)}
-                        className="text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg transition"
-                      >
-                        แจ้งชำระเงิน
-                      </button>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        <button
-          onClick={() => navigate(-1)}
-          className="mt-6 text-sm text-muted-foreground hover:text-foreground underline"
-        >
-          ← ย้อนกลับ
-        </button>
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="px-6 py-2.5 bg-white border border-[#E2E8F0] text-[#64748B] font-bold rounded-2xl shadow-sm hover:bg-[#F8FAFC] transition"
+          >
+            ← ย้อนกลับ
+          </button>
+        </div>
       </div>
 
       {/* Modal แจ้งชำระเงิน */}
       {payInvoice && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-xl shadow-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold text-foreground mb-1">แจ้งชำระเงิน</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              ห้อง {payInvoice.room_number} · ยอด {money(payInvoice.total_amount)} บาท
-            </p>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[#1E293B] text-lg font-black">แจ้งชำระเงิน</h2>
+              <button
+                onClick={() => setPayInvoice(null)}
+                className="w-8 h-8 bg-[#F1F5F9] rounded-full flex items-center justify-center text-[#64748B] hover:bg-[#E2E8F0]"
+              >
+                ✕
+              </button>
+            </div>
 
-            {/* QR PromptPay (ถ้าหอพักตั้งค่าไว้) */}
+            <div className="bg-[#F8FAFC] rounded-2xl px-4 py-3 mb-4">
+              <p className="text-[#64748B] text-sm">ห้อง {payInvoice.room_number}</p>
+              <p className="text-[#1E293B] font-black text-xl">{money(payInvoice.total_amount)} <span className="text-sm font-semibold text-[#64748B]">บาท</span></p>
+            </div>
+
+            {/* QR PromptPay */}
             {qr ? (
               <div className="text-center mb-4">
-                <img src={qr.qrImage} alt="QR PromptPay" className="mx-auto w-56 h-56" />
-                <p className="text-sm text-muted-foreground mt-1">
+                <img src={qr.qrImage} alt="QR PromptPay" className="mx-auto w-52 h-52 rounded-2xl" />
+                <p className="text-sm text-[#64748B] font-semibold mt-2">
                   สแกนเพื่อโอน {money(qr.amount)} บาท
                 </p>
               </div>
             ) : (
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg text-sm text-center">
+              <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-2xl px-4 py-3 text-sm text-yellow-800 font-semibold text-center">
                 ยังไม่มี QR พร้อมเพย์ — โอนตามช่องทางหอพักแล้วแนบสลิปด้านล่าง
               </div>
             )}
 
             {/* แนบสลิป */}
             <div className="mb-5">
-              <label className="block text-sm font-medium text-foreground mb-1">
-                แนบสลิปการโอนเงิน <span className="text-destructive">*</span>
+              <label className="block text-[#334155] text-sm font-bold mb-2">
+                แนบสลิปการโอนเงิน <span className="text-red-400">*</span>
               </label>
               <input
                 type="file"
                 accept="image/*"
                 onChange={(e) => setSlipFile(e.target.files[0] || null)}
-                className="w-full text-sm border border-border rounded-lg px-3 py-2"
+                className="w-full text-sm border border-[#CBD5E1] rounded-2xl px-3 py-2.5 bg-[#F8FAFC]"
               />
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex gap-3">
               <button
                 onClick={() => setPayInvoice(null)}
-                className="px-4 py-2 text-sm bg-muted hover:bg-muted/80 text-foreground rounded-lg transition"
+                className="flex-1 py-3 bg-[#F1F5F9] text-[#64748B] font-bold rounded-2xl hover:bg-[#E2E8F0] transition"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleSubmitPayment}
                 disabled={submitting}
-                className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition disabled:opacity-50"
+                className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl transition disabled:opacity-50"
               >
                 {submitting ? 'กำลังส่ง...' : 'ส่งแจ้งชำระ'}
               </button>

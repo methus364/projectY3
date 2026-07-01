@@ -51,12 +51,23 @@ export default function Register() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
-      <div className="bg-card shadow-xl rounded-2xl p-8 w-full max-w-md border border-border">
-        <h2 className="text-3xl font-bold text-center text-foreground mb-6">สมัครสมาชิก</h2>
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col">
+
+      {/* Header สีฟ้า */}
+      <div className="bg-[#5A2D82] pt-14 pb-16 px-6 flex flex-col items-center">
+        <div className="w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center mb-4">
+          <span className="text-3xl">🏠</span>
+        </div>
+        <h1 className="text-white text-2xl font-black">Around Loei</h1>
+        <p className="text-white/80 text-sm font-semibold mt-1">สมัครสมาชิกใหม่</p>
+      </div>
+
+      {/* White card */}
+      <div className="bg-white rounded-t-[40px] -mt-8 flex-1 px-6 pt-8 pb-10 max-w-md w-full mx-auto shadow-lg">
+        <h2 className="text-[#1E293B] text-xl font-black mb-6">สร้างบัญชีใหม่</h2>
 
         {error && (
-          <div className="text-destructive bg-destructive/10 border border-destructive/30 px-3 py-2 rounded mb-4 text-sm text-center">
+          <div className="bg-red-50 border border-red-200 text-red-600 text-sm font-semibold rounded-2xl px-4 py-3 mb-4 text-center">
             {error}
           </div>
         )}
@@ -64,7 +75,9 @@ export default function Register() {
         <form onSubmit={handleRegister} className="space-y-4">
           {fields.map(({ name, label, type, placeholder, required }) => (
             <div key={name}>
-              <label className="block text-foreground mb-1 text-sm">{label}</label>
+              <label className="block text-[#334155] text-sm font-bold mb-2">
+                {label} {required && <span className="text-red-400">*</span>}
+              </label>
               <input
                 type={type}
                 name={name}
@@ -72,7 +85,7 @@ export default function Register() {
                 value={form[name]}
                 onChange={handleChange}
                 placeholder={placeholder}
-                className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
+                className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82] focus:ring-2 focus:ring-[#5A2D82]/20"
               />
             </div>
           ))}
@@ -80,15 +93,15 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition"
+            className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] disabled:opacity-50 text-white font-black py-3.5 rounded-2xl transition text-base mt-2"
           >
             {loading ? 'กำลังสมัคร...' : 'สมัครสมาชิก'}
           </button>
         </form>
 
-        <p className="mt-4 text-sm text-center text-muted-foreground">
+        <p className="mt-6 text-sm text-center text-[#64748B]">
           มีบัญชีอยู่แล้ว?{' '}
-          <Link to="/login" className="text-primary hover:underline">เข้าสู่ระบบ</Link>
+          <Link to="/login" className="text-[#5A2D82] font-bold hover:underline">เข้าสู่ระบบ</Link>
         </p>
       </div>
     </div>

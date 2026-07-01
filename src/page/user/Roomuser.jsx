@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../lib/api';
 import Navbar from '../../components/user/Navbar';
+import PageHeader from '../../components/user/PageHeader';
 import BookingStepper from '../../components/user/booking/BookingStepper';
 import RoomResultCard from '../../components/user/booking/RoomResultCard';
 import RoomDetailModal from '../../components/user/booking/RoomDetailModal';
@@ -19,6 +20,7 @@ function countNights(checkIn, checkOut) {
 
 export default function Roomuser() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // สเต็ปปัจจุบันของ wizard (1=ค้นหา, 2=เลือกห้อง, 3=ยืนยัน, 4=สำเร็จ)
   const [step, setStep] = useState(1);
@@ -57,17 +59,15 @@ export default function Roomuser() {
     setBookingResult(null);
   };
 
-  // สเต็ป 1: ค้นหาห้องว่างจริงจาก backend แล้วไปสเต็ปเลือกห้อง
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!checkIn || !checkOut) return;
+  // ค้นหาห้องว่างจาก backend (รับค่ามาตรงๆ เผื่อเรียกจาก auto-search ที่ state ยังไม่ทันอัปเดต)
+  const runSearch = async (searchRentType, searchCheckIn, searchCheckOut) => {
     try {
       setSearching(true);
-      const res = await api.post('/search-rooms', { checkIn, checkOut });
+      const res = await api.post('/search-rooms', { checkIn: searchCheckIn, checkOut: searchCheckOut });
       // กรองตามประเภทที่เลือก (รายวันต้องมีราคา/วัน, รายเดือนต้องมีราคา/เดือน)
       const filtered = (res.data.data || []).filter((room) => {
-        if (rentType === 'daily')   return room.price != null;
-        if (rentType === 'monthly') return room.priceMonthly != null;
+        if (searchRentType === 'daily')   return room.price != null;
+        if (searchRentType === 'monthly') return room.priceMonthly != null;
         return false;
       });
       setRooms(filtered);
@@ -79,6 +79,27 @@ export default function Roomuser() {
       setSearching(false);
     }
   };
+
+  // สเต็ป 1: กดค้นหาจากฟอร์มในหน้านี้
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (!checkIn || !checkOut) return;
+    runSearch(rentType, checkIn, checkOut);
+  };
+
+  // ถ้าถูกส่งมาจากกล่องค้นหาหน้า Home (มี autoSearch) → เติมค่า + ค้นหาให้อัตโนมัติ
+  useEffect(() => {
+    const s = location.state;
+    if (s && s.autoSearch && s.checkIn && s.checkOut) {
+      setRentType(s.rentType);
+      setCheckIn(s.checkIn);
+      setCheckOut(s.checkOut);
+      runSearch(s.rentType, s.checkIn, s.checkOut);
+      // ล้าง state ออกจาก history กัน re-search ตอนกด back
+      navigate('.', { replace: true, state: null });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // สเต็ป 2 → 3: โหลดข้อมูลผู้เข้าพักจากโปรไฟล์ แล้วไปหน้ายืนยัน
   const handleGoToSummary = async () => {
@@ -124,13 +145,9 @@ export default function Roomuser() {
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
       <Navbar />
+      <PageHeader title="จองห้องพัก" subtitle="ค้นหาและจองห้องพักที่ต้องการ" />
 
-      <div className="pt-20 pb-10 px-4 max-w-2xl mx-auto">
-
-        <div className="mb-5">
-          <h2 className="text-[#1E293B] text-xl font-black">จองห้องพัก</h2>
-          <p className="text-[#64748B] text-sm mt-1">ค้นหาและจองห้องพักที่ต้องการ</p>
-        </div>
+      <div className="pt-6 pb-10 px-4 max-w-2xl mx-auto">
 
         <BookingStepper steps={STEP_LABELS} currentStep={step} />
 
@@ -142,14 +159,14 @@ export default function Roomuser() {
               <div className="flex flex-col gap-4">
                 <button
                   onClick={() => setRentType('daily')}
-                  className="flex items-center gap-4 bg-[#EFF6FF] border border-[#BAE6FD] p-5 rounded-2xl hover:bg-[#DBEAFE] transition group"
+                  className="flex items-center gap-4 bg-[#F3EDF9] border border-[#D9C5EC] p-5 rounded-2xl hover:bg-[#E7D8F3] transition group"
                 >
                   <span className="text-3xl">🌅</span>
                   <div className="flex-1 text-left">
-                    <p className="text-[#0369A1] font-black text-base">ห้องพักรายวัน</p>
-                    <p className="text-[#0284C7] text-xs font-semibold mt-0.5">เหมาะสำหรับพักระยะสั้น 1-30 วัน</p>
+                    <p className="text-[#6A3A96] font-black text-base">ห้องพักรายวัน</p>
+                    <p className="text-[#8B5CB8] text-xs font-semibold mt-0.5">เหมาะสำหรับพักระยะสั้น 1-30 วัน</p>
                   </div>
-                  <span className="text-[#BAE6FD] group-hover:translate-x-1 transition text-xl">›</span>
+                  <span className="text-[#D9C5EC] group-hover:translate-x-1 transition text-xl">›</span>
                 </button>
                 <button
                   onClick={() => setRentType('monthly')}
@@ -167,7 +184,7 @@ export default function Roomuser() {
               <div className="mt-5 flex justify-center">
                 <button
                   onClick={() => navigate('/')}
-                  className="text-[#94A3B8] text-sm font-semibold hover:text-[#0194F3]"
+                  className="text-[#94A3B8] text-sm font-semibold hover:text-[#5A2D82]"
                 >
                   ← กลับหน้าแรก
                 </button>
@@ -177,13 +194,13 @@ export default function Roomuser() {
             <div className="space-y-4">
               {/* Badge ประเภทที่เลือก + เปลี่ยน */}
               <div className="flex items-center justify-between">
-                <span className="bg-[#0194F3] text-white text-sm font-bold px-4 py-1.5 rounded-full">
+                <span className="bg-[#5A2D82] text-white text-sm font-bold px-4 py-1.5 rounded-full">
                   {rentType === 'daily' ? '🌅 รายวัน' : '🏠 รายเดือน'}
                 </span>
                 <button
                   type="button"
                   onClick={() => setRentType('')}
-                  className="text-sm text-[#64748B] hover:text-[#0194F3] font-semibold"
+                  className="text-sm text-[#64748B] hover:text-[#5A2D82] font-semibold"
                 >
                   เปลี่ยนประเภท
                 </button>
@@ -201,7 +218,7 @@ export default function Roomuser() {
                         value={checkIn}
                         onChange={(e) => setCheckIn(e.target.value)}
                         required
-                        className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#0194F3]"
+                        className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82]"
                       />
                     </div>
                     <div>
@@ -211,14 +228,14 @@ export default function Roomuser() {
                         value={checkOut}
                         onChange={(e) => setCheckOut(e.target.value)}
                         required
-                        className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#0194F3]"
+                        className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82]"
                       />
                     </div>
                   </div>
                   <button
                     type="submit"
                     disabled={searching}
-                    className="w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
+                    className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
                   >
                     {searching ? 'กำลังค้นหา...' : 'ค้นหาห้องว่าง'}
                   </button>
@@ -238,7 +255,7 @@ export default function Roomuser() {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-sm text-[#64748B] hover:text-[#0194F3] font-semibold"
+                className="text-sm text-[#64748B] hover:text-[#5A2D82] font-semibold"
               >
                 ← แก้ไขการค้นหา
               </button>
@@ -250,7 +267,7 @@ export default function Roomuser() {
                 <p className="text-[#64748B] font-semibold">ไม่มีห้องว่างในช่วงวันที่เลือก</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-3">
                 {rooms.map((room) => (
                   <RoomResultCard
                     key={room.id}
@@ -269,7 +286,7 @@ export default function Roomuser() {
                 type="button"
                 onClick={handleGoToSummary}
                 disabled={!selectedRoomId}
-                className="mt-4 w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
+                className="mt-4 w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
               >
                 ถัดไป{selectedRoom ? ` (ห้อง ${selectedRoom.number})` : ''}
               </button>

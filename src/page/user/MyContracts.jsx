@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import Navbar from '../../components/user/Navbar';
+import PageHeader from '../../components/user/PageHeader';
 
 // แมปสถานะสัญญา → สีแสดงผล
 const CONTRACT_STATUS_STYLE = {
@@ -60,22 +61,29 @@ export default function MyContracts() {
   const fmt = (dateStr) => (dateStr ? dateStr.split('T')[0] : '-');
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#F8F9FA]">
       <Navbar />
+      <PageHeader title="สัญญาเช่าของฉัน" subtitle="รายละเอียดสัญญาเช่าทั้งหมดของคุณ" />
 
-      <div className="pt-20 pb-10 px-4 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-foreground mb-6">สัญญาเช่าของฉัน</h1>
+      <div className="pt-6 pb-10 px-4 max-w-2xl mx-auto">
 
         {loading && (
-          <p className="text-muted-foreground text-center py-10">กำลังโหลด...</p>
+          <div className="text-center py-10">
+            <p className="text-[#64748B] font-bold">กำลังโหลด...</p>
+          </div>
         )}
 
         {error && (
-          <p className="text-destructive text-center py-10">{error}</p>
+          <div className="bg-red-50 border border-red-200 rounded-3xl p-6 text-center">
+            <p className="text-red-600 font-semibold">{error}</p>
+          </div>
         )}
 
         {!loading && !error && contracts.length === 0 && (
-          <p className="text-muted-foreground text-center py-10">ยังไม่มีสัญญาเช่า</p>
+          <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-10 text-center">
+            <p className="text-4xl mb-3">📄</p>
+            <p className="text-[#64748B] font-semibold">ยังไม่มีสัญญาเช่า</p>
+          </div>
         )}
 
         {!loading && contracts.length > 0 && (
@@ -87,43 +95,48 @@ export default function MyContracts() {
               return (
                 <div
                   key={c.contract_id}
-                  className="bg-card border border-border rounded-xl p-5 shadow-sm"
+                  className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-5"
                 >
-                  {/* หัวการ์ด — เลขห้อง + สถานะ */}
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <p className="text-lg font-bold text-primary">ห้อง {c.room_number}</p>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusClass}`}>
-                      {c.contract_status}
-                    </span>
+                  {/* หัวการ์ด */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-[#F3EDF9] p-2.5 rounded-xl">
+                      <span className="text-lg">📄</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[#5A2D82] font-black text-base">ห้อง {c.room_number}</p>
+                      <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${statusClass}`}>
+                        {c.contract_status}
+                      </span>
+                    </div>
                   </div>
 
                   {/* รายละเอียดสัญญา */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1 text-sm text-foreground mb-3">
-                    <div>
-                      <span className="text-muted-foreground">วันเริ่มสัญญา: </span>
-                      {fmt(c.start_date)}
+                  <div className="bg-[#F8FAFC] rounded-2xl p-4 mb-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#94A3B8] font-semibold">วันเริ่มสัญญา</span>
+                      <span className="text-[#1E293B] font-bold">{fmt(c.start_date)}</span>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">วันสิ้นสุด: </span>
-                      {fmt(c.end_date)}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#94A3B8] font-semibold">วันสิ้นสุด</span>
+                      <span className="text-[#1E293B] font-bold">{fmt(c.end_date)}</span>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">ค่าประกัน: </span>
-                      ฿{Number(c.deposit_amount || 0).toLocaleString()}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#94A3B8] font-semibold">ค่าประกัน</span>
+                      <span className="text-[#1E293B] font-bold">฿{Number(c.security_deposit || 0).toLocaleString()}</span>
                     </div>
                     {c.notice_date && (
-                      <div>
-                        <span className="text-muted-foreground">แจ้งย้ายออก: </span>
-                        {fmt(c.notice_date)}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[#94A3B8] font-semibold">แจ้งย้ายออก</span>
+                        <span className="text-orange-600 font-bold">{fmt(c.notice_date)}</span>
                       </div>
                     )}
                   </div>
 
-                  {/* ปุ่มแจ้งย้ายออก — แสดงเฉพาะสัญญาที่ยังกำลังเช่า */}
+                  {/* ปุ่มแจ้งย้ายออก */}
                   {canNotice && (
                     <button
                       onClick={() => setNoticeTarget(c)}
-                      className="mt-1 px-4 py-1.5 text-sm bg-destructive text-white rounded-lg hover:bg-destructive/80 transition"
+                      className="w-full py-2.5 bg-orange-50 border border-orange-200 text-orange-600 font-bold rounded-2xl text-sm hover:bg-orange-100 transition"
                     >
                       แจ้งย้ายออก
                     </button>
@@ -133,28 +146,41 @@ export default function MyContracts() {
             })}
           </div>
         )}
+
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="px-6 py-2.5 bg-white border border-[#E2E8F0] text-[#64748B] font-bold rounded-2xl shadow-sm hover:bg-[#F8FAFC] transition"
+          >
+            ← ย้อนกลับ
+          </button>
+        </div>
       </div>
 
       {/* Modal ยืนยันแจ้งย้ายออก */}
       {noticeTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-card rounded-xl shadow-xl p-6 w-full max-w-sm">
-            <h2 className="text-lg font-bold text-foreground mb-2">ยืนยันแจ้งย้ายออก</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              ห้อง {noticeTarget.room_number} — ระบบจะบันทึกวันแจ้งย้ายออกเป็นวันนี้
-              และนับ 30 วันตามเงื่อนไขสัญญา
+          <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm">
+            <h2 className="text-[#1E293B] text-lg font-black mb-2">ยืนยันแจ้งย้ายออก</h2>
+            <p className="text-[#64748B] text-sm mb-3">
+              ห้อง {noticeTarget.room_number}
             </p>
-            <div className="flex justify-end gap-3">
+            <div className="bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3 mb-5">
+              <p className="text-orange-700 text-sm font-bold">
+                ⚠️ ระบบจะบันทึกวันแจ้งย้ายออกเป็นวันนี้ และนับ 30 วันตามเงื่อนไขสัญญา
+              </p>
+            </div>
+            <div className="flex gap-3">
               <button
                 onClick={() => setNoticeTarget(null)}
-                className="px-4 py-2 text-sm bg-muted hover:bg-muted/80 text-foreground rounded-lg transition"
+                className="flex-1 py-3 bg-[#F1F5F9] text-[#64748B] font-bold rounded-2xl hover:bg-[#E2E8F0] transition"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleNotice}
                 disabled={submitting}
-                className="px-4 py-2 text-sm bg-destructive text-white rounded-lg hover:bg-destructive/80 transition disabled:opacity-50"
+                className="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl transition disabled:opacity-50"
               >
                 {submitting ? 'กำลังบันทึก...' : 'ยืนยันแจ้งย้ายออก'}
               </button>

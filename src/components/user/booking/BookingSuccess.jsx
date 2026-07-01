@@ -18,7 +18,7 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain }) {
       <p className="text-[#64748B] text-sm mb-4">
         เลขที่การจองของคุณคือ
       </p>
-      <p className="text-[#0194F3] text-2xl font-black mb-5">{result.bookingRef}</p>
+      <p className="text-[#5A2D82] text-2xl font-black mb-5">{result.bookingRef}</p>
 
       {/* สรุปสั้นๆ */}
       <div className="bg-[#F8FAFC] rounded-2xl p-4 text-sm text-left space-y-2 mb-4">
@@ -36,7 +36,7 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain }) {
         </div>
         <div className="flex justify-between">
           <span className="text-[#94A3B8] font-semibold">ยอดรวมโดยประมาณ</span>
-          <span className="text-[#0194F3] font-black">฿{Number(result.totalPrice).toLocaleString()}</span>
+          <span className="text-[#5A2D82] font-black">฿{Number(result.totalPrice).toLocaleString()}</span>
         </div>
       </div>
 
@@ -53,7 +53,7 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain }) {
       <div className="flex flex-col gap-3">
         <button
           onClick={onGoHistory}
-          className="w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition"
+          className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3.5 rounded-2xl transition"
         >
           ดูประวัติการจอง
         </button>

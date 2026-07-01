@@ -53,80 +53,96 @@ export default function Login() {
     }
   };
 
-  const socialButtons = [
-    { provider: 'google',   label: 'Google',   style: 'bg-card text-foreground border border-border hover:bg-muted' },
-    { provider: 'facebook', label: 'Facebook', style: 'bg-blue-600 text-white hover:bg-blue-700' },
-    { provider: 'line',     label: 'LINE',     style: 'bg-green-500 text-white hover:bg-green-600' },
-  ];
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="bg-card shadow-xl rounded-2xl p-8 w-full max-w-md border border-border">
-        <h2 className="text-3xl font-bold text-center text-foreground mb-6">เข้าสู่ระบบ</h2>
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col">
 
-        <form onSubmit={handleLogin} className="space-y-5">
+      {/* Header สีฟ้า */}
+      <div className="bg-[#5A2D82] pt-14 pb-16 px-6 flex flex-col items-center">
+        <div className="w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center mb-4">
+          <span className="text-3xl">🏠</span>
+        </div>
+        <h1 className="text-white text-2xl font-black">Around Loei</h1>
+        <p className="text-white/80 text-sm font-semibold mt-1">หอพักจังหวัดเลย</p>
+      </div>
+
+      {/* White card */}
+      <div className="bg-white rounded-t-[40px] -mt-8 flex-1 px-6 pt-8 pb-10 max-w-md w-full mx-auto shadow-lg">
+        <h2 className="text-[#1E293B] text-xl font-black mb-6">เข้าสู่ระบบ</h2>
+
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-foreground mb-1">ชื่อผู้ใช้</label>
+            <label className="block text-[#334155] text-sm font-bold mb-2">ชื่อผู้ใช้</label>
             <input
               type="text"
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
               placeholder="กรอกชื่อผู้ใช้"
+              className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82] focus:ring-2 focus:ring-[#5A2D82]/20"
             />
           </div>
 
           <div>
-            <label className="block text-foreground mb-1">รหัสผ่าน</label>
+            <label className="block text-[#334155] text-sm font-bold mb-2">รหัสผ่าน</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
-              placeholder="********"
+              placeholder="รหัสผ่าน"
+              className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82] focus:ring-2 focus:ring-[#5A2D82]/20"
             />
           </div>
 
-          {error && <p className="text-sm text-destructive text-center">{error}</p>}
+          {error && (
+            <p className="text-red-500 text-sm font-semibold text-center">{error}</p>
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition"
+            className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] disabled:opacity-50 text-white font-black py-3.5 rounded-2xl transition text-base mt-2"
           >
             {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
           </button>
         </form>
 
-        {/* ตัวคั่น + ปุ่ม social */}
+        {/* ตัวคั่น */}
         <div className="flex items-center my-5">
-          <div className="flex-grow border-t border-border"></div>
-          <span className="px-3 text-sm text-muted-foreground">หรือเข้าสู่ระบบด้วย</span>
-          <div className="flex-grow border-t border-border"></div>
-        </div>
-        <div className="space-y-2">
-          {socialButtons.map((b) => (
-            <button
-              key={b.provider}
-              type="button"
-              disabled={loading}
-              onClick={() => handleSocial(b.provider)}
-              className={`w-full font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 ${b.style}`}
-            >
-              {b.label}
-            </button>
-          ))}
+          <div className="flex-grow border-t border-[#E2E8F0]"></div>
+          <span className="px-3 text-xs text-[#94A3B8] font-semibold">หรือเข้าสู่ระบบด้วย</span>
+          <div className="flex-grow border-t border-[#E2E8F0]"></div>
         </div>
 
-        <p className="mt-4 text-sm text-center text-muted-foreground">
-          ยังไม่มีบัญชี?{' '}
-          <Link to="/register" className="text-primary hover:underline">สมัครสมาชิก</Link>
-        </p>
-        <p className="mt-2 text-sm text-center text-muted-foreground">
-          <Link to="/" className="text-primary hover:underline">← กลับหน้าแรก</Link>
-        </p>
+        {/* Social buttons */}
+        <div className="space-y-3">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => handleSocial('line')}
+            className="w-full flex items-center justify-center gap-3 bg-[#06C755] hover:opacity-90 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
+          >
+            <span>💬</span> เข้าสู่ระบบด้วย LINE
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => handleSocial('google')}
+            className="w-full flex items-center justify-center gap-3 bg-white border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#334155] font-bold py-3 rounded-2xl transition disabled:opacity-50"
+          >
+            <span>🔍</span> เข้าสู่ระบบด้วย Google
+          </button>
+        </div>
+
+        <div className="mt-6 text-center space-y-2">
+          <p className="text-sm text-[#64748B]">
+            ยังไม่มีบัญชี?{' '}
+            <Link to="/register" className="text-[#5A2D82] font-bold hover:underline">สมัครสมาชิก</Link>
+          </p>
+          <p className="text-sm">
+            <Link to="/" className="text-[#94A3B8] hover:text-[#5A2D82]">← กลับหน้าแรก</Link>
+          </p>
+        </div>
       </div>
     </div>
   );

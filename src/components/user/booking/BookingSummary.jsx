@@ -93,16 +93,16 @@ export default function BookingSummary({ room, rentType, checkIn, checkOut, nigh
           )}
           <div className="flex justify-between py-2.5 border-t border-[#E2E8F0] mt-1">
             <span className="text-[#1E293B] font-black">ยอดรวมโดยประมาณ</span>
-            <span className="text-[#0194F3] font-black text-lg">฿{estimatedTotal.toLocaleString()}</span>
+            <span className="text-[#5A2D82] font-black text-lg">฿{estimatedTotal.toLocaleString()}</span>
           </div>
           <p className="text-[#94A3B8] text-xs">* ยอดจริงคำนวณและยืนยันโดยระบบเมื่อจองสำเร็จ</p>
         </div>
       </div>
 
       {/* นโยบายยกเลิก */}
-      <div className="bg-[#EFF6FF] border border-[#BAE6FD] rounded-2xl p-4">
-        <p className="text-[#0369A1] font-bold text-sm mb-1">🛡️ นโยบายการยกเลิก</p>
-        <p className="text-[#0284C7] text-xs">
+      <div className="bg-[#F3EDF9] border border-[#D9C5EC] rounded-2xl p-4">
+        <p className="text-[#6A3A96] font-bold text-sm mb-1">🛡️ นโยบายการยกเลิก</p>
+        <p className="text-[#8B5CB8] text-xs">
           ยกเลิกการจองได้ฟรีก่อนวันเช็คอิน · หลังเช็คอินแล้วไม่สามารถยกเลิกได้
         </p>
       </div>
@@ -121,7 +121,7 @@ export default function BookingSummary({ room, rentType, checkIn, checkOut, nigh
           type="button"
           onClick={onConfirm}
           disabled={submitting}
-          className="flex-[2] bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
+          className="flex-[2] bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
         >
           {submitting ? 'กำลังส่งคำขอ...' : 'ยืนยันการจอง'}
         </button>
