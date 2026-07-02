@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import api from '../../../lib/api';
 
-// สเต็ปที่ 4: จองสำเร็จ + ชำระเงินด้วย QR ตอนจองเลย (แบบ Agoda — เฉพาะรายวัน)
+// สเต็ปที่ 4: จองสำเร็จ + ชำระค่าจองด้วย QR PromptPay (เฉพาะรายวัน)
+// วิธีจ่าย: สแกน QR โอน → แนบสลิป → รอแอดมินตรวจสอบ (พอยืนยันแล้วการจองจะเปลี่ยนเป็น "ยืนยันการจอง")
 // props:
-//   result       = ข้อมูลที่ backend ตอบตอนจองสำเร็จ
-//                  { bookingId, bookingRef, roomNumber, checkInDate, checkOutDate, rentType, totalPrice, emailSent }
+//   result       = ข้อมูลตอนจองสำเร็จ { bookingId, bookingRef, roomNumber, checkInDate, checkOutDate, rentType, totalPrice, emailSent }
 //   onGoHistory  = ไปหน้าประวัติการจอง
 //   onBookAgain  = จองห้องใหม่อีกครั้ง
 export default function BookingSuccess({ result, onGoHistory, onBookAgain }) {
   const isDaily = result.rentType === 'daily';
 
-  const [qr, setQr] = useState(null);      // { paymentId, qrImage, amount }
-  const [paid, setPaid] = useState(false);
+  const [qr, setQr] = useState(null);          // { invoiceId, qrImage, amount }
+  const [slipFile, setSlipFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false); // แจ้งชำระ + แนบสลิปแล้ว
 
-  // สร้าง QR จ่ายค่าจอง (รายวัน)
+  // ขอ QR PromptPay ของค่าจอง (สร้างบิลค่าห้องให้ด้วย)
   const startPay = async () => {
     try {
       setLoading(true);
@@ -27,22 +28,27 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain }) {
     }
   };
 
-  // poll ถามว่าจ่าย QR สำเร็จหรือยัง ทุก 3 วินาที
-  useEffect(() => {
-    if (!qr || paid) return;
-    const timer = setInterval(async () => {
-      try {
-        const res = await api.get(`/payment/${qr.paymentId}/qr-status`);
-        if (res.data.success && res.data.data.paid) {
-          setPaid(true);
-          clearInterval(timer);
-        }
-      } catch {
-        // poll พลาดชั่วคราว → รอบถัดไปลองใหม่
-      }
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [qr, paid]);
+  // ส่งแจ้งชำระ + แนบสลิป (ใช้ endpoint /payment เดิม)
+  const submitSlip = async () => {
+    if (!slipFile) {
+      alert('กรุณาแนบสลิปการโอนเงิน');
+      return;
+    }
+    try {
+      setLoading(true);
+      const form = new FormData();
+      form.append('invoice_id', qr.invoiceId);
+      form.append('payment_method', 'โอนเงิน');
+      form.append('slip', slipFile);
+      // ไม่ตั้ง Content-Type เอง — ให้ browser ใส่ boundary ให้อัตโนมัติ
+      const res = await api.post('/payment', form);
+      if (res.data.success) setSubmitted(true);
+    } catch (err) {
+      alert(err.response?.data?.message || 'แจ้งชำระไม่สำเร็จ');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-6 text-center">
@@ -75,20 +81,35 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain }) {
         </div>
       </div>
 
-      {/* ===== ชำระเงิน (รายวัน = จ่ายตอนจองแบบ Agoda) ===== */}
+      {/* ===== ชำระค่าจอง (รายวัน) — QR PromptPay + อัปสลิป ===== */}
       {isDaily ? (
-        paid ? (
+        submitted ? (
           <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-2xl p-4 mb-5">
-            <p className="text-[#16A34A] font-black">✓ ชำระเงินแล้ว · การจองยืนยันเรียบร้อย</p>
+            <p className="text-[#16A34A] font-black">✓ แจ้งชำระเงินแล้ว</p>
+            <p className="text-[#15803D] text-xs mt-1">รอแอดมินตรวจสอบสลิป · ยืนยันแล้วการจองจะเปลี่ยนเป็น "ยืนยันการจอง"</p>
           </div>
         ) : qr ? (
           <div className="mb-5">
             <img src={qr.qrImage} alt="QR PromptPay" className="mx-auto w-56 h-56 rounded-2xl border border-[#E2E8F0]" />
-            <p className="text-[#1E293B] font-black text-lg mt-2">สแกนจ่าย ฿{Number(qr.amount).toLocaleString()}</p>
-            <p className="text-[#64748B] text-sm mt-1 flex items-center justify-center gap-2">
-              <span className="inline-block w-2 h-2 bg-[#5A2D82] rounded-full animate-pulse" />
-              กำลังรอการชำระเงิน... (ยืนยันอัตโนมัติ)
-            </p>
+            <p className="text-[#1E293B] font-black text-lg mt-2">สแกนโอน ฿{Number(qr.amount).toLocaleString()}</p>
+            <p className="text-[#64748B] text-xs mt-1 mb-3">โอนแล้วแนบสลิปด้านล่างเพื่อแจ้งชำระ</p>
+
+            <div className="text-left">
+              <label className="block text-[#334155] text-sm font-bold mb-2">แนบสลิปการโอนเงิน <span className="text-red-400">*</span></label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setSlipFile(e.target.files[0] || null)}
+                className="w-full text-sm border border-[#CBD5E1] rounded-2xl px-3 py-2.5 bg-[#F8FAFC] mb-3"
+              />
+            </div>
+            <button
+              onClick={submitSlip}
+              disabled={loading}
+              className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3 rounded-2xl transition disabled:opacity-50"
+            >
+              {loading ? 'กำลังส่ง...' : 'ส่งแจ้งชำระ'}
+            </button>
           </div>
         ) : (
           <button
@@ -96,11 +117,11 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain }) {
             disabled={loading}
             className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3.5 rounded-2xl transition mb-3 disabled:opacity-50"
           >
-            {loading ? 'กำลังสร้าง QR...' : '⚡ ชำระค่าจองตอนนี้ (สแกน QR)'}
+            {loading ? 'กำลังสร้าง QR...' : '💳 ชำระค่าจอง (สแกน QR PromptPay)'}
           </button>
         )
       ) : (
-        // รายเดือน — คงเดิม: จ่ายมัดจำตอนเช็คอิน
+        // รายเดือน — จ่ายมัดจำตอนเช็คอิน
         <p className="text-[#94A3B8] text-xs mb-5">
           สถานะปัจจุบัน: รอชำระมัดจำ · กรุณาติดต่อเจ้าหน้าที่เพื่อยืนยันการเข้าพัก
         </p>
