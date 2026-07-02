@@ -22,9 +22,13 @@ export default function MyBills() {
 
   // modal แจ้งชำระเงิน
   const [payInvoice, setPayInvoice] = useState(null); // บิลที่กำลังจะชำระ
-  const [qr, setQr] = useState(null);                 // ข้อมูล QR { qrImage, amount }
+  const [qr, setQr] = useState(null);                 // ข้อมูล QR พร้อมเพย์แบบเดิม { qrImage, amount }
   const [slipFile, setSlipFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // จ่ายด้วย QR อัตโนมัติผ่าน Omise
+  const [qrCharge, setQrCharge] = useState(null);     // { paymentId, qrImage, amount }
+  const [qrPaid, setQrPaid] = useState(false);
 
   // ==========================================
   // โหลดบิลของตัวเอง
@@ -59,6 +63,8 @@ export default function MyBills() {
     setPayInvoice(invoice);
     setSlipFile(null);
     setQr(null);
+    setQrCharge(null);
+    setQrPaid(false);
     try {
       const res = await api.get(`/invoice/${invoice.invoice_id}/promptpay`);
       if (res.data.success) {
@@ -86,9 +92,9 @@ export default function MyBills() {
       form.append('payment_method', 'โอนเงิน');
       form.append('slip', slipFile);
 
-      const res = await api.post('/payment', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // ไม่ตั้ง Content-Type เอง — ให้ browser ใส่ multipart/form-data พร้อม boundary ให้อัตโนมัติ
+      // (ถ้าตั้งเองโดยไม่มี boundary ฝั่ง server จะแยกไฟล์สลิปไม่ได้)
+      const res = await api.post('/payment', form);
       if (res.data.success) {
         alert(res.data.message);
         setPayInvoice(null);
@@ -100,6 +106,43 @@ export default function MyBills() {
       setSubmitting(false);
     }
   };
+
+  // ==========================================
+  // จ่ายด้วย QR อัตโนมัติ (Omise) — สร้าง charge แล้วโชว์ QR ให้สแกน
+  // ==========================================
+  const startQrPay = async () => {
+    try {
+      setSubmitting(true);
+      const res = await api.post(`/invoice/${payInvoice.invoice_id}/qr-charge`);
+      if (res.data.success) {
+        setQrCharge(res.data.data); // { paymentId, qrImage, amount }
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'สร้าง QR ไม่สำเร็จ');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // poll ถาม backend ว่าจ่าย QR สำเร็จหรือยัง (ทุก 3 วินาที จนกว่าจะจ่ายหรือปิด modal)
+  useEffect(() => {
+    if (!qrCharge || qrPaid) return;
+
+    const timer = setInterval(async () => {
+      try {
+        const res = await api.get(`/payment/${qrCharge.paymentId}/qr-status`);
+        if (res.data.success && res.data.data.paid) {
+          setQrPaid(true);
+          clearInterval(timer);
+          fetchInvoices(); // รีเฟรชสถานะบิล
+        }
+      } catch {
+        // ถ้า poll พลาดชั่วคราว ปล่อยให้รอบถัดไปลองใหม่
+      }
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [qrCharge, qrPaid]);
 
   // เปิด PDF บิล (แนบ token จึงต้องดึงเป็น blob)
   const openPdf = async (invoiceId) => {
@@ -210,7 +253,56 @@ export default function MyBills() {
               <p className="text-[#1E293B] font-black text-xl">{money(payInvoice.total_amount)} <span className="text-sm font-semibold text-[#64748B]">บาท</span></p>
             </div>
 
-            {/* QR PromptPay */}
+            {/* ===== โหมดจ่าย QR อัตโนมัติ (Omise) ===== */}
+            {qrPaid ? (
+              // จ่ายสำเร็จแล้ว
+              <div className="text-center py-6">
+                <div className="w-16 h-16 bg-[#DCFCE7] rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-3xl text-[#16A34A]">✓</span>
+                </div>
+                <p className="text-[#16A34A] font-black text-lg">ชำระเงินสำเร็จ!</p>
+                <p className="text-[#64748B] text-sm mt-1">ระบบยืนยันการชำระอัตโนมัติแล้ว</p>
+                <button
+                  onClick={() => setPayInvoice(null)}
+                  className="mt-5 w-full py-3 bg-[#5A2D82] hover:bg-[#46236A] text-white font-bold rounded-2xl transition"
+                >
+                  เสร็จสิ้น
+                </button>
+              </div>
+            ) : qrCharge ? (
+              // แสดง QR ให้สแกน + รอยืนยัน
+              <div className="text-center">
+                <img src={qrCharge.qrImage} alt="QR PromptPay" className="mx-auto w-56 h-56 rounded-2xl border border-[#E2E8F0]" />
+                <p className="text-[#1E293B] font-black text-lg mt-2">สแกนจ่าย {money(qrCharge.amount)} บาท</p>
+                <p className="text-[#64748B] text-sm mt-1 flex items-center justify-center gap-2">
+                  <span className="inline-block w-2 h-2 bg-[#5A2D82] rounded-full animate-pulse" />
+                  กำลังรอการชำระเงิน... (ยืนยันอัตโนมัติ)
+                </p>
+                <button
+                  onClick={() => setPayInvoice(null)}
+                  className="mt-4 w-full py-2.5 bg-[#F1F5F9] text-[#64748B] font-bold rounded-2xl hover:bg-[#E2E8F0] transition"
+                >
+                  ปิด
+                </button>
+              </div>
+            ) : (
+            <>
+            {/* ปุ่มเลือกจ่าย QR อัตโนมัติ (แนะนำ) */}
+            <button
+              onClick={startQrPay}
+              disabled={submitting}
+              className="w-full py-3 mb-4 bg-[#5A2D82] hover:bg-[#46236A] text-white font-black rounded-2xl transition disabled:opacity-50"
+            >
+              {submitting ? 'กำลังสร้าง QR...' : '⚡ จ่ายด้วย QR อัตโนมัติ (ยืนยันทันที)'}
+            </button>
+
+            <div className="flex items-center my-3">
+              <div className="flex-grow border-t border-[#E2E8F0]" />
+              <span className="px-3 text-xs text-[#94A3B8] font-semibold">หรือแจ้งโอน + แนบสลิป</span>
+              <div className="flex-grow border-t border-[#E2E8F0]" />
+            </div>
+
+            {/* QR PromptPay แบบเดิม (แจ้งโอน + แนบสลิป ให้แอดมินตรวจ) */}
             {qr ? (
               <div className="text-center mb-4">
                 <img src={qr.qrImage} alt="QR PromptPay" className="mx-auto w-52 h-52 rounded-2xl" />
@@ -252,6 +344,8 @@ export default function MyBills() {
                 {submitting ? 'กำลังส่ง...' : 'ส่งแจ้งชำระ'}
               </button>
             </div>
+            </>
+            )}
           </div>
         </div>
       )}
