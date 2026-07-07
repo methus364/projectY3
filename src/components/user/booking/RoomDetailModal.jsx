@@ -5,7 +5,8 @@ import React from 'react';
 //   room     = ห้องที่จะแสดง (ถ้าเป็น null จะไม่ render อะไร)
 //   rentType = 'daily' | 'monthly'
 //   onClose  = ปิด popup
-export default function RoomDetailModal({ room, rentType, onClose }) {
+//   onBook   = (ถ้าส่งมา) แสดงปุ่ม "จองห้องนี้" — ใช้ตอนเลือกห้องจากผังชั้นรายเดือน
+export default function RoomDetailModal({ room, rentType, onClose, onBook }) {
   if (!room) return null;
 
   const priceText = rentType === 'monthly'
@@ -71,12 +72,30 @@ export default function RoomDetailModal({ room, rentType, onClose }) {
           )}
         </div>
 
-        <button
-          onClick={onClose}
-          className="mt-5 w-full bg-[#F1F5F9] text-[#64748B] font-bold py-3 rounded-2xl hover:bg-[#E2E8F0] transition"
-        >
-          ปิด
-        </button>
+        {/* ถ้ามี onBook (มาจากผังชั้นรายเดือน) แสดงปุ่มจอง + ปิด · ไม่มีก็แสดงแค่ปิด */}
+        {onBook ? (
+          <div className="mt-5 flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 bg-[#F1F5F9] text-[#64748B] font-bold py-3 rounded-2xl hover:bg-[#E2E8F0] transition"
+            >
+              ปิด
+            </button>
+            <button
+              onClick={onBook}
+              className="flex-[2] bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3 rounded-2xl transition"
+            >
+              จองห้องนี้
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onClose}
+            className="mt-5 w-full bg-[#F1F5F9] text-[#64748B] font-bold py-3 rounded-2xl hover:bg-[#E2E8F0] transition"
+          >
+            ปิด
+          </button>
+        )}
       </div>
     </div>
   );

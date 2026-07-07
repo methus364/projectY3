@@ -224,6 +224,32 @@ const Repair = () => {
                                     <div className="text-sm bg-muted/50 p-3 rounded-lg">{selectedRepair.problem_details}</div>
                                 </div>
                             )}
+                            {selectedRepair.preferred_time && (
+                                <div>
+                                    <span className="text-sm text-muted-foreground">เวลาที่สะดวก: </span>
+                                    <span className="text-sm font-medium">{selectedRepair.preferred_time}</span>
+                                </div>
+                            )}
+                            {/* ไฟล์แนบ (รูป/วิดีโอ) */}
+                            {selectedRepair.media_urls && selectedRepair.media_urls.length > 0 && (
+                                <div>
+                                    <div className="text-sm text-muted-foreground mb-1">ไฟล์แนบ:</div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {selectedRepair.media_urls.map((url, i) => {
+                                            const isVideo = /\.(mp4|mov|webm|avi|mkv)$/i.test(url);
+                                            return (
+                                                <a key={i} href={url} target="_blank" rel="noreferrer" className="block">
+                                                    {isVideo ? (
+                                                        <video src={url} className="w-full h-20 object-cover rounded-lg border border-border" />
+                                                    ) : (
+                                                        <img src={url} alt={`แนบ ${i + 1}`} className="w-full h-20 object-cover rounded-lg border border-border" />
+                                                    )}
+                                                </a>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* เปลี่ยนสถานะ */}

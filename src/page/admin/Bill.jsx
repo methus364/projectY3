@@ -142,8 +142,26 @@ const Bill = () => {
         try {
             const res = await api.post(`/invoice/${invoiceId}/send`, {});
             alert(res.data.message);
+            fetchInvoices(); // อัปเดต badge "ยังไม่ส่ง" ให้หายไป
         } catch (err) {
             alert(err.response?.data?.message || 'ส่งอีเมลไม่สำเร็จ');
+        }
+    };
+
+    // ส่งอีเมลทุกใบที่ยังไม่ส่ง (ในรายการที่แสดงอยู่)
+    const sendAll = async () => {
+        const unsent = invoices.filter((inv) => !inv.sent_at && inv.invoice_status !== 'ยกเลิก');
+        if (unsent.length === 0) { alert('ไม่มีบิลที่ยังไม่ส่ง'); return; }
+        if (!window.confirm(`ส่งอีเมล ${unsent.length} ใบที่ยังไม่ได้ส่ง?`)) return;
+        try {
+            setLoading(true);
+            const res = await api.post('/invoices/send-batch', { invoice_ids: unsent.map((i) => i.invoice_id) });
+            alert(res.data.message);
+            fetchInvoices();
+        } catch (err) {
+            alert(err.response?.data?.message || 'ส่งอีเมลไม่สำเร็จ');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -230,6 +248,12 @@ const Bill = () => {
                             ออกบิลรายเดือน
                         </button>
                         <button
+                            onClick={sendAll}
+                            className="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                        >
+                            ส่งอีเมลทั้งหมด
+                        </button>
+                        <button
                             onClick={openCreate}
                             className="px-4 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition"
                         >
@@ -269,10 +293,14 @@ const Bill = () => {
                                         <td className="px-4 py-3 text-right text-blue-600">{money(inv.water_cost)}</td>
                                         <td className="px-4 py-3 text-right text-yellow-600">{money(inv.elec_cost)}</td>
                                         <td className="px-4 py-3 text-right font-semibold text-foreground">{money(inv.total_amount)}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge(inv.invoice_status)}`}>
+                                        <td className="px-4 py-3 text-center space-y-1">
+                                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${statusBadge(inv.invoice_status)}`}>
                                                 {inv.invoice_status}
                                             </span>
+                                            {/* ยังไม่ส่งอีเมล (แยกจากสถานะจ่ายเงิน) */}
+                                            {!inv.sent_at && inv.invoice_status !== 'ยกเลิก' && (
+                                                <span className="block text-[10px] font-bold text-orange-600">✉️ ยังไม่ส่ง</span>
+                                            )}
                                         </td>
                                         <td className="px-4 py-3 text-right whitespace-nowrap space-x-2">
                                             <button onClick={() => openPdf(inv.invoice_id)} className="text-sm text-muted-foreground hover:text-foreground">PDF</button>
@@ -339,7 +367,7 @@ const Bill = () => {
                                 ยกเลิก
                             </button>
                             <button onClick={handleCreate} disabled={saving} className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition disabled:opacity-50">
-                                {saving ? 'กำลังออกบิล...' : 'ออกบิล + ส่งเมล'}
+                                {saving ? 'กำลังออกบิล...' : 'ออกบิล'}
                             </button>
                         </div>
                     </div>

@@ -93,6 +93,12 @@ const Meter = () => {
     // ==========================================
     const fmt = (val, unit = '') => val != null ? `${val.toLocaleString()}${unit}` : '—';
 
+    // สรุปสถานะการจด — นับเฉพาะห้องที่มีผู้เช่า (ห้องว่างไม่ต้องจด)
+    const occupiedRooms = meters.filter((m) => m.room_status === 'มีผู้เช่า');
+    const recordedCount = occupiedRooms.filter((m) => m.meter_id).length;
+    const totalOccupied = occupiedRooms.length;
+    const allRecorded = totalOccupied > 0 && recordedCount === totalOccupied;
+
     return (
         <>
             <div className="flex w-full flex-col bg-background p-6">
@@ -121,6 +127,15 @@ const Meter = () => {
                         />
                     </div>
                 </div>
+
+                {/* แถบสรุปสถานะการจดมิเตอร์ (เฉพาะห้องมีผู้เช่า) */}
+                {!loading && totalOccupied > 0 && (
+                    <div className={`mb-4 rounded-lg px-4 py-3 text-sm font-medium ${allRecorded ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                        {allRecorded
+                            ? `✓ จดมิเตอร์ครบแล้วทุกห้อง (${recordedCount}/${totalOccupied})`
+                            : `⚠️ จดแล้ว ${recordedCount}/${totalOccupied} ห้อง · เหลืออีก ${totalOccupied - recordedCount} ห้องที่ยังไม่จดมิเตอร์เดือนนี้`}
+                    </div>
+                )}
 
                 {/* ตารางมิเตอร์ */}
                 <div className="bg-card shadow-md rounded-lg overflow-x-auto">
@@ -161,14 +176,20 @@ const Meter = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-card divide-y divide-border">
-                                {meters.map((row) => (
-                                    <tr key={row.room_id} className="hover:bg-muted/50">
+                                {meters.map((row) => {
+                                    // ไฮไลต์ห้องมีผู้เช่าที่ยังไม่จดมิเตอร์เดือนนี้
+                                    const needsMeter = row.room_status === 'มีผู้เช่า' && !row.meter_id;
+                                    return (
+                                    <tr key={row.room_id} className={needsMeter ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-muted/50'}>
 
                                         {/* ห้อง */}
                                         <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
                                             {row.room_number}
                                             {row.room_status === 'ว่าง' && (
                                                 <span className="ml-1 text-xs text-muted-foreground">(ว่าง)</span>
+                                            )}
+                                            {needsMeter && (
+                                                <span className="ml-1 text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full">ยังไม่จด</span>
                                             )}
                                         </td>
 
@@ -219,7 +240,8 @@ const Meter = () => {
                                             </button>
                                         </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
 
                                 {meters.length === 0 && (
                                     <tr>

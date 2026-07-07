@@ -49,6 +49,13 @@ const Dashbord = () => {
     <div className="flex w-full flex-col bg-background p-6">
       <h1 className="text-3xl font-bold text-foreground mb-6">แดชบอร์ด</h1>
 
+      {/* แจ้งเตือน: ยังมีห้องที่ยังไม่จดมิเตอร์เดือนนี้ (กันลืมก่อนออกบิล) */}
+      {summary && summary.unrecordedMeters > 0 && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-5 py-3 mb-6 font-medium">
+          ⚠️ ยังมี {summary.unrecordedMeters} ห้องที่ยังไม่จดมิเตอร์เดือนนี้ — กรุณาจดให้ครบก่อนออกบิล
+        </div>
+      )}
+
       {/* ===== การ์ดสรุป ===== */}
       {summary && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

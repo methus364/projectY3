@@ -12,6 +12,9 @@ import BookingSuccess from '../../components/user/booking/BookingSuccess';
 // ชื่อสเต็ปในแถบ progress (ใช้กับ BookingStepper)
 const STEP_LABELS = ['ค้นหา', 'เลือกห้อง', 'ยืนยัน', 'สำเร็จ'];
 
+// ชั้นของห้อง = เลขตัวแรกของเลขห้อง (102 → ชั้น 1) — ใช้จัดกลุ่มผังชั้นรายเดือน
+const floorOf = (roomNumber) => String(roomNumber || '').charAt(0) || '?';
+
 // นับจำนวนวันระหว่างวันเข้า-ออก (ให้ตรงกับที่ backend คำนวณ)
 function countNights(checkIn, checkOut) {
   const diffMs = Math.abs(new Date(checkOut) - new Date(checkIn));
@@ -36,6 +39,9 @@ export default function Roomuser() {
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [detailRoom, setDetailRoom]         = useState(null);
 
+  // ผังชั้นรายเดือน (ห้องทั้งหมด + ว่าง/ไม่ว่าง ณ วันเข้าพักที่เลือก)
+  const [availability, setAvailability]     = useState([]);
+
   // ข้อมูลผู้เข้าพัก (โหลดจากโปรไฟล์ตอนเข้าสเต็ปยืนยัน)
   const [guest, setGuest] = useState(null);
 
@@ -53,10 +59,63 @@ export default function Roomuser() {
     setCheckIn('');
     setCheckOut('');
     setRooms([]);
+    setAvailability([]);
     setSelectedRoomId(null);
     setDetailRoom(null);
     setGuest(null);
     setBookingResult(null);
+  };
+
+  // โหลดผังชั้นรายเดือน ณ วันเข้าพักที่เลือก (เรียกได้ทั้งตอนกดค้นหา และตอนเปลี่ยนวันในผัง)
+  const loadAvailability = async (date) => {
+    if (!date) return;
+    try {
+      setSearching(true);
+      const res = await api.get(`/rooms/availability?date=${date}`);
+      setAvailability(res.data.data || []);
+      setSelectedRoomId(null);
+      setStep(2);
+    } catch (err) {
+      alert(err.response?.data?.message || 'โหลดผังห้องไม่สำเร็จ');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // เปิด popup รายละเอียดห้องจากผังชั้น (แปลงชื่อฟิลด์จาก availability ให้ตรงกับที่ modal/สรุปใช้)
+  const openPlanRoom = (row) => {
+    setDetailRoom({
+      id: row.room_id,
+      number: row.room_number,
+      typeName: row.type_name,
+      priceMonthly: row.price_monthly,
+      price: row.room_price,
+      imageUrl: row.image_url,
+    });
+  };
+
+  // กด "จองห้องนี้" จากผังชั้น → ตั้งห้องที่เลือก + วันออกชั่วคราว (+1 เดือน เพื่อผ่าน overlap; สัญญาจริงกำหนดตอนเข้าพัก) → ไปหน้าสรุป
+  const handleBookFromPlan = async () => {
+    if (!detailRoom) return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('กรุณาเข้าสู่ระบบก่อนจองห้อง');
+      navigate('/login');
+      return;
+    }
+    setRooms([detailRoom]);
+    setSelectedRoomId(detailRoom.id);
+    const end = new Date(checkIn);
+    end.setMonth(end.getMonth() + 1);
+    setCheckOut(end.toISOString().split('T')[0]);
+    try {
+      const res = await api.get('/current-user');
+      setGuest(res.data.data);
+    } catch {
+      setGuest(null);
+    }
+    setDetailRoom(null);
+    setStep(3);
   };
 
   // ค้นหาห้องว่างจาก backend (รับค่ามาตรงๆ เผื่อเรียกจาก auto-search ที่ state ยังไม่ทันอัปเดต)
@@ -81,10 +140,16 @@ export default function Roomuser() {
   };
 
   // สเต็ป 1: กดค้นหาจากฟอร์มในหน้านี้
+  // รายเดือน → เลือกแค่วันเข้าพัก แล้วดูผังชั้น · รายวัน → เลือกช่วงวันแล้วค้นห้องว่าง
   const handleSearch = (e) => {
     e.preventDefault();
-    if (!checkIn || !checkOut) return;
-    runSearch(rentType, checkIn, checkOut);
+    if (rentType === 'monthly') {
+      if (!checkIn) return;
+      loadAvailability(checkIn);
+    } else {
+      if (!checkIn || !checkOut) return;
+      runSearch(rentType, checkIn, checkOut);
+    }
   };
 
   // ถ้าถูกส่งมาจากกล่องค้นหาหน้า Home (มี autoSearch) → เติมค่า + ค้นหาให้อัตโนมัติ
@@ -94,7 +159,12 @@ export default function Roomuser() {
       setRentType(s.rentType);
       setCheckIn(s.checkIn);
       setCheckOut(s.checkOut);
-      runSearch(s.rentType, s.checkIn, s.checkOut);
+      // รายเดือนไปที่ผังชั้น (ใช้แค่วันเข้าพัก) · รายวันค้นห้องว่างตามช่วงวัน
+      if (s.rentType === 'monthly') {
+        loadAvailability(s.checkIn);
+      } else {
+        runSearch(s.rentType, s.checkIn, s.checkOut);
+      }
       // ล้าง state ออกจาก history กัน re-search ตอนกด back
       navigate('.', { replace: true, state: null });
     }
@@ -125,6 +195,9 @@ export default function Roomuser() {
 
   // สเต็ป 3: ยืนยันการจอง → ยิง API แล้วไปหน้าสำเร็จ
   const handleConfirmBooking = async () => {
+    // เตือนก่อน 1 ครั้ง — ยกเลิกภายหลังไม่ได้เงินมัดจำคืน (USER_FLOWS ข้อ 4.5)
+    const accepted = window.confirm('หากยกเลิกการจองภายหลัง จะไม่ได้รับเงินมัดจำคืน\n\nยืนยันการจองห้องพักนี้?');
+    if (!accepted) return;
     try {
       setSubmitting(true);
       const res = await api.post('/booking', {
@@ -210,7 +283,8 @@ export default function Roomuser() {
               <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-5">
                 <p className="text-[#1E293B] font-black text-base mb-4">เลือกวันที่</p>
                 <form onSubmit={handleSearch} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
+                  {rentType === 'monthly' ? (
+                    // รายเดือน: เลือกแค่วันเข้าพัก (สัญญาต่อเนื่อง ไม่กำหนดวันออกตอนจอง)
                     <div>
                       <label className="block text-[#334155] text-sm font-bold mb-2">วันที่เข้าพัก</label>
                       <input
@@ -220,24 +294,39 @@ export default function Roomuser() {
                         required
                         className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82]"
                       />
+                      <p className="text-[#94A3B8] text-xs mt-2">เลือกวันเข้าพักแล้วดูผังห้องว่าง</p>
                     </div>
-                    <div>
-                      <label className="block text-[#334155] text-sm font-bold mb-2">วันที่ออก</label>
-                      <input
-                        type="date"
-                        value={checkOut}
-                        onChange={(e) => setCheckOut(e.target.value)}
-                        required
-                        className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82]"
-                      />
+                  ) : (
+                    // รายวัน: เลือกช่วงวันเข้า-ออก
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[#334155] text-sm font-bold mb-2">วันที่เข้าพัก</label>
+                        <input
+                          type="date"
+                          value={checkIn}
+                          onChange={(e) => setCheckIn(e.target.value)}
+                          required
+                          className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[#334155] text-sm font-bold mb-2">วันที่ออก</label>
+                        <input
+                          type="date"
+                          value={checkOut}
+                          onChange={(e) => setCheckOut(e.target.value)}
+                          required
+                          className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82]"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <button
                     type="submit"
                     disabled={searching}
                     className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
                   >
-                    {searching ? 'กำลังค้นหา...' : 'ค้นหาห้องว่าง'}
+                    {searching ? 'กำลังโหลด...' : (rentType === 'monthly' ? 'ดูผังห้องว่าง' : 'ค้นหาห้องว่าง')}
                   </button>
                 </form>
               </div>
@@ -245,8 +334,76 @@ export default function Roomuser() {
           )
         )}
 
-        {/* ===== สเต็ป 2: เลือกห้อง ===== */}
-        {step === 2 && (
+        {/* ===== สเต็ป 2 (รายเดือน): ผังชั้น ===== */}
+        {step === 2 && rentType === 'monthly' && (
+          <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[#1E293B] font-black text-base">เลือกห้องจากผัง</p>
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="text-sm text-[#64748B] hover:text-[#5A2D82] font-semibold"
+              >
+                ← เปลี่ยนวันที่
+              </button>
+            </div>
+
+            {/* เปลี่ยนวันเข้าพักได้ในหน้าผังเลย — ผังรีเฟรชว่าง/ไม่ว่างตามวันใหม่ */}
+            <div className="flex items-center gap-2 mb-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl p-3">
+              <label className="text-[#334155] text-sm font-bold">วันเข้าพัก</label>
+              <input
+                type="date"
+                value={checkIn}
+                onChange={(e) => { setCheckIn(e.target.value); loadAvailability(e.target.value); }}
+                className="border border-[#CBD5E1] rounded-xl px-3 py-1.5 text-sm bg-white focus:outline-none focus:border-[#5A2D82]"
+              />
+            </div>
+
+            {/* คำอธิบายสี */}
+            <div className="flex gap-4 mb-4 text-xs font-semibold">
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-100 border border-green-300 inline-block" /> ว่าง (กดจองได้)</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-50 border border-red-200 inline-block" /> ไม่ว่าง</span>
+            </div>
+
+            {availability.length === 0 ? (
+              <div className="text-center py-8 text-[#64748B] font-semibold">ไม่มีข้อมูลห้อง</div>
+            ) : (
+              // จัดกลุ่มห้องตามชั้น แล้วเรียงชั้น
+              Object.keys(
+                availability.reduce((acc, r) => { acc[floorOf(r.room_number)] = true; return acc; }, {})
+              ).sort().map((f) => (
+                <div key={f} className="mb-5">
+                  <p className="text-[#94A3B8] text-xs font-black mb-2">ชั้น {f}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {availability
+                      .filter((r) => floorOf(r.room_number) === f)
+                      .map((room) => (
+                        <button
+                          key={room.room_id}
+                          type="button"
+                          disabled={!room.available}
+                          onClick={() => openPlanRoom(room)}
+                          className={`px-4 py-3 rounded-xl font-bold text-sm border-2 transition ${
+                            room.available
+                              ? 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100'
+                              : 'bg-red-50 border-red-200 text-red-400 cursor-not-allowed'
+                          }`}
+                        >
+                          ห้อง {room.room_number}
+                          <span className="block text-[10px] font-normal">
+                            {room.available ? `฿${Number(room.price_monthly || 0).toLocaleString()}/ด.` : 'ไม่ว่าง'}
+                          </span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* ===== สเต็ป 2 (รายวัน): รายการห้อง ===== */}
+        {step === 2 && rentType !== 'monthly' && (
           <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-[#1E293B] font-black text-base">
@@ -324,6 +481,7 @@ export default function Roomuser() {
         room={detailRoom}
         rentType={rentType}
         onClose={() => setDetailRoom(null)}
+        onBook={rentType === 'monthly' ? handleBookFromPlan : undefined}
       />
     </div>
   );

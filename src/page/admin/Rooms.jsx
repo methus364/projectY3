@@ -16,7 +16,6 @@ const Rooms = () => {
         type_name: '',
         room_price: '',
         price_monthly: '',
-        deposit_amount: '',
         image_url: '',
         room_status: 'ว่าง',
         description: '',
@@ -50,7 +49,6 @@ const Rooms = () => {
                 type_name: room.typeName || '',
                 room_price: room.price || '',
                 price_monthly: room.priceMonthly || '',
-                deposit_amount: room.depositAmount || '',
                 image_url: room.imageUrl || '',
                 room_status: room.status,
                 description: room.description || '',
@@ -79,7 +77,6 @@ const Rooms = () => {
                 type_name: form.type_name || null,
                 room_price: form.room_price !== '' ? Number(form.room_price) : null,
                 price_monthly: form.price_monthly !== '' ? Number(form.price_monthly) : null,
-                deposit_amount: form.deposit_amount !== '' ? Number(form.deposit_amount) : null,
                 image_url: form.image_url || null,
                 description: form.description || null,
                 amenities: amenitiesArray,
@@ -211,12 +208,6 @@ const Rooms = () => {
                                         {selectedRoom.priceMonthly ? `฿${Number(selectedRoom.priceMonthly).toLocaleString()}` : '-'}
                                     </span>
                                 </div>
-                                <div className="flex justify-between border-b pb-2">
-                                    <span className="font-bold">ค่ามัดจำ:</span>
-                                    <span className="text-primary font-black">
-                                        {selectedRoom.depositAmount ? `฿${Number(selectedRoom.depositAmount).toLocaleString()}` : '-'}
-                                    </span>
-                                </div>
                                 {selectedRoom.roomSize && (
                                     <div className="flex justify-between border-b pb-2">
                                         <span className="font-bold">ขนาดห้อง:</span>
@@ -292,14 +283,6 @@ const Rooms = () => {
                                 <label className="block text-xs font-black text-muted-foreground mb-2 uppercase tracking-widest">ราคา/เดือน (฿)</label>
                                 <input type="number" min="0" value={form.price_monthly}
                                     onChange={(e) => setForm({ ...form, price_monthly: e.target.value })}
-                                    className="w-full bg-muted/50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-primary" />
-                            </div>
-
-                            {/* ค่ามัดจำ */}
-                            <div>
-                                <label className="block text-xs font-black text-muted-foreground mb-2 uppercase tracking-widest">ค่ามัดจำ (฿)</label>
-                                <input type="number" min="0" value={form.deposit_amount}
-                                    onChange={(e) => setForm({ ...form, deposit_amount: e.target.value })}
                                     className="w-full bg-muted/50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-primary" />
                             </div>
 

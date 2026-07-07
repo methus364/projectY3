@@ -28,3 +28,15 @@ export function AdminRoute({ children }) {
 
   return children;
 }
+
+// ห่อหน้าเฉพาะผู้เช่ารายเดือน (แจ้งซ่อม/สัญญาเช่า)
+// ยังไม่ login → /login | ไม่ใช่ Monthly_Tenant → หน้าแรก (กันพิมพ์ URL ตรงเข้ามา)
+export function MonthlyRoute({ children }) {
+  const token = localStorage.getItem('token');
+  const user = getUser();
+
+  if (!token || !user) return <Navigate to="/login" replace />;
+  if (user.role !== 'Monthly_Tenant') return <Navigate to="/" replace />;
+
+  return children;
+}

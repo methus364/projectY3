@@ -1,5 +1,5 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { AdminRoute, PrivateRoute } from './ProtectedRoute';
+import { AdminRoute, PrivateRoute, MonthlyRoute } from './ProtectedRoute';
 import Home from "../page/user/Home";
 import Login from "../page/user/Login";
 import Rooms from "../page/admin/Rooms";
@@ -18,7 +18,8 @@ import Profile from "../page/user/Profile";
 import Editprofile from "../page/user/Editprofile";
 import Contact from "../page/user/Contact";
 import Money from "../page/admin/Money";
-import Bookingmanagement from "../page/admin/Bookingmanagement";
+import BookingManagementDaily from "../page/admin/BookingManagementDaily";
+import BookingManagementMonthly from "../page/admin/BookingManagementMonthly";
 import RepairRequest from "../page/user/RepairRequest";
 import MyBills from "../page/user/MyBills";
 import MyContracts from "../page/user/MyContracts";
@@ -44,7 +45,8 @@ const router = createBrowserRouter([
       { path: "booking", element: <Booking /> },
       { path: "repair", element: <Repair /> },
       { path: "money", element: <Money /> },
-      { path: "bookingmanagement", element: <Bookingmanagement /> },
+      { path: "booking-daily", element: <BookingManagementDaily /> },
+      { path: "booking-monthly", element: <BookingManagementMonthly /> },
     ],
   },
   // router ฝั่ง user
@@ -63,9 +65,9 @@ const router = createBrowserRouter([
       { path: "roomhistory", element: <PrivateRoute><Roomhistory /></PrivateRoute> },
       { path: "profile", element: <PrivateRoute><Profile /></PrivateRoute> },
       { path: "Editprofile", element: <PrivateRoute><Editprofile /></PrivateRoute> },
-      { path: "repairrequest", element: <PrivateRoute><RepairRequest /></PrivateRoute> },
+      { path: "repairrequest", element: <MonthlyRoute><RepairRequest /></MonthlyRoute> },
       { path: "mybills", element: <PrivateRoute><MyBills /></PrivateRoute> },
-      { path: "mycontracts", element: <PrivateRoute><MyContracts /></PrivateRoute> },
+      { path: "mycontracts", element: <MonthlyRoute><MyContracts /></MonthlyRoute> },
     ],
   },
 ]);

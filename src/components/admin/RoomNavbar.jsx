@@ -10,7 +10,7 @@ const RoomNavbar = () => {
           <div className="flex justify-between h-16 items-center">
             <div className="hidden md:flex space-x-8">
               <NavLink to="/admin/booking" className="text-gray-700 dark:text-white hover:text-indigo-600">ห้องพัก</NavLink>
-              <NavLink to="/admin/bookingmanagement" className="text-gray-700 dark:text-white hover:text-indigo-600">จัดการข้อมูลห้องพัก</NavLink>
+              <NavLink to="/admin/booking-daily" className="text-gray-700 dark:text-white hover:text-indigo-600">จัดการการจอง</NavLink>
 
             </div>
             {/* Mobile toggle */}

@@ -1,5 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../../../lib/api';
+
+// นับเวลาที่เหลือจนถึง hold_expires_at เป็นวินาที (0 ถ้าหมดเวลา/ไม่มีค่า)
+function secondsLeft(holdExpiresAt) {
+  if (!holdExpiresAt) return 0;
+  const diff = Math.floor((new Date(holdExpiresAt) - new Date()) / 1000);
+  return diff > 0 ? diff : 0;
+}
 
 // สเต็ปที่ 4: จองสำเร็จ + ชำระค่าจองด้วย QR PromptPay (เฉพาะรายวัน)
 // วิธีจ่าย: สแกน QR โอน → แนบสลิป → รอแอดมินตรวจสอบ (พอยืนยันแล้วการจองจะเปลี่ยนเป็น "ยืนยันการจอง")
@@ -15,8 +22,27 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain }) {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false); // แจ้งชำระ + แนบสลิปแล้ว
 
+  // ตัวนับถอยหลังเวลาที่เหลือในการชำระ (จาก hold_expires_at)
+  const [remaining, setRemaining] = useState(() => secondsLeft(result.holdExpiresAt));
+
+  useEffect(() => {
+    // ไม่ต้องนับถ้าไม่ใช่รายวัน หรือแจ้งชำระไปแล้ว
+    if (!isDaily || submitted) return;
+    const timer = setInterval(() => {
+      setRemaining(secondsLeft(result.holdExpiresAt));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isDaily, submitted, result.holdExpiresAt]);
+
+  // แปลงวินาทีเป็น mm:ss
+  const mmss = `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
+  const expired = isDaily && !submitted && remaining <= 0 && result.holdExpiresAt;
+
   // ขอ QR PromptPay ของค่าจอง (สร้างบิลค่าห้องให้ด้วย)
   const startPay = async () => {
+    // เตือนก่อน 1 ครั้ง — มีเวลา 5 นาที มิฉะนั้นการจองถูกยกเลิกอัตโนมัติ (USER_FLOWS ข้อ 6)
+    const ok = window.confirm('คุณมีเวลา 5 นาทีในการชำระเงิน มิฉะนั้นการจองจะถูกยกเลิกอัตโนมัติและห้องจะถูกปล่อยคืน');
+    if (!ok) return;
     try {
       setLoading(true);
       const res = await api.post(`/booking/${result.bookingId}/pay-now`);
@@ -80,6 +106,21 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain }) {
           <span className="text-[#5A2D82] font-black">฿{Number(result.totalPrice).toLocaleString()}</span>
         </div>
       </div>
+
+      {/* ตัวนับถอยหลังเวลาชำระ (รายวัน · ยังไม่แจ้งชำระ) */}
+      {isDaily && !submitted && result.holdExpiresAt && (
+        expired ? (
+          <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-2xl p-3 mb-4">
+            <p className="text-[#B91C1C] font-black text-sm">⏱ หมดเวลาชำระแล้ว</p>
+            <p className="text-[#DC2626] text-xs mt-1">การจองอาจถูกยกเลิกอัตโนมัติ — กรุณาตรวจสอบที่ประวัติการจอง</p>
+          </div>
+        ) : (
+          <div className="bg-[#FFF7ED] border border-[#FED7AA] rounded-2xl p-3 mb-4">
+            <p className="text-[#9A3412] text-xs font-semibold">เหลือเวลาชำระเงิน</p>
+            <p className="text-[#C2410C] font-black text-2xl tabular-nums">{mmss}</p>
+          </div>
+        )
+      )}
 
       {/* ===== ชำระค่าจอง (รายวัน) — QR PromptPay + อัปสลิป ===== */}
       {isDaily ? (

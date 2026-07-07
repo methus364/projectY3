@@ -35,7 +35,8 @@ const menuGroups = [
     label: 'จัดการห้อง',
     items: [
       { to: '/admin/rooms',             icon: KeyIcon,                    label: 'ห้องพัก' },
-      { to: '/admin/bookingmanagement', icon: ClipboardDocumentCheckIcon, label: 'การจอง' },
+      { to: '/admin/booking-daily',     icon: ClipboardDocumentCheckIcon, label: 'จองรายวัน' },
+      { to: '/admin/booking-monthly',   icon: ClipboardDocumentCheckIcon, label: 'จองรายเดือน' },
       { to: '/admin/booking',           icon: CalendarDaysIcon,           label: 'ปฏิทินจอง' },
     ],
   },

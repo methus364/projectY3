@@ -45,14 +45,25 @@ export default function BookingSummary({ room, rentType, checkIn, checkOut, nigh
             <span className="text-[#94A3B8] font-semibold">วันเข้าพัก</span>
             <span className="text-[#1E293B] font-bold">{checkIn}</span>
           </div>
-          <div className="flex justify-between py-1.5">
-            <span className="text-[#94A3B8] font-semibold">วันออก</span>
-            <span className="text-[#1E293B] font-bold">{checkOut}</span>
-          </div>
-          <div className="flex justify-between py-1.5">
-            <span className="text-[#94A3B8] font-semibold">รวมทั้งหมด</span>
-            <span className="text-[#1E293B] font-bold">{nights} วัน</span>
-          </div>
+          {/* รายเดือนเป็นสัญญาต่อเนื่อง ไม่กำหนดวันออกตายตัวตอนจอง — แสดงเฉพาะรายวัน */}
+          {rentType !== 'monthly' && (
+            <>
+              <div className="flex justify-between py-1.5">
+                <span className="text-[#94A3B8] font-semibold">วันออก</span>
+                <span className="text-[#1E293B] font-bold">{checkOut}</span>
+              </div>
+              <div className="flex justify-between py-1.5">
+                <span className="text-[#94A3B8] font-semibold">รวมทั้งหมด</span>
+                <span className="text-[#1E293B] font-bold">{nights} วัน</span>
+              </div>
+            </>
+          )}
+          {rentType === 'monthly' && (
+            <div className="flex justify-between py-1.5">
+              <span className="text-[#94A3B8] font-semibold">ระยะเวลา</span>
+              <span className="text-[#1E293B] font-bold">รายเดือน (กำหนดสัญญาตอนเข้าพัก)</span>
+            </div>
+          )}
         </div>
       </div>
 

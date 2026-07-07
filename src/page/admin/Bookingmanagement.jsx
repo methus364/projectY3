@@ -76,6 +76,7 @@ const Bookingmanagement = () => {
                     roomName:      item.roomNumber,
                     pricePerDay:   item.pricePerDay,
                     priceMonthly:  item.priceMonthly,
+                    hasPendingSlip: item.hasPendingSlip,   // มีสลิปรอตรวจอยู่ไหม (badge)
                 }));
                 setBookings(formatted);
             }
@@ -350,6 +351,12 @@ const Bookingmanagement = () => {
                                             <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${STATUS_COLOR[booking.status] || 'bg-muted/30 text-muted-foreground border-border'}`}>
                                                 {STATUS_LABEL[booking.status] || booking.status}
                                             </span>
+                                            {/* เตือน admin ว่ามีสลิปรอตรวจสำหรับการจองนี้ (USER_FLOWS ข้อ 48) */}
+                                            {booking.hasPendingSlip && (
+                                                <span className="block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200 w-fit">
+                                                    ⏳ ยังไม่ตรวจสอบสลิป
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-4 py-4">
                                             <div className="flex flex-wrap justify-center gap-2 text-xs">

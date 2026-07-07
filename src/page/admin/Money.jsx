@@ -138,6 +138,12 @@ function Money() {
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
+                      {/* ข้อมูล QR ที่อ่านจากรูปสลิป (ตัวช่วยตรวจ · Phase 5) */}
+                      {p.slip_qr_data && (
+                        <p className="mt-1 text-[10px] text-muted-foreground break-all max-w-[160px] mx-auto" title={p.slip_qr_data}>
+                          🔍 QR: {p.slip_qr_data.length > 40 ? p.slip_qr_data.slice(0, 40) + '…' : p.slip_qr_data}
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge(p.payment_status)}`}>

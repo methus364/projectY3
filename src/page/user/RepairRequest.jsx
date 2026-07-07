@@ -20,6 +20,8 @@ export default function RepairRequest() {
 
   const [problemTitle, setProblemTitle] = useState('');
   const [problemDetails, setProblemDetails] = useState('');
+  const [preferredTime, setPreferredTime] = useState('');
+  const [mediaFiles, setMediaFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -60,16 +62,22 @@ export default function RepairRequest() {
     setSuccessMsg('');
     setErrorMsg('');
     try {
-      const res = await api.post('/repair', {
-        booking_id:      activeBooking.bookingId,
-        problem_title:   problemTitle.trim(),
-        problem_details: problemDetails.trim() || null,
-      });
+      // ส่งแบบ multipart เพราะแนบไฟล์ได้ (รูป+วิดีโอ)
+      const form = new FormData();
+      form.append('booking_id', activeBooking.bookingId);
+      form.append('problem_title', problemTitle.trim());
+      if (problemDetails.trim()) form.append('problem_details', problemDetails.trim());
+      if (preferredTime.trim()) form.append('preferred_time', preferredTime.trim());
+      for (const file of mediaFiles) form.append('media', file);
+
+      const res = await api.post('/repair', form);
       if (res.data.success) {
         setSuccessMsg('แจ้งซ่อมสำเร็จแล้ว ทางหอพักจะดำเนินการโดยเร็ว');
         setMyRepairs(prev => [res.data.data, ...prev]);
         setProblemTitle('');
         setProblemDetails('');
+        setPreferredTime('');
+        setMediaFiles([]);
       }
     } catch (err) {
       setErrorMsg(err.response?.data?.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
@@ -149,6 +157,29 @@ export default function RepairRequest() {
                     rows={3}
                     className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82] focus:ring-2 focus:ring-[#5A2D82]/20"
                   />
+                </div>
+                <div>
+                  <label className="block text-[#334155] text-sm font-bold mb-2">เวลาที่สะดวกให้ช่างเข้าซ่อม</label>
+                  <input
+                    type="text"
+                    value={preferredTime}
+                    onChange={(e) => setPreferredTime(e.target.value)}
+                    placeholder="เช่น ช่วงเช้า 9-12 น. (ไม่บังคับ)"
+                    className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82] focus:ring-2 focus:ring-[#5A2D82]/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#334155] text-sm font-bold mb-2">แนบรูป/วิดีโอปัญหา (ได้หลายไฟล์)</label>
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    onChange={(e) => setMediaFiles(Array.from(e.target.files).slice(0, 5))}
+                    className="w-full text-sm border border-[#CBD5E1] rounded-2xl px-3 py-2.5 bg-[#F8FAFC]"
+                  />
+                  {mediaFiles.length > 0 && (
+                    <p className="text-xs text-[#64748B] mt-1">เลือกแล้ว {mediaFiles.length} ไฟล์ (สูงสุด 5)</p>
+                  )}
                 </div>
                 <button
                   type="submit"
