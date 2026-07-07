@@ -4,7 +4,6 @@ import api from '../../lib/api';
 import Navbar from '../../components/user/Navbar';
 import PageHeader from '../../components/user/PageHeader';
 import BookingStepper from '../../components/user/booking/BookingStepper';
-import RoomResultCard from '../../components/user/booking/RoomResultCard';
 import RoomDetailModal from '../../components/user/booking/RoomDetailModal';
 import BookingSummary from '../../components/user/booking/BookingSummary';
 import BookingSuccess from '../../components/user/booking/BookingSuccess';
@@ -14,6 +13,18 @@ const STEP_LABELS = ['ค้นหา', 'เลือกห้อง', 'ยื�
 
 // ชั้นของห้อง = เลขตัวแรกของเลขห้อง (102 → ชั้น 1) — ใช้จัดกลุ่มผังชั้นรายเดือน
 const floorOf = (roomNumber) => String(roomNumber || '').charAt(0) || '?';
+
+// จัดกลุ่มห้องรายวันตาม "ประเภท" (สไตล์ Agoda) — 1 การ์ด/ประเภท + จำนวนห้องว่าง
+// คืน [{ typeName, sample (ห้องตัวอย่างไว้โชว์รูป/ราคา), rooms (ห้องว่างทั้งหมดในประเภทนี้) }]
+function groupRoomsByType(rooms) {
+  const groups = {};
+  for (const room of rooms) {
+    const key = room.typeName || 'ทั่วไป';
+    if (!groups[key]) groups[key] = { typeName: key, sample: room, rooms: [] };
+    groups[key].rooms.push(room);
+  }
+  return Object.values(groups);
+}
 
 // นับจำนวนวันระหว่างวันเข้า-ออก (ให้ตรงกับที่ backend คำนวณ)
 function countNights(checkIn, checkOut) {
@@ -402,13 +413,11 @@ export default function Roomuser() {
           </div>
         )}
 
-        {/* ===== สเต็ป 2 (รายวัน): รายการห้อง ===== */}
+        {/* ===== สเต็ป 2 (รายวัน): เลือกประเภทห้อง (สไตล์ Agoda) ===== */}
         {step === 2 && rentType !== 'monthly' && (
           <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-5">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[#1E293B] font-black text-base">
-                {rooms.length > 0 ? `พบ ${rooms.length} ห้องว่าง` : 'ผลการค้นหา'}
-              </p>
+              <p className="text-[#1E293B] font-black text-base">เลือกประเภทห้อง</p>
               <button
                 type="button"
                 onClick={() => setStep(1)}
@@ -424,17 +433,78 @@ export default function Roomuser() {
                 <p className="text-[#64748B] font-semibold">ไม่มีห้องว่างในช่วงวันที่เลือก</p>
               </div>
             ) : (
+              // จัดกลุ่มตามประเภท แล้วโชว์การ์ดต่อประเภท (รูป + จำนวนห้องว่าง + ราคา/คืน + ปุ่มเลือก)
               <div className="flex flex-col gap-3">
-                {rooms.map((room) => (
-                  <RoomResultCard
-                    key={room.id}
-                    room={room}
-                    rentType={rentType}
-                    selected={selectedRoomId === room.id}
-                    onSelect={setSelectedRoomId}
-                    onViewDetail={setDetailRoom}
-                  />
-                ))}
+                {groupRoomsByType(rooms).map((group) => {
+                  // เลือกประเภทนี้อยู่ไหม (ห้องที่เลือกอยู่ในกลุ่มนี้)
+                  const groupSelected = group.rooms.some((r) => r.id === selectedRoomId);
+                  const hasDetail = group.sample.description || (group.sample.amenities && group.sample.amenities.length > 0);
+                  return (
+                    <div
+                      key={group.typeName}
+                      className={`flex gap-3 rounded-2xl border-2 overflow-hidden bg-white transition
+                        ${groupSelected ? 'border-[#5A2D82] shadow-md shadow-[#5A2D82]/20' : 'border-[#E2E8F0]'}`}
+                    >
+                      {/* รูป (ซ้าย) */}
+                      <div className="w-28 sm:w-36 shrink-0 bg-[#F1F5F9]">
+                        {group.sample.imageUrl ? (
+                          <img src={group.sample.imageUrl} alt={group.typeName} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-3xl text-[#CBD5E1]">🏠</div>
+                        )}
+                      </div>
+
+                      {/* รายละเอียด (กลาง) + ราคา/ปุ่ม (ขวา) */}
+                      <div className="flex-1 flex flex-col sm:flex-row justify-between gap-2 py-3 pr-3">
+                        <div className="min-w-0">
+                          <p className={`font-black text-base ${groupSelected ? 'text-[#5A2D82]' : 'text-[#1E293B]'}`}>
+                            {group.typeName}
+                          </p>
+                          <p className="text-[#16A34A] text-xs font-bold mb-1">ว่าง {group.rooms.length} ห้อง</p>
+
+                          {group.sample.amenities && group.sample.amenities.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-1">
+                              {group.sample.amenities.slice(0, 3).map((item) => (
+                                <span key={item} className="bg-[#F3EDF9] text-[#6A3A96] text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                                  {item}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {hasDetail && (
+                            <button
+                              type="button"
+                              onClick={() => setDetailRoom(group.sample)}
+                              className="text-xs text-[#5A2D82] font-semibold hover:underline"
+                            >
+                              ดูรายละเอียด →
+                            </button>
+                          )}
+                        </div>
+
+                        {/* ราคา + ปุ่มเลือก (ขวา) */}
+                        <div className="text-right shrink-0 flex sm:flex-col items-end justify-between sm:justify-center gap-2">
+                          <div>
+                            <p className="text-[#D32F2F] font-black text-lg leading-none">
+                              ฿{Number(group.sample.price).toLocaleString()}
+                            </p>
+                            <p className="text-[#94A3B8] text-xs">/คืน</p>
+                          </div>
+                          {/* เลือกประเภท → จองห้องว่างห้องแรกของประเภทนั้นให้ */}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRoomId(group.rooms[0].id)}
+                            className={`px-4 py-2 rounded-xl font-bold text-sm transition
+                              ${groupSelected ? 'bg-[#5A2D82] text-white' : 'bg-[#FEE2E2] text-[#D32F2F] hover:bg-[#FECACA]'}`}
+                          >
+                            {groupSelected ? '✓ เลือกแล้ว' : 'เลือก'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -472,6 +542,7 @@ export default function Roomuser() {
             result={bookingResult}
             onGoHistory={() => navigate('/roomhistory')}
             onBookAgain={handleReset}
+            onExpire={() => navigate('/')}
           />
         )}
       </div>

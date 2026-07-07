@@ -14,7 +14,7 @@ function secondsLeft(holdExpiresAt) {
 //   result       = ข้อมูลตอนจองสำเร็จ { bookingId, bookingRef, roomNumber, checkInDate, checkOutDate, rentType, totalPrice, emailSent }
 //   onGoHistory  = ไปหน้าประวัติการจอง
 //   onBookAgain  = จองห้องใหม่อีกครั้ง
-export default function BookingSuccess({ result, onGoHistory, onBookAgain }) {
+export default function BookingSuccess({ result, onGoHistory, onBookAgain, onExpire }) {
   const isDaily = result.rentType === 'daily';
 
   const [qr, setQr] = useState(null);          // { invoiceId, qrImage, amount }
@@ -37,6 +37,15 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain }) {
   // แปลงวินาทีเป็น mm:ss
   const mmss = `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
   const expired = isDaily && !submitted && remaining <= 0 && result.holdExpiresAt;
+
+  // หมดเวลาชำระ → การจองถูกยกเลิก+ลบทิ้งอัตโนมัติ (backend cron) → เด้งกลับหน้าแรก
+  useEffect(() => {
+    if (expired) {
+      alert('หมดเวลาชำระเงิน การจองถูกยกเลิกและปล่อยห้องคืนแล้ว');
+      onExpire?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expired]);
 
   // ขอ QR PromptPay ของค่าจอง (สร้างบิลค่าห้องให้ด้วย)
   const startPay = async () => {
@@ -85,7 +94,23 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain }) {
 
       <h2 className="text-[#1E293B] text-xl font-black mb-1">จองห้องสำเร็จ!</h2>
       <p className="text-[#64748B] text-sm mb-4">เลขที่การจองของคุณคือ</p>
-      <p className="text-[#5A2D82] text-2xl font-black mb-5">{result.bookingRef}</p>
+      <p className="text-[#5A2D82] text-2xl font-black mb-4">{result.bookingRef}</p>
+
+      {/* ตัวนับถอยหลังเวลาชำระ — โชว์ทันทีตั้งแต่จองสำเร็จ (รายวัน · ยังไม่แจ้งชำระ) */}
+      {isDaily && !submitted && result.holdExpiresAt && (
+        expired ? (
+          <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-2xl p-3 mb-5">
+            <p className="text-[#B91C1C] font-black text-sm">⏱ หมดเวลาชำระแล้ว</p>
+            <p className="text-[#DC2626] text-xs mt-1">การจองอาจถูกยกเลิกอัตโนมัติ — กรุณาตรวจสอบที่ประวัติการจอง</p>
+          </div>
+        ) : (
+          <div className="bg-[#FFF7ED] border border-[#FED7AA] rounded-2xl p-3 mb-5">
+            <p className="text-[#9A3412] text-xs font-semibold">⏱ กรุณาชำระเงินภายใน</p>
+            <p className="text-[#C2410C] font-black text-3xl tabular-nums leading-tight">{mmss}</p>
+            <p className="text-[#9A3412] text-[11px] mt-0.5">มิฉะนั้นการจองจะถูกยกเลิกอัตโนมัติและปล่อยห้องคืน</p>
+          </div>
+        )
+      )}
 
       {/* สรุปสั้นๆ */}
       <div className="bg-[#F8FAFC] rounded-2xl p-4 text-sm text-left space-y-2 mb-4">
@@ -107,27 +132,12 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain }) {
         </div>
       </div>
 
-      {/* ตัวนับถอยหลังเวลาชำระ (รายวัน · ยังไม่แจ้งชำระ) */}
-      {isDaily && !submitted && result.holdExpiresAt && (
-        expired ? (
-          <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-2xl p-3 mb-4">
-            <p className="text-[#B91C1C] font-black text-sm">⏱ หมดเวลาชำระแล้ว</p>
-            <p className="text-[#DC2626] text-xs mt-1">การจองอาจถูกยกเลิกอัตโนมัติ — กรุณาตรวจสอบที่ประวัติการจอง</p>
-          </div>
-        ) : (
-          <div className="bg-[#FFF7ED] border border-[#FED7AA] rounded-2xl p-3 mb-4">
-            <p className="text-[#9A3412] text-xs font-semibold">เหลือเวลาชำระเงิน</p>
-            <p className="text-[#C2410C] font-black text-2xl tabular-nums">{mmss}</p>
-          </div>
-        )
-      )}
-
       {/* ===== ชำระค่าจอง (รายวัน) — QR PromptPay + อัปสลิป ===== */}
       {isDaily ? (
         submitted ? (
           <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-2xl p-4 mb-5">
-            <p className="text-[#16A34A] font-black">✓ แจ้งชำระเงินแล้ว</p>
-            <p className="text-[#15803D] text-xs mt-1">รอแอดมินตรวจสอบสลิป · ยืนยันแล้วการจองจะเปลี่ยนเป็น "ยืนยันการจอง"</p>
+            <p className="text-[#16A34A] font-black">✓ ชำระเงินสำเร็จ · ยืนยันการจองแล้ว</p>
+            <p className="text-[#15803D] text-xs mt-1">ส่งใบเสร็จพร้อมรายละเอียดการจองไปที่อีเมลของคุณแล้ว · ดูได้ที่ "ประวัติการจอง"</p>
           </div>
         ) : qr ? (
           <div className="mb-5">
