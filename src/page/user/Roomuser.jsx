@@ -14,6 +14,78 @@ const STEP_LABELS = ['ค้นหา', 'เลือกห้อง', 'ยื�
 // ชั้นของห้อง = เลขตัวแรกของเลขห้อง (102 → ชั้น 1) — ใช้จัดกลุ่มผังชั้นรายเดือน
 const floorOf = (roomNumber) => String(roomNumber || '').charAt(0) || '?';
 
+// รายชื่อชั้นทั้งหมด เรียงจากน้อยไปมาก (['1','2','3','4'])
+function floorsOf(rooms) {
+  const set = new Set(rooms.map((r) => floorOf(r.room_number)));
+  return [...set].sort();
+}
+
+// จัดห้องของชั้นเดียวเป็นผังแปลน 2 คอลัมน์ (เลียนแบบแปลนหอจริง):
+// ห้องเลขคี่อยู่คอลัมน์ขวา เลขคู่อยู่คอลัมน์ซ้าย เรียงจากมากไปน้อย (ห้องเลขมากอยู่บน)
+// แล้วแทรก "บันได" ไว้กลางคอลัมน์ซ้ายให้ดูเหมือนโถงบันไดของหอ
+function buildFloorPlan(floorRooms) {
+  const byNumberDesc = (a, b) => Number(b.room_number) - Number(a.room_number);
+  const isOdd = (n) => Number(n) % 2 === 1;
+
+  const right = floorRooms.filter((r) => isOdd(r.room_number)).sort(byNumberDesc);
+  const left  = floorRooms.filter((r) => !isOdd(r.room_number)).sort(byNumberDesc);
+
+  // แทรกบล็อกบันไดไว้กลางคอลัมน์ซ้าย
+  const stairAt = Math.floor(left.length / 2);
+  const leftWithStair = [...left];
+  leftWithStair.splice(stairAt, 0, { stair: true });
+
+  return { left: leftWithStair, right };
+}
+
+// ผังชั้นเดียวแบบ 2 คอลัมน์ + บันไดกลาง — คลิกห้องว่าง (เขียว) เพื่อเลือก, ห้องไม่ว่าง (แดง) กดไม่ได้
+function FloorPlan({ floorRooms, onPick }) {
+  const { left, right } = buildFloorPlan(floorRooms);
+
+  // การ์ดห้อง 1 ช่องในผัง
+  const renderRoom = (room) => (
+    <button
+      key={room.room_id}
+      type="button"
+      disabled={!room.available}
+      onClick={() => onPick(room)}
+      className={`w-28 py-3 rounded-xl font-bold text-sm border-2 text-center transition ${
+        room.available
+          ? 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100'
+          : 'bg-red-50 border-red-200 text-red-400 cursor-not-allowed'
+      }`}
+    >
+      ห้อง {room.room_number}
+      <span className="block text-[10px] font-normal">
+        {room.available ? `฿${Number(room.price_monthly || 0).toLocaleString()}/ด.` : 'ไม่ว่าง'}
+      </span>
+    </button>
+  );
+
+  // บล็อกบันได (ไม่ใช่ห้อง กดไม่ได้)
+  const renderStair = (key) => (
+    <div
+      key={key}
+      className="w-28 py-3 rounded-xl border-2 border-dashed border-[#CBD5E1] text-[#94A3B8] text-xs font-bold text-center flex items-center justify-center"
+    >
+      🪜 บันได
+    </div>
+  );
+
+  // วาดทีละช่องในคอลัมน์ (ห้อง หรือ บันได)
+  const renderColumn = (cells) =>
+    cells.map((cell, i) => (cell.stair ? renderStair(`stair-${i}`) : renderRoom(cell)));
+
+  return (
+    <div className="flex justify-center gap-6 md:gap-10 py-2">
+      <div className="flex flex-col gap-3">{renderColumn(left)}</div>
+      {/* ทางเดินตรงกลาง */}
+      <div className="w-px bg-[#E2E8F0] self-stretch" />
+      <div className="flex flex-col gap-3">{renderColumn(right)}</div>
+    </div>
+  );
+}
+
 // จัดกลุ่มห้องรายวันตาม "ประเภท" (สไตล์ Agoda) — 1 การ์ด/ประเภท + จำนวนห้องว่าง
 // คืน [{ typeName, sample (ห้องตัวอย่างไว้โชว์รูป/ราคา), rooms (ห้องว่างทั้งหมดในประเภทนี้) }]
 function groupRoomsByType(rooms) {
@@ -52,6 +124,7 @@ export default function Roomuser() {
 
   // ผังชั้นรายเดือน (ห้องทั้งหมด + ว่าง/ไม่ว่าง ณ วันเข้าพักที่เลือก)
   const [availability, setAvailability]     = useState([]);
+  const [selectedFloor, setSelectedFloor]   = useState(''); // ชั้นที่กำลังดูอยู่ในผัง
 
   // ข้อมูลผู้เข้าพัก (โหลดจากโปรไฟล์ตอนเข้าสเต็ปยืนยัน)
   const [guest, setGuest] = useState(null);
@@ -83,7 +156,11 @@ export default function Roomuser() {
     try {
       setSearching(true);
       const res = await api.get(`/rooms/availability?date=${date}`);
-      setAvailability(res.data.data || []);
+      const rows = res.data.data || [];
+      setAvailability(rows);
+      // ตั้งชั้นเริ่มต้นเป็นชั้นแรกที่มีห้อง
+      const floors = floorsOf(rows);
+      setSelectedFloor(floors[0] || '');
       setSelectedRoomId(null);
       setStep(2);
     } catch (err) {
@@ -166,7 +243,11 @@ export default function Roomuser() {
   // ถ้าถูกส่งมาจากกล่องค้นหาหน้า Home (มี autoSearch) → เติมค่า + ค้นหาให้อัตโนมัติ
   useEffect(() => {
     const s = location.state;
-    if (s && s.autoSearch && s.checkIn && s.checkOut) {
+    if (!s || !s.autoSearch) return;
+
+    // รายเดือนใช้แค่วันเข้าพัก · รายวันต้องมีทั้งวันเข้าพัก+วันออก
+    const hasDates = s.rentType === 'monthly' ? !!s.checkIn : !!(s.checkIn && s.checkOut);
+    if (hasDates) {
       setRentType(s.rentType);
       setCheckIn(s.checkIn);
       setCheckOut(s.checkOut);
@@ -379,36 +460,31 @@ export default function Roomuser() {
             {availability.length === 0 ? (
               <div className="text-center py-8 text-[#64748B] font-semibold">ไม่มีข้อมูลห้อง</div>
             ) : (
-              // จัดกลุ่มห้องตามชั้น แล้วเรียงชั้น
-              Object.keys(
-                availability.reduce((acc, r) => { acc[floorOf(r.room_number)] = true; return acc; }, {})
-              ).sort().map((f) => (
-                <div key={f} className="mb-5">
-                  <p className="text-[#94A3B8] text-xs font-black mb-2">ชั้น {f}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {availability
-                      .filter((r) => floorOf(r.room_number) === f)
-                      .map((room) => (
-                        <button
-                          key={room.room_id}
-                          type="button"
-                          disabled={!room.available}
-                          onClick={() => openPlanRoom(room)}
-                          className={`px-4 py-3 rounded-xl font-bold text-sm border-2 transition ${
-                            room.available
-                              ? 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100'
-                              : 'bg-red-50 border-red-200 text-red-400 cursor-not-allowed'
-                          }`}
-                        >
-                          ห้อง {room.room_number}
-                          <span className="block text-[10px] font-normal">
-                            {room.available ? `฿${Number(room.price_monthly || 0).toLocaleString()}/ด.` : 'ไม่ว่าง'}
-                          </span>
-                        </button>
-                      ))}
-                  </div>
+              <>
+                {/* ปุ่มเลือกชั้น — ดูทีละชั้น */}
+                <div className="flex flex-wrap gap-2 mb-5">
+                  {floorsOf(availability).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setSelectedFloor(f)}
+                      className={`px-4 py-1.5 rounded-full text-sm font-bold transition ${
+                        selectedFloor === f
+                          ? 'bg-[#5A2D82] text-white'
+                          : 'bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]'
+                      }`}
+                    >
+                      ชั้น {f}
+                    </button>
+                  ))}
                 </div>
-              ))
+
+                {/* ผังชั้นที่เลือก (2 คอลัมน์ + บันไดกลาง) */}
+                <FloorPlan
+                  floorRooms={availability.filter((r) => floorOf(r.room_number) === selectedFloor)}
+                  onPick={openPlanRoom}
+                />
+              </>
             )}
           </div>
         )}

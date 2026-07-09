@@ -32,11 +32,24 @@ export default function Home() {
   const [checkIn, setCheckIn]   = useState('');
   const [checkOut, setCheckOut] = useState('');
 
+  // สลับประเภทการเช่า — รายเดือนเลือกแค่วันเข้าพัก จึงเคลียร์วันออกทิ้ง
+  const handleChangeRentType = (type) => {
+    setRentType(type);
+    if (type === 'monthly') {
+      setCheckOut('');
+    }
+  };
+
   // กดค้นหา → พาไปหน้าจองพร้อมส่งค่าไปค้นหาอัตโนมัติ
   const handleSearch = (e) => {
     e.preventDefault();
-    if (!checkIn || !checkOut) {
-      alert('กรุณาเลือกวันเข้าพักและวันออก');
+    // รายวันต้องมีทั้งวันเข้าพัก+วันออก / รายเดือนใช้แค่วันเข้าพัก
+    if (!checkIn) {
+      alert('กรุณาเลือกวันเข้าพัก');
+      return;
+    }
+    if (rentType === 'daily' && !checkOut) {
+      alert('กรุณาเลือกวันออก');
       return;
     }
     navigate('/roomuser', { state: { rentType, checkIn, checkOut, autoSearch: true } });
@@ -72,7 +85,7 @@ export default function Home() {
               <div className="flex gap-2 mb-4">
                 <button
                   type="button"
-                  onClick={() => setRentType('daily')}
+                  onClick={() => handleChangeRentType('daily')}
                   className={`px-4 py-1.5 rounded-full text-sm font-bold transition
                     ${rentType === 'daily' ? 'bg-[#5A2D82] text-white' : 'bg-[#F1F5F9] text-[#64748B]'}`}
                 >
@@ -80,7 +93,7 @@ export default function Home() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setRentType('monthly')}
+                  onClick={() => handleChangeRentType('monthly')}
                   className={`px-4 py-1.5 rounded-full text-sm font-bold transition
                     ${rentType === 'monthly' ? 'bg-[#5A2D82] text-white' : 'bg-[#F1F5F9] text-[#64748B]'}`}
                 >
@@ -88,8 +101,10 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* ช่องวันที่ + ปุ่มค้นหา */}
-              <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3">
+              {/* ช่องวันที่ + ปุ่มค้นหา — รายเดือนโชว์แค่วันเข้าพัก จึงเหลือ 2 คอลัมน์ */}
+              <div className={`grid grid-cols-1 gap-3 ${
+                rentType === 'daily' ? 'md:grid-cols-[1fr_1fr_auto]' : 'md:grid-cols-[1fr_auto]'
+              }`}>
                 <div className="border border-[#E2E8F0] rounded-xl px-3 py-2">
                   <label className="block text-[#94A3B8] text-xs font-bold mb-0.5">วันเข้าพัก</label>
                   <input
@@ -99,15 +114,18 @@ export default function Home() {
                     className="w-full text-sm text-[#1E293B] font-semibold focus:outline-none bg-transparent"
                   />
                 </div>
-                <div className="border border-[#E2E8F0] rounded-xl px-3 py-2">
-                  <label className="block text-[#94A3B8] text-xs font-bold mb-0.5">วันออก</label>
-                  <input
-                    type="date"
-                    value={checkOut}
-                    onChange={(e) => setCheckOut(e.target.value)}
-                    className="w-full text-sm text-[#1E293B] font-semibold focus:outline-none bg-transparent"
-                  />
-                </div>
+                {/* วันออก — เฉพาะรายวันเท่านั้น (รายเดือนเป็นสัญญาต่อเนื่อง ไม่กำหนดวันออกตอนจอง) */}
+                {rentType === 'daily' && (
+                  <div className="border border-[#E2E8F0] rounded-xl px-3 py-2">
+                    <label className="block text-[#94A3B8] text-xs font-bold mb-0.5">วันออก</label>
+                    <input
+                      type="date"
+                      value={checkOut}
+                      onChange={(e) => setCheckOut(e.target.value)}
+                      className="w-full text-sm text-[#1E293B] font-semibold focus:outline-none bg-transparent"
+                    />
+                  </div>
+                )}
                 <button
                   type="submit"
                   className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black px-8 py-3 rounded-xl transition"

@@ -15,7 +15,10 @@ function secondsLeft(holdExpiresAt) {
 //   onGoHistory  = ไปหน้าประวัติการจอง
 //   onBookAgain  = จองห้องใหม่อีกครั้ง
 export default function BookingSuccess({ result, onGoHistory, onBookAgain, onExpire }) {
-  const isDaily = result.rentType === 'daily';
+  const isMonthly = result.rentType === 'monthly';
+  // ทั้งรายวันและรายเดือนต้องชำระมัดจำตอนจอง (รายเดือน = มัดจำล็อกห้อง 2,000 บาท)
+  // ดูจาก holdExpiresAt: ถ้ามี = การจองยังรอชำระ ต้องโชว์ขั้นตอนจ่ายเงิน
+  const canPayNow = !!result.holdExpiresAt;
 
   const [qr, setQr] = useState(null);          // { invoiceId, qrImage, amount }
   const [slipFile, setSlipFile] = useState(null);
@@ -26,17 +29,17 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain, onExp
   const [remaining, setRemaining] = useState(() => secondsLeft(result.holdExpiresAt));
 
   useEffect(() => {
-    // ไม่ต้องนับถ้าไม่ใช่รายวัน หรือแจ้งชำระไปแล้ว
-    if (!isDaily || submitted) return;
+    // ไม่ต้องนับถ้าไม่มีขั้นตอนชำระ หรือแจ้งชำระไปแล้ว
+    if (!canPayNow || submitted) return;
     const timer = setInterval(() => {
       setRemaining(secondsLeft(result.holdExpiresAt));
     }, 1000);
     return () => clearInterval(timer);
-  }, [isDaily, submitted, result.holdExpiresAt]);
+  }, [canPayNow, submitted, result.holdExpiresAt]);
 
   // แปลงวินาทีเป็น mm:ss
   const mmss = `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
-  const expired = isDaily && !submitted && remaining <= 0 && result.holdExpiresAt;
+  const expired = canPayNow && !submitted && remaining <= 0 && result.holdExpiresAt;
 
   // หมดเวลาชำระ → การจองถูกยกเลิก+ลบทิ้งอัตโนมัติ (backend cron) → เด้งกลับหน้าแรก
   useEffect(() => {
@@ -96,8 +99,8 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain, onExp
       <p className="text-[#64748B] text-sm mb-4">เลขที่การจองของคุณคือ</p>
       <p className="text-[#5A2D82] text-2xl font-black mb-4">{result.bookingRef}</p>
 
-      {/* ตัวนับถอยหลังเวลาชำระ — โชว์ทันทีตั้งแต่จองสำเร็จ (รายวัน · ยังไม่แจ้งชำระ) */}
-      {isDaily && !submitted && result.holdExpiresAt && (
+      {/* ตัวนับถอยหลังเวลาชำระ — โชว์ทันทีตั้งแต่จองสำเร็จ (ยังไม่แจ้งชำระ) */}
+      {canPayNow && !submitted && result.holdExpiresAt && (
         expired ? (
           <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-2xl p-3 mb-5">
             <p className="text-[#B91C1C] font-black text-sm">⏱ หมดเวลาชำระแล้ว</p>
@@ -127,13 +130,27 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain, onExp
           <span className="text-[#1E293B] font-bold">{result.checkOutDate}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-[#94A3B8] font-semibold">ยอดรวมโดยประมาณ</span>
+          <span className="text-[#94A3B8] font-semibold">
+            {isMonthly ? 'ค่าเช่ารายเดือน (โดยประมาณ)' : 'ยอดรวมโดยประมาณ'}
+          </span>
           <span className="text-[#5A2D82] font-black">฿{Number(result.totalPrice).toLocaleString()}</span>
         </div>
       </div>
 
-      {/* ===== ชำระค่าจอง (รายวัน) — QR PromptPay + อัปสลิป ===== */}
-      {isDaily ? (
+      {/* รายเดือน: อธิบายว่าตอนนี้จ่ายแค่มัดจำล็อกห้อง ส่วนค่าเช่า/มัดจำเต็มเก็บตอนเช็คอิน */}
+      {isMonthly && !submitted && (
+        <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-2xl p-3 mb-4 text-left">
+          <p className="text-[#15803D] text-xs font-bold">
+            ชำระตอนนี้เฉพาะ <span className="font-black">มัดจำล็อกห้อง 2,000 บาท</span> เพื่อกันห้องไว้
+          </p>
+          <p className="text-[#16A34A] text-[11px] mt-0.5">
+            ค่าเช่าและมัดจำสัญญาที่เหลือจะเก็บตอนเจ้าหน้าที่เช็คอิน
+          </p>
+        </div>
+      )}
+
+      {/* ===== ชำระค่าจอง — QR PromptPay + อัปสลิป (รายวัน=ค่าห้อง / รายเดือน=มัดจำล็อกห้อง) ===== */}
+      {canPayNow ? (
         submitted ? (
           <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-2xl p-4 mb-5">
             <p className="text-[#16A34A] font-black">✓ ชำระเงินสำเร็จ · ยืนยันการจองแล้ว</p>
@@ -168,13 +185,17 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain, onExp
             disabled={loading}
             className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3.5 rounded-2xl transition mb-3 disabled:opacity-50"
           >
-            {loading ? 'กำลังสร้าง QR...' : '💳 ชำระค่าจอง (สแกน QR PromptPay)'}
+            {loading
+              ? 'กำลังสร้าง QR...'
+              : isMonthly
+                ? '💳 ชำระมัดจำล็อกห้อง (สแกน QR PromptPay)'
+                : '💳 ชำระค่าจอง (สแกน QR PromptPay)'}
           </button>
         )
       ) : (
-        // รายเดือน — จ่ายมัดจำตอนเช็คอิน
+        // ไม่มี hold (กรณีผิดปกติ) — ให้ไปจัดการที่ประวัติการจอง
         <p className="text-[#94A3B8] text-xs mb-5">
-          สถานะปัจจุบัน: รอชำระมัดจำ · กรุณาติดต่อเจ้าหน้าที่เพื่อยืนยันการเข้าพัก
+          สถานะปัจจุบัน: รอชำระมัดจำ · ดูรายละเอียดการชำระได้ที่ "ประวัติการจอง"
         </p>
       )}
 
