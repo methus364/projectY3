@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 
@@ -6,8 +6,14 @@ import api from '../../lib/api';
 export default function LineCallback() {
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    // กัน useEffect รันซ้ำ (React StrictMode รัน 2 รอบตอน dev) — OAuth code ใช้ได้ครั้งเดียว
+    // และ state ใน sessionStorage ถูกลบหลังใช้ ถ้ารันซ้ำจะเช็ค state ไม่ผ่าน
+    const exchanged = useRef(false);
 
     useEffect(() => {
+        if (exchanged.current) return;
+        exchanged.current = true;
+
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
         const state = params.get('state');
