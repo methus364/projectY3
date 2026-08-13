@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 
-// หน้าปลายทางหลัง LINE login → รับ code มาแลกเป็น JWT ผ่าน backend
-export default function LineCallback() {
+// หน้าปลายทางหลัง Google login → รับ code มาแลกเป็น JWT ผ่าน backend
+export default function GoogleCallback() {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
@@ -11,23 +11,23 @@ export default function LineCallback() {
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
         const state = params.get('state');
-        const savedState = sessionStorage.getItem('line_state');
+        const savedState = sessionStorage.getItem('google_state');
 
         // ตรวจ state กัน CSRF
         if (!code) {
-            setError('ไม่ได้รับ code จาก LINE');
+            setError('ไม่ได้รับ code จาก Google');
             return;
         }
         if (!state || state !== savedState) {
             setError('state ไม่ตรง (อาจถูกปลอมแปลง) กรุณาลองใหม่');
             return;
         }
-        sessionStorage.removeItem('line_state');
+        sessionStorage.removeItem('google_state');
 
         // redirect_uri ต้องตรงกับตอนเริ่ม login เป๊ะ
-        const redirectUri = `${window.location.origin}/auth/line/callback`;
+        const redirectUri = `${window.location.origin}/auth/google/callback`;
 
-        api.post('/auth/line/exchange', { code, redirect_uri: redirectUri })
+        api.post('/auth/google/exchange', { code, redirect_uri: redirectUri })
             .then((res) => {
                 const { token, payload, isNewUser } = res.data;
                 localStorage.setItem('token', token);
@@ -37,7 +37,7 @@ export default function LineCallback() {
                 navigate(payload.role === 'Admin' ? '/admin' : '/');
             })
             .catch((err) => {
-                setError(err.response?.data?.message || 'เข้าสู่ระบบด้วย LINE ไม่สำเร็จ');
+                setError(err.response?.data?.message || 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ');
             });
     }, [navigate]);
 
@@ -52,7 +52,7 @@ export default function LineCallback() {
                         </button>
                     </>
                 ) : (
-                    <p className="text-foreground">กำลังเข้าสู่ระบบด้วย LINE...</p>
+                    <p className="text-foreground">กำลังเข้าสู่ระบบด้วย Google...</p>
                 )}
             </div>
         </div>

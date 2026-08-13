@@ -10,7 +10,8 @@ const statusBadge = (status) => {
 
 const money = (val) => (Number(val) || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 });
 
-function Money() {
+// แสดงรายการชำระเงินของประเภทเช่าเดียว (rentType: 'daily' | 'monthly') — แยกจากกันเด็ดขาด ไม่ปนกัน
+function MoneyList({ rentType, title }) {
   const [statusFilter, setStatusFilter] = useState('');
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -24,6 +25,7 @@ function Money() {
       setLoading(true);
       const params = new URLSearchParams();
       if (statusFilter) params.append('status', statusFilter);
+      params.append('rentType', rentType);
 
       const res = await api.get(`/payments?${params.toString()}`);
       if (res.data.success) {
@@ -74,7 +76,7 @@ function Money() {
 
         {/* ส่วนหัว + filter */}
         <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-          <h1 className="text-3xl font-bold text-foreground">ตรวจสอบการชำระเงิน</h1>
+          <h1 className="text-3xl font-bold text-foreground">{title}</h1>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -206,4 +208,4 @@ function Money() {
   );
 }
 
-export default Money;
+export default MoneyList;

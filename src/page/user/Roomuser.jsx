@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../lib/api';
+import { getUserRole } from '../../lib/auth';
 import Navbar from '../../components/user/Navbar';
 import PageHeader from '../../components/user/PageHeader';
 import BookingStepper from '../../components/user/booking/BookingStepper';
@@ -108,11 +109,15 @@ export default function Roomuser() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // ผู้เช่ารายวัน/รายเดือน จองได้แค่ประเภทตัวเอง (กันข้าม role)
+  const userRole = getUserRole();
+  const lockedRentType = userRole === 'Daily_Tenant' ? 'daily' : userRole === 'Monthly_Tenant' ? 'monthly' : null;
+
   // สเต็ปปัจจุบันของ wizard (1=ค้นหา, 2=เลือกห้อง, 3=ยืนยัน, 4=สำเร็จ)
   const [step, setStep] = useState(1);
 
   // ข้อมูลการค้นหา
-  const [rentType, setRentType] = useState('');
+  const [rentType, setRentType] = useState(lockedRentType || '');
   const [checkIn, setCheckIn]   = useState('');
   const [checkOut, setCheckOut] = useState('');
 
@@ -244,6 +249,8 @@ export default function Roomuser() {
   useEffect(() => {
     const s = location.state;
     if (!s || !s.autoSearch) return;
+    // กันประเภทที่ role ไม่ให้จอง หลุดมาจากหน้า Home (เผื่อ state เก่า/แก้ URL เอง)
+    if (lockedRentType && s.rentType !== lockedRentType) return;
 
     // รายเดือนใช้แค่วันเข้าพัก · รายวันต้องมีทั้งวันเข้าพัก+วันออก
     const hasDates = s.rentType === 'monthly' ? !!s.checkIn : !!(s.checkIn && s.checkOut);
@@ -321,29 +328,38 @@ export default function Roomuser() {
           !rentType ? (
             <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-6">
               <p className="text-[#1E293B] font-black text-base mb-5 text-center">เลือกประเภทห้องพัก</p>
+              {lockedRentType && (
+                <p className="text-[#94A3B8] text-xs font-semibold text-center mb-4">
+                  บัญชีของคุณเป็นผู้เช่า{lockedRentType === 'daily' ? 'รายวัน' : 'รายเดือน'} จองได้เฉพาะห้องประเภทนี้
+                </p>
+              )}
               <div className="flex flex-col gap-4">
-                <button
-                  onClick={() => setRentType('daily')}
-                  className="flex items-center gap-4 bg-[#F3EDF9] border border-[#D9C5EC] p-5 rounded-2xl hover:bg-[#E7D8F3] transition group"
-                >
-                  <span className="text-3xl">🌅</span>
-                  <div className="flex-1 text-left">
-                    <p className="text-[#6A3A96] font-black text-base">ห้องพักรายวัน</p>
-                    <p className="text-[#8B5CB8] text-xs font-semibold mt-0.5">เหมาะสำหรับพักระยะสั้น 1-30 วัน</p>
-                  </div>
-                  <span className="text-[#D9C5EC] group-hover:translate-x-1 transition text-xl">›</span>
-                </button>
-                <button
-                  onClick={() => setRentType('monthly')}
-                  className="flex items-center gap-4 bg-[#F0FDF4] border border-[#BBF7D0] p-5 rounded-2xl hover:bg-[#DCFCE7] transition group"
-                >
-                  <span className="text-3xl">🏠</span>
-                  <div className="flex-1 text-left">
-                    <p className="text-[#15803D] font-black text-base">ห้องพักรายเดือน</p>
-                    <p className="text-[#16A34A] text-xs font-semibold mt-0.5">เหมาะสำหรับพักระยะยาว 1 เดือนขึ้นไป</p>
-                  </div>
-                  <span className="text-[#BBF7D0] group-hover:translate-x-1 transition text-xl">›</span>
-                </button>
+                {lockedRentType !== 'monthly' && (
+                  <button
+                    onClick={() => setRentType('daily')}
+                    className="flex items-center gap-4 bg-[#F3EDF9] border border-[#D9C5EC] p-5 rounded-2xl hover:bg-[#E7D8F3] transition group"
+                  >
+                    <span className="text-3xl">🌅</span>
+                    <div className="flex-1 text-left">
+                      <p className="text-[#6A3A96] font-black text-base">ห้องพักรายวัน</p>
+                      <p className="text-[#8B5CB8] text-xs font-semibold mt-0.5">เหมาะสำหรับพักระยะสั้น 1-30 วัน</p>
+                    </div>
+                    <span className="text-[#D9C5EC] group-hover:translate-x-1 transition text-xl">›</span>
+                  </button>
+                )}
+                {lockedRentType !== 'daily' && (
+                  <button
+                    onClick={() => setRentType('monthly')}
+                    className="flex items-center gap-4 bg-[#F0FDF4] border border-[#BBF7D0] p-5 rounded-2xl hover:bg-[#DCFCE7] transition group"
+                  >
+                    <span className="text-3xl">🏠</span>
+                    <div className="flex-1 text-left">
+                      <p className="text-[#15803D] font-black text-base">ห้องพักรายเดือน</p>
+                      <p className="text-[#16A34A] text-xs font-semibold mt-0.5">เหมาะสำหรับพักระยะยาว 1 เดือนขึ้นไป</p>
+                    </div>
+                    <span className="text-[#BBF7D0] group-hover:translate-x-1 transition text-xl">›</span>
+                  </button>
+                )}
               </div>
 
               <div className="mt-5 flex justify-center">
@@ -362,13 +378,15 @@ export default function Roomuser() {
                 <span className="bg-[#5A2D82] text-white text-sm font-bold px-4 py-1.5 rounded-full">
                   {rentType === 'daily' ? '🌅 รายวัน' : '🏠 รายเดือน'}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setRentType('')}
-                  className="text-sm text-[#64748B] hover:text-[#5A2D82] font-semibold"
-                >
-                  เปลี่ยนประเภท
-                </button>
+                {!lockedRentType && (
+                  <button
+                    type="button"
+                    onClick={() => setRentType('')}
+                    className="text-sm text-[#64748B] hover:text-[#5A2D82] font-semibold"
+                  >
+                    เปลี่ยนประเภท
+                  </button>
+                )}
               </div>
 
               {/* เลือกวันที่ + ค้นหา */}

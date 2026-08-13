@@ -1,14 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-
-// อ่าน user object จาก localStorage (คืน null ถ้าไม่มีหรือ JSON เสีย)
-function getUser() {
-  try {
-    return JSON.parse(localStorage.getItem('user'));
-  } catch {
-    return null;
-  }
-}
+import { getCurrentUser } from '../lib/auth';
 
 // ห่อหน้าที่ต้อง login — ถ้ายังไม่มี token ส่งไป /login
 export function PrivateRoute({ children }) {
@@ -21,7 +13,7 @@ export function PrivateRoute({ children }) {
 // ยังไม่ login → /login | login แล้วแต่ไม่ใช่ Admin → หน้าแรก
 export function AdminRoute({ children }) {
   const token = localStorage.getItem('token');
-  const user = getUser();
+  const user = getCurrentUser();
 
   if (!token || !user) return <Navigate to="/login" replace />;
   if (user.role !== 'Admin') return <Navigate to="/" replace />;
@@ -33,7 +25,7 @@ export function AdminRoute({ children }) {
 // ยังไม่ login → /login | ไม่ใช่ Monthly_Tenant → หน้าแรก (กันพิมพ์ URL ตรงเข้ามา)
 export function MonthlyRoute({ children }) {
   const token = localStorage.getItem('token');
-  const user = getUser();
+  const user = getCurrentUser();
 
   if (!token || !user) return <Navigate to="/login" replace />;
   if (user.role !== 'Monthly_Tenant') return <Navigate to="/" replace />;

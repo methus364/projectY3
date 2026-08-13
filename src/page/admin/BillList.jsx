@@ -17,7 +17,8 @@ const statusBadge = (status) => {
     return 'bg-yellow-100 text-yellow-800'; // ยังไม่ชำระ
 };
 
-const Bill = () => {
+// แสดงบิลของประเภทเช่าเดียว (rentType: 'daily' | 'monthly') — หน้ารายวันกับรายเดือนแยกกันเด็ดขาด ไม่ปนกัน
+const BillList = ({ rentType, title }) => {
     const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
     const [statusFilter, setStatusFilter] = useState('');
     const [invoices, setInvoices] = useState([]);
@@ -43,6 +44,7 @@ const Bill = () => {
             const params = new URLSearchParams();
             if (selectedMonth) params.append('month', selectedMonth);
             if (statusFilter) params.append('status', statusFilter);
+            params.append('rentType', rentType);
 
             const res = await api.get(`/invoices?${params.toString()}`);
             if (res.data.success) {
@@ -66,11 +68,23 @@ const Bill = () => {
         setCreateForm({ booking_id: '', month: selectedMonth });
         setShowCreate(true);
         try {
-            const res = await api.get('/admin/bookings');
-            if (res.data.success) {
-                // เลือกเฉพาะการจองที่กำลังเข้าพัก (ออกบิลให้คนที่อยู่จริง)
-                const active = res.data.data.filter((b) => b.bookingStatus === 'กำลังเข้าพัก');
-                setBookings(active);
+            if (rentType === 'monthly') {
+                // ห้องรายเดือน: ดึงจากสัญญาที่ "มีผลใช้งาน" เท่านั้น — สัญญาคือหลักฐานตัวจริงว่าใครอยู่ห้องรายเดือน
+                const res = await api.get('/contracts?status=มีผลใช้งาน');
+                if (res.data.success) {
+                    setBookings(res.data.data.map((c) => ({
+                        bookingId: c.booking_id,
+                        roomNumber: c.room_number,
+                        guestName: c.guest_name,
+                    })));
+                }
+            } else {
+                const res = await api.get(`/admin/bookings?rentType=${rentType}`);
+                if (res.data.success) {
+                    // เลือกเฉพาะการจองที่กำลังเข้าพัก (ออกบิลให้คนที่อยู่จริง)
+                    const active = res.data.data.filter((b) => b.bookingStatus === 'กำลังเข้าพัก');
+                    setBookings(active);
+                }
             }
         } catch (err) {
             console.error('โหลดรายการจองไม่สำเร็จ:', err);
@@ -221,7 +235,7 @@ const Bill = () => {
 
                 {/* ส่วนหัว + filter + ปุ่ม action */}
                 <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-                    <h1 className="text-3xl font-bold text-foreground">ใบแจ้งหนี้</h1>
+                    <h1 className="text-3xl font-bold text-foreground">{title}</h1>
                     <div className="flex flex-wrap items-center gap-3">
                         <label className="text-sm font-medium text-foreground">เดือน:</label>
                         <input
@@ -241,12 +255,15 @@ const Bill = () => {
                             <option value="ชำระแล้ว">ชำระแล้ว</option>
                             <option value="ยกเลิก">ยกเลิก</option>
                         </select>
-                        <button
-                            onClick={handleGenerateMonthly}
-                            className="px-4 py-1.5 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
-                        >
-                            ออกบิลรายเดือน
-                        </button>
+                        {/* ออกบิลรายเดือนยกชุด — มีเฉพาะหน้ารายเดือน (รายวันออกทีละใบตอนเช็คเอาท์เท่านั้น) */}
+                        {rentType === 'monthly' && (
+                            <button
+                                onClick={handleGenerateMonthly}
+                                className="px-4 py-1.5 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
+                            >
+                                ออกบิลรายเดือน
+                            </button>
+                        )}
                         <button
                             onClick={sendAll}
                             className="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
@@ -346,7 +363,7 @@ const Bill = () => {
                                 <option value="">— เลือกการจอง —</option>
                                 {bookings.map((b) => (
                                     <option key={b.bookingId} value={b.bookingId}>
-                                        ห้อง {b.roomNumber} · {b.guestName || 'ไม่ระบุ'} ({b.rentType === 'monthly' ? 'รายเดือน' : 'รายวัน'})
+                                        ห้อง {b.roomNumber} · {b.guestName || 'ไม่ระบุ'}
                                     </option>
                                 ))}
                             </select>
@@ -446,4 +463,4 @@ const Bill = () => {
     );
 };
 
-export default Bill;
+export default BillList;

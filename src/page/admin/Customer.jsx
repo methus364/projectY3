@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 
 const ROLES = ['Daily_Tenant', 'Monthly_Tenant', 'Admin'];
 
 const Customers = () => {
+  const [searchParams] = useSearchParams();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  // ถ้ามาจากหน้าอื่นพร้อมชื่อลูกค้า (เช่น กดเช็คอินรายเดือนเสร็จ) ให้ค้นหาชื่อนั้นให้เลย
+  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [showModal, setShowModal] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [form, setForm] = useState({ member_id: null, username: '', password: '', full_name: '', phone_number: '', email: '', user_role: 'Daily_Tenant' });
@@ -95,11 +98,15 @@ const Customers = () => {
     }
   };
 
-  const roleLabel = (role) => {
-    if (role === 'Admin') return <span className="text-purple-600 font-semibold">Admin</span>;
-    if (role === 'Monthly_Tenant') return <span className="text-primary font-semibold">รายเดือน</span>;
-    return <span className="text-green-600 font-semibold">รายวัน</span>;
+  // สีของ badge บทบาท แยกตามประเภทผู้ใช้
+  const roleBadge = (role) => {
+    if (role === 'Admin') return { text: 'Admin', className: 'bg-purple-100 text-purple-700' };
+    if (role === 'Monthly_Tenant') return { text: 'รายเดือน', className: 'bg-primary/10 text-primary' };
+    return { text: 'รายวัน', className: 'bg-green-100 text-green-700' };
   };
+
+  // ใช้ตัวอักษรแรกของชื่อเป็นไอคอนอวาตาร์ (ไม่ต้องพึ่งรูปภาพ)
+  const avatarLetter = (name) => (name?.trim()?.[0] || '?').toUpperCase();
 
   if (loading) return <div className="h-screen flex items-center justify-center font-bold text-primary animate-pulse">กำลังโหลดข้อมูล...</div>;
 
@@ -120,44 +127,51 @@ const Customers = () => {
         </button>
       </div>
 
-      <div className="flex-grow overflow-auto border border-border rounded">
-        <table className="w-full border-collapse border border-border min-w-[700px]">
-          <thead className="bg-muted sticky top-0 z-10">
-            <tr>
-              <th className="border border-border px-4 py-2 text-left">ชื่อ-นามสกุล</th>
-              <th className="border border-border px-4 py-2 text-left">Username</th>
-              <th className="border border-border px-4 py-2 text-left">เบอร์โทร</th>
-              <th className="border border-border px-4 py-2 text-left">อีเมล</th>
-              <th className="border border-border px-4 py-2 text-left">บทบาท</th>
-              <th className="border border-border px-4 py-2 text-center">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredCustomers.length > 0 ? (
-              filteredCustomers.map((customer) => (
-                <tr key={customer.member_id} className="hover:bg-muted/50">
-                  <td className="border border-border px-4 py-2">{customer.full_name}</td>
-                  <td className="border border-border px-4 py-2 text-muted-foreground">{customer.username}</td>
-                  <td className="border border-border px-4 py-2">{customer.phone_number || '-'}</td>
-                  <td className="border border-border px-4 py-2">{customer.email || '-'}</td>
-                  <td className="border border-border px-4 py-2">{roleLabel(customer.user_role)}</td>
-                  <td className="border border-border px-4 py-2 text-center space-x-2">
-                    <button onClick={() => openEditModal(customer)} className="bg-yellow-400 hover:bg-yellow-500 px-3 py-1 rounded text-white">
-                      แก้ไข
-                    </button>
-                    <button onClick={() => handleDelete(customer.member_id, customer.full_name)} className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white">
-                      ลบ
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="6" className="text-center py-4 text-muted-foreground">ไม่พบข้อมูลสมาชิก</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {/* การ์ดเพิ่มสมาชิกใหม่ อยู่หน้าสุดของกริด */}
+        <button
+          onClick={openAddModal}
+          className="border-2 border-dashed border-primary/40 rounded-lg flex flex-col items-center justify-center gap-2 text-primary hover:bg-primary/5 min-h-[220px] p-4"
+        >
+          <span className="text-3xl font-bold">+</span>
+          <span className="font-semibold">เพิ่มสมาชิกใหม่</span>
+        </button>
+
+        {filteredCustomers.length > 0 ? (
+          filteredCustomers.map((customer) => {
+            const badge = roleBadge(customer.user_role);
+            return (
+              <div key={customer.member_id} className="bg-card border border-border rounded-lg p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold flex-shrink-0">
+                    {avatarLetter(customer.full_name)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold truncate">{customer.full_name}</p>
+                    <p className="text-muted-foreground text-sm truncate">{customer.username}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 text-sm">
+                  <span className="bg-muted px-2 py-1 rounded-full">เบอร์โทร: {customer.phone_number || '-'}</span>
+                  <span className="bg-muted px-2 py-1 rounded-full truncate max-w-full">อีเมล: {customer.email || '-'}</span>
+                  <span className={`px-2 py-1 rounded-full font-semibold ${badge.className}`}>{badge.text}</span>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-auto pt-2">
+                  <button onClick={() => openEditModal(customer)} className="bg-yellow-400 hover:bg-yellow-500 px-3 py-1 rounded text-white text-sm">
+                    แก้ไข
+                  </button>
+                  <button onClick={() => handleDelete(customer.member_id, customer.full_name)} className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white text-sm">
+                    ลบ
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <p className="col-span-full text-center py-4 text-muted-foreground">ไม่พบข้อมูลสมาชิก</p>
+        )}
       </div>
 
       {showModal && (

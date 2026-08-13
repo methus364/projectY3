@@ -3,10 +3,10 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   ChartPieIcon,
   KeyIcon,
-  CalendarDaysIcon,
   ClipboardDocumentCheckIcon,
   ShoppingBagIcon,
   UsersIcon,
+  UserGroupIcon,
   ReceiptPercentIcon,
   DocumentTextIcon,
   WrenchScrewdriverIcon,
@@ -37,21 +37,28 @@ const menuGroups = [
       { to: '/admin/rooms',             icon: KeyIcon,                    label: 'ห้องพัก' },
       { to: '/admin/booking-daily',     icon: ClipboardDocumentCheckIcon, label: 'จองรายวัน' },
       { to: '/admin/booking-monthly',   icon: ClipboardDocumentCheckIcon, label: 'จองรายเดือน' },
-      { to: '/admin/booking',           icon: CalendarDaysIcon,           label: 'ปฏิทินจอง' },
     ],
   },
   {
-    label: 'การเงิน',
+    label: 'การเงิน — รายวัน',
     items: [
-      { to: '/admin/bill',      icon: ReceiptPercentIcon, label: 'บิล/ใบแจ้งหนี้' },
-      { to: '/admin/money',     icon: BanknotesIcon,      label: 'การชำระเงิน' },
-      { to: '/admin/contracts', icon: DocumentTextIcon,   label: 'สัญญาเช่า' },
+      { to: '/admin/bill-daily',  icon: ReceiptPercentIcon, label: 'บิลรายวัน' },
+      { to: '/admin/money-daily', icon: BanknotesIcon,      label: 'ชำระเงิน/ใบเสร็จรายวัน' },
+    ],
+  },
+  {
+    label: 'การเงิน — รายเดือน',
+    items: [
+      { to: '/admin/bill-monthly',  icon: ReceiptPercentIcon, label: 'บิลรายเดือน' },
+      { to: '/admin/money-monthly', icon: BanknotesIcon,      label: 'ชำระเงิน/ใบเสร็จรายเดือน' },
+      { to: '/admin/contracts',     icon: DocumentTextIcon,   label: 'สัญญาเช่า' },
     ],
   },
   {
     label: 'ระบบ',
     items: [
       { to: '/admin/customers',   icon: UsersIcon,                 label: 'สมาชิก' },
+      { to: '/admin/customers-monthly', icon: UserGroupIcon,       label: 'ลูกค้ารายเดือน' },
       { to: '/admin/products',    icon: ShoppingBagIcon,           label: 'สินค้า/ขายของ' },
       { to: '/admin/meter',       icon: BeakerIcon,                label: 'มิเตอร์น้ำ-ไฟ' },
       { to: '/admin/repair',      icon: WrenchScrewdriverIcon,     label: 'แจ้งซ่อม' },

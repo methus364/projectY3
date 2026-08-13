@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BookingNavbar from '../../components/admin/BookingNavbar';
 import api from '../../lib/api';
 
@@ -14,6 +15,7 @@ const STATUS_COLOR = {
 const floorOf = (roomNumber) => String(roomNumber || '').charAt(0) || '?';
 
 const BookingManagementMonthly = () => {
+    const navigate = useNavigate();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -30,15 +32,43 @@ const BookingManagementMonthly = () => {
     const [contract, setContract] = useState({ roomPrice: '', startDate: '', months: 12, rentPrepaid: '', securityDeposit: '', keyDeposit: '', file: null });
     const [saving, setSaving] = useState(false);
 
+    // modal ข้อมูลผู้เข้าพัก + สลิปที่แนบมา
+    const [verifyTarget, setVerifyTarget] = useState(null);
+
     const fetchBookings = async () => {
         try {
             setLoading(true);
             const res = await api.get('/admin/bookings?rentType=monthly');
-            if (res.data.success) setBookings(res.data.data);
+            if (res.data.success) {
+                setBookings(res.data.data);
+                return res.data.data;
+            }
         } catch {
             alert('ดึงข้อมูลการจองไม่สำเร็จ');
         } finally {
             setLoading(false);
+        }
+        return [];
+    };
+
+    // ดึงข้อมูลล่าสุดก่อนเปิดโมดัล กันกรณีลูกค้าเพิ่งแนบสลิปมาหลังหน้านี้โหลดไปแล้ว
+    const openVerifyModal = async (booking) => {
+        const fresh = await fetchBookings();
+        setVerifyTarget(fresh.find((b) => b.bookingId === booking.bookingId) || booking);
+    };
+
+    // ยืนยัน/ปฏิเสธสลิปที่รอตรวจ ของการจองที่เปิดโมดัลอยู่
+    const handleVerifySlip = async (action) => {
+        try {
+            setSaving(true);
+            await api.put(`/payment/${verifyTarget.latestPaymentId}/verify`, { action });
+            alert(action === 'approve' ? 'ยืนยันการชำระเงินสำเร็จ' : 'ปฏิเสธการชำระเงินแล้ว');
+            setVerifyTarget(null);
+            fetchBookings();
+        } catch (err) {
+            alert(err.response?.data?.message || 'ดำเนินการไม่สำเร็จ');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -104,8 +134,10 @@ const BookingManagementMonthly = () => {
             if (contract.file) form.append('contract_file', contract.file);
             await api.put(`/admin/booking/${checkinTarget.bookingId}/checkin`, form);
             alert('เช็คอิน + สร้างสัญญาสำเร็จ');
+            const guestName = checkinTarget.guestName || checkinTarget.username || '';
             setCheckinTarget(null);
-            fetchBookings();
+            // เช็คอินเสร็จแล้วพาไปหน้าจัดการลูกค้ารายเดือน พร้อมค้นหาชื่อลูกค้าคนนี้ให้เลย
+            navigate(`/admin/customers-monthly?search=${encodeURIComponent(guestName)}`);
         } catch (err) {
             alert(err.response?.data?.message || 'เช็คอินไม่สำเร็จ');
         } finally {
@@ -199,6 +231,7 @@ const BookingManagementMonthly = () => {
                                     </td>
                                     <td className="px-4 py-4">
                                         <div className="flex flex-wrap justify-center gap-2 text-xs">
+                                            <button onClick={() => openVerifyModal(b)} className="px-2 py-1 bg-blue-500 text-white rounded-lg font-bold">ดูข้อมูลผู้เข้าพัก</button>
                                             {/* เช็คอิน = เปิดฟอร์มสัญญา · ไม่มีปุ่มเช็คเอาท์เร็ว (ต้องไปเคลียร์สัญญาที่หน้าสัญญา) */}
                                             {(b.bookingStatus === 'รอชำระมัดจำ' || b.bookingStatus === 'ยืนยันการจอง') && (
                                                 <button onClick={() => openCheckin(b)} className="px-2 py-1 bg-primary text-primary-foreground rounded-lg font-bold">เข้าพัก (ทำสัญญา)</button>
@@ -300,6 +333,52 @@ const BookingManagementMonthly = () => {
                             <button onClick={handleCheckIn} disabled={saving} className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-black disabled:opacity-50">
                                 {saving ? 'กำลังบันทึก...' : 'ยืนยันสร้างสัญญา'}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal ข้อมูลผู้เข้าพัก + สลิปที่แนบมา */}
+            {verifyTarget && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+                    <div className="bg-card rounded-3xl p-8 w-full max-w-md shadow-2xl">
+                        <h2 className="text-2xl font-black mb-1">ข้อมูลผู้เข้าพัก — ห้อง {verifyTarget.roomNumber}</h2>
+                        <p className="text-sm text-muted-foreground mb-5">เข้าพัก {verifyTarget.checkInDate?.split('T')[0]}</p>
+
+                        <div className="bg-muted/50 rounded-xl p-4 mb-4 space-y-1 text-sm">
+                            <p><span className="text-muted-foreground">ชื่อลูกค้า:</span> {verifyTarget.guestName || verifyTarget.username || 'ไม่ระบุ'}</p>
+                            <p><span className="text-muted-foreground">เบอร์โทร:</span> {verifyTarget.guestPhone || '-'}</p>
+                            <p><span className="text-muted-foreground">อีเมล:</span> {verifyTarget.guestEmail || '-'}</p>
+                            {verifyTarget.latestPaymentId && (
+                                <>
+                                    <p><span className="text-muted-foreground">ยอดที่แจ้งชำระ:</span> ฿{verifyTarget.latestAmount ?? '-'}</p>
+                                    <p><span className="text-muted-foreground">ช่องทาง:</span> {verifyTarget.latestMethod || '-'}</p>
+                                    <p><span className="text-muted-foreground">สถานะการชำระ:</span> {verifyTarget.latestPaymentStatus || '-'}</p>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="mb-4">
+                            <p className="text-sm font-bold mb-2">สลิปการโอน</p>
+                            {verifyTarget.latestSlipUrl ? (
+                                <img src={verifyTarget.latestSlipUrl} alt="สลิปการโอน" className="w-full rounded-xl border border-border" />
+                            ) : (
+                                <p className="text-sm text-muted-foreground">ไม่มีรูปสลิปแนบมา</p>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-6">
+                            <button onClick={() => setVerifyTarget(null)} className="px-6 py-3 text-muted-foreground font-bold hover:bg-muted rounded-xl">ปิด</button>
+                            {verifyTarget.hasPendingSlip && (
+                                <>
+                                    <button onClick={() => handleVerifySlip('reject')} disabled={saving} className="px-6 py-3 bg-red-500 text-white rounded-xl font-black disabled:opacity-50">
+                                        ปฏิเสธ
+                                    </button>
+                                    <button onClick={() => handleVerifySlip('approve')} disabled={saving} className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-black disabled:opacity-50">
+                                        {saving ? 'กำลังบันทึก...' : 'ยืนยันการชำระ'}
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

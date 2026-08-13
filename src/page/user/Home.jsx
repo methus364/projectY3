@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/user/Navbar';
-
-// ดึงข้อมูล user จาก localStorage (เหมือนที่ Navbar ใช้)
-function getUser() {
-  try {
-    return JSON.parse(localStorage.getItem('user')) || null;
-  } catch {
-    return null;
-  }
-}
+import { getCurrentUser, isLoggedIn as checkIsLoggedIn } from '../../lib/auth';
 
 // รูปพื้นหลัง hero
 const heroImage = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1600';
@@ -23,17 +15,21 @@ const amenities = [
 
 export default function Home() {
   const navigate = useNavigate();
-  const user = getUser();
-  const isLoggedIn = !!localStorage.getItem('token');
+  const user = getCurrentUser();
+  const isLoggedIn = checkIsLoggedIn();
   const role = user?.role;
 
+  // ผู้เช่ารายวัน/รายเดือน เลือกได้แค่ประเภทตัวเอง (กันข้าม role ตอนค้นหา)
+  const lockedRentType = role === 'Daily_Tenant' ? 'daily' : role === 'Monthly_Tenant' ? 'monthly' : null;
+
   // ค่าในกล่องค้นหาบน hero
-  const [rentType, setRentType] = useState('daily');
+  const [rentType, setRentType] = useState(lockedRentType || 'daily');
   const [checkIn, setCheckIn]   = useState('');
   const [checkOut, setCheckOut] = useState('');
 
   // สลับประเภทการเช่า — รายเดือนเลือกแค่วันเข้าพัก จึงเคลียร์วันออกทิ้ง
   const handleChangeRentType = (type) => {
+    if (lockedRentType && type !== lockedRentType) return; // ผู้เช่าสลับข้ามประเภทตัวเองไม่ได้
     setRentType(type);
     if (type === 'monthly') {
       setCheckOut('');
@@ -85,17 +81,23 @@ export default function Home() {
               <div className="flex gap-2 mb-4">
                 <button
                   type="button"
+                  disabled={lockedRentType === 'monthly'}
                   onClick={() => handleChangeRentType('daily')}
+                  title={lockedRentType === 'monthly' ? 'บัญชีผู้เช่ารายเดือน จองห้องรายวันไม่ได้' : undefined}
                   className={`px-4 py-1.5 rounded-full text-sm font-bold transition
-                    ${rentType === 'daily' ? 'bg-[#5A2D82] text-white' : 'bg-[#F1F5F9] text-[#64748B]'}`}
+                    ${rentType === 'daily' ? 'bg-[#5A2D82] text-white' : 'bg-[#F1F5F9] text-[#64748B]'}
+                    ${lockedRentType === 'monthly' ? 'opacity-40 cursor-not-allowed' : ''}`}
                 >
                   🌅 รายวัน
                 </button>
                 <button
                   type="button"
+                  disabled={lockedRentType === 'daily'}
                   onClick={() => handleChangeRentType('monthly')}
+                  title={lockedRentType === 'daily' ? 'บัญชีผู้เช่ารายวัน จองห้องรายเดือนไม่ได้' : undefined}
                   className={`px-4 py-1.5 rounded-full text-sm font-bold transition
-                    ${rentType === 'monthly' ? 'bg-[#5A2D82] text-white' : 'bg-[#F1F5F9] text-[#64748B]'}`}
+                    ${rentType === 'monthly' ? 'bg-[#5A2D82] text-white' : 'bg-[#F1F5F9] text-[#64748B]'}
+                    ${lockedRentType === 'daily' ? 'opacity-40 cursor-not-allowed' : ''}`}
                 >
                   🏠 รายเดือน
                 </button>

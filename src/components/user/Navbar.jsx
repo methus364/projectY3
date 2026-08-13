@@ -1,23 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../ui/ThemeToggle';
-
-// อ่าน role ของผู้ใช้ที่ login อยู่จาก localStorage
-function getUserRole() {
-  try {
-    const user = JSON.parse(localStorage.getItem('user'));
-    return user?.role || null;
-  } catch {
-    return null;
-  }
-}
+import { getUserRole, isLoggedIn as checkIsLoggedIn } from '../../lib/auth';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 
   const role = getUserRole();
-  const isLoggedIn = !!localStorage.getItem('token');
+  const isLoggedIn = checkIsLoggedIn();
   // แจ้งซ่อม + สัญญาเช่า → เฉพาะผู้เช่ารายเดือนเท่านั้น
   const isMonthly = role === 'Monthly_Tenant';
 

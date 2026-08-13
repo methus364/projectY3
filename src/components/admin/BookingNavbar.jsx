@@ -11,8 +11,6 @@ const BookingNavbar = () => {
             <div className="hidden md:flex space-x-8">
               <NavLink to="/admin/booking-daily" className="text-gray-700 dark:text-white hover:text-indigo-600">จัดการจองรายวัน</NavLink>
               <NavLink to="/admin/booking-monthly" className="text-gray-700 dark:text-white hover:text-indigo-600">จัดการจองรายเดือน</NavLink>
-              <NavLink to="/admin/booking" className="text-gray-700 dark:text-white hover:text-indigo-600">ปฏิทินการจองห้องพัก</NavLink>
-
             </div>
             {/* Mobile toggle */}
             <div className="md:hidden">
@@ -40,7 +38,6 @@ const BookingNavbar = () => {
             <div className="px-4 py-3 space-y-2">
               <NavLink to="/admin/booking-daily" className="text-gray-700 dark:text-white hover:text-indigo-600">จัดการจองรายวัน</NavLink>
               <NavLink to="/admin/booking-monthly" className="text-gray-700 dark:text-white hover:text-indigo-600">จัดการจองรายเดือน</NavLink>
-              <NavLink to="/admin/booking" className="text-gray-700 dark:text-white hover:text-indigo-600">ปฏิทินการจองห้องพัก</NavLink>
             </div>
           </div>
         )}

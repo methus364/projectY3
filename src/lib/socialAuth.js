@@ -20,36 +20,39 @@ export function isConfigured(provider) {
 // โหลด <script> ของ SDK ครั้งเดียว (กันโหลดซ้ำ)
 function loadScript(src) {
     return new Promise((resolve, reject) => {
-        if (document.querySelector(`script[src="${src}"]`)) return resolve();
+        // ถ้ามี tag เดิมอยู่แล้ว: โหลดเสร็จแล้ว → resolve เลย · ยังโหลดไม่เสร็จ → รอ event load ของ tag เดิม
+        // (กัน resolve ก่อนเวลาเมื่อถูกเรียกซ้ำ เช่น React StrictMode เรียก useEffect 2 รอบ)
+        const existing = document.querySelector(`script[src="${src}"]`);
+        if (existing) {
+            if (existing.dataset.loaded === "true") return resolve();
+            existing.addEventListener("load", () => resolve());
+            existing.addEventListener("error", () => reject(new Error("โหลด SDK ไม่สำเร็จ: " + src)));
+            return;
+        }
         const el = document.createElement("script");
         el.src = src;
         el.async = true;
-        el.onload = () => resolve();
+        el.onload = () => { el.dataset.loaded = "true"; resolve(); };
         el.onerror = () => reject(new Error("โหลด SDK ไม่สำเร็จ: " + src));
         document.head.appendChild(el);
     });
 }
 
-// ---------- Google: ได้ id_token ผ่าน Google Identity Services ----------
-export async function getGoogleIdToken() {
+// ---------- Google: redirect ไปหน้า login ของ Google (กลับมาที่ /auth/google/callback) ----------
+// ใช้ redirect flow แบบเดียวกับ LINE — backend แลก code เป็น id_token เอง (ใน /auth/google/exchange)
+// เลี่ยงปัญหาของปุ่ม GSI (Cross-Origin-Opener-Policy, third-party cookie)
+export function startGoogleLogin() {
     if (!GOOGLE_CLIENT_ID) throw new Error("ยังไม่ได้ตั้งค่า VITE_GOOGLE_CLIENT_ID");
-    await loadScript("https://accounts.google.com/gsi/client");
+    const redirectUri = `${window.location.origin}/auth/google/callback`;
+    const state = Math.random().toString(36).slice(2); // กัน CSRF
+    sessionStorage.setItem("google_state", state);
 
-    return new Promise((resolve, reject) => {
-        window.google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: (resp) => {
-                if (resp.credential) resolve(resp.credential); // = id_token (JWT)
-                else reject(new Error("ไม่ได้รับ token จาก Google"));
-            },
-        });
-        // เปิดหน้าต่างเลือกบัญชี Google
-        window.google.accounts.id.prompt((notification) => {
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                reject(new Error("หน้าต่าง Google ไม่แสดง/ถูกข้าม (ตรวจ cookie ของเบราว์เซอร์)"));
-            }
-        });
-    });
+    const url = "https://accounts.google.com/o/oauth2/v2/auth?response_type=code"
+        + `&client_id=${GOOGLE_CLIENT_ID}`
+        + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+        + `&state=${state}`
+        + `&scope=${encodeURIComponent("openid profile email")}`;
+    window.location.href = url;
 }
 
 // ---------- Facebook: ได้ access_token ผ่าน FB JS SDK ----------

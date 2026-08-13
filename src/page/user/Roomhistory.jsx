@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
+import { getCurrentUser } from '../../lib/auth';
 import Navbar from '../../components/user/Navbar';
 import PageHeader from '../../components/user/PageHeader';
 
@@ -38,7 +39,7 @@ export default function Roomhistory() {
   const [openBillId, setOpenBillId] = useState(null);
 
   const loadBookings = () => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = getCurrentUser() || {};
     api.post('/checkbooking', { userId: user.id })
       .then((res) => { if (res.data.success) setBookings(res.data.data); })
       .catch(() => alert('ดึงข้อมูลการจองไม่สำเร็จ กรุณาเข้าสู่ระบบใหม่'))
