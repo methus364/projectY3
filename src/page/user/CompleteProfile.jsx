@@ -21,8 +21,10 @@ export default function CompleteProfile() {
       setError('กรุณาเลือกประเภทสมาชิก (รายวัน หรือ รายเดือน)');
       return;
     }
-    if (password && password.length < 6) {
-      setError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+    // บังคับตั้งรหัสผ่าน — ผู้ใช้ใหม่จาก Google ต้องมีรหัสผ่าน (backend สร้างบัญชีตอนนี้)
+    // และช่วยให้ผู้ใช้ social ทุกคน login ด้วยอีเมล+รหัสผ่านได้ภายหลัง
+    if (password.length < 6) {
+      setError('กรุณาตั้งรหัสผ่านอย่างน้อย 6 ตัวอักษร');
       return;
     }
     setLoading(true);
@@ -48,7 +50,7 @@ export default function CompleteProfile() {
   return (
     <AuthLayout icon="👤" tagline="ตั้งค่าบัญชี" title="เลือกประเภทสมาชิก">
       <p className="text-sm text-[#64748B] -mt-4 mb-6">
-        อีกขั้นเดียว! เลือกประเภทการเช่าเพื่อเริ่มใช้งาน (ตั้งรหัสผ่านไว้เข้าสู่ระบบด้วยอีเมลภายหลังก็ได้)
+        อีกขั้นเดียว! เลือกประเภทการเช่าและตั้งรหัสผ่านเพื่อเริ่มใช้งาน (ใช้เข้าสู่ระบบด้วยอีเมลได้ภายหลัง)
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -60,7 +62,7 @@ export default function CompleteProfile() {
         />
 
         <PasswordField
-          label="ตั้งรหัสผ่าน (ไม่บังคับ)"
+          label="ตั้งรหัสผ่าน" required
           value={password} onChange={(e) => setPassword(e.target.value)} placeholder="อย่างน้อย 6 ตัวอักษร"
         />
 
