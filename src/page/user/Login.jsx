@@ -5,7 +5,7 @@ import { isConfigured, startGoogleLogin, startLineLogin } from '../../lib/social
 import { AuthLayout, TextField, PasswordField, FormMessage, SubmitButton } from '../../components/user/AuthUI';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [loginId, setLoginId] = useState(''); // อีเมลหรือชื่อผู้ใช้ก็ได้
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,12 +23,13 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const res = await api.post('/login', { email, password });
+      const res = await api.post('/login', { login: loginId, password });
       saveSessionAndRedirect(res.data);
     } catch (err) {
-      // ยังไม่ยืนยันอีเมล (403) → พาไปหน้ายืนยัน OTP พร้อมส่งอีเมลไปเติมให้
+      // ยังไม่ยืนยันอีเมล (403) → พาไปหน้ายืนยัน OTP
+      // เติมให้เฉพาะกรณีกรอกมาเป็นอีเมล (ถ้ากรอก username จะให้ผู้ใช้พิมพ์อีเมลเองที่หน้ายืนยัน)
       if (err.response?.status === 403 && err.response?.data?.needVerification) {
-        navigate('/verify-email', { state: { email } });
+        navigate('/verify-email', { state: { email: loginId.includes('@') ? loginId : '' } });
         return;
       }
       setError(err.response?.data?.message || 'เข้าสู่ระบบไม่สำเร็จ');
@@ -61,12 +62,12 @@ export default function Login() {
     <AuthLayout icon="🏠" tagline="หอพักจังหวัดเลย" title="เข้าสู่ระบบ">
       <form onSubmit={handleLogin} className="space-y-4">
         <TextField
-          label="อีเมล"
-          type="email"
+          label="อีเมล หรือ ชื่อผู้ใช้"
+          type="text"
           required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
+          value={loginId}
+          onChange={(e) => setLoginId(e.target.value)}
+          placeholder="อีเมล หรือ ชื่อผู้ใช้"
         />
 
         <PasswordField
