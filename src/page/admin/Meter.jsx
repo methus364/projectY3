@@ -1,331 +1,267 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../lib/api';
 
-// คืนค่า 'YYYY-MM' ของเดือนปัจจุบัน
-function getCurrentMonth() {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    return `${y}-${m}`;
+// ชื่อย่อเดือนไทย เรียงตามลำดับ (index 0 = ม.ค.) ใช้ทำหัวคอลัมน์
+const THAI_MONTH_SHORT = [
+    'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+    'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.',
+];
+
+// ตัวเลือกปี (ค.ศ.) — ย้อนหลัง 3 ปี ถึงปีหน้า · แสดงผลเป็น พ.ศ.
+function getYearOptions() {
+    const nowYear = new Date().getFullYear();
+    const years = [];
+    for (let y = nowYear - 3; y <= nowYear + 1; y++) {
+        years.push(y);
+    }
+    return years;
 }
 
 const Meter = () => {
-    const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
-    const [meters, setMeters] = useState([]);
+    const [year, setYear] = useState(new Date().getFullYear()); // ค.ศ.
+    const [activeTab, setActiveTab] = useState('water');         // 'water' | 'elec'
+
+    const [rooms, setRooms] = useState([]);   // [{ room_id, room_number, room_status, readings }]
+    const [months, setMonths] = useState([]); // ['YYYY-01', ... 'YYYY-12']
+    const [rates, setRates] = useState({ water: 0, elec: 0 });
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    // modal บันทึก/แก้ไขมิเตอร์
-    const [modalRoom, setModalRoom] = useState(null);
-    const [form, setForm] = useState({ water_current_unit: '', elec_current_unit: '' });
-    const [saving, setSaving] = useState(false);
+    // การแก้ไข inline — แก้ได้ทีละช่อง (เหมือน Excel)
+    const [editing, setEditing] = useState(null); // { roomId, month } หรือ null
+    const [editValue, setEditValue] = useState('');
 
     // ==========================================
-    // โหลดข้อมูลมิเตอร์ทุกห้องในเดือนที่เลือก
+    // โหลดข้อมูลมิเตอร์ทั้งปี
     // ==========================================
-    const fetchMeters = async (month) => {
+    const fetchYear = async (yearCE) => {
         try {
             setLoading(true);
-            const res = await api.get(`/meters?month=${month}`);
+            setError('');
+            const res = await api.get(`/meters/year?year=${yearCE}`);
             if (res.data.success) {
-                setMeters(res.data.data);
+                setRooms(res.data.data);
+                setMonths(res.data.months);
+                setRates({ water: res.data.water_rate, elec: res.data.elec_rate });
             }
         } catch (err) {
             console.error('โหลดข้อมูลมิเตอร์ไม่สำเร็จ:', err);
+            setError('โหลดข้อมูลมิเตอร์ไม่สำเร็จ');
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchMeters(selectedMonth);
-    }, [selectedMonth]);
+        fetchYear(year);
+    }, [year]);
 
     // ==========================================
-    // เปิด modal — ถ้ามีข้อมูลแล้วให้แสดงค่าเดิม
+    // อ่านค่ามิเตอร์ของช่อง (ห้อง + เดือน + แท็บที่เลือก)
     // ==========================================
-    const openModal = (room) => {
-        setModalRoom(room);
-        setForm({
-            water_current_unit: room.water_current != null ? String(room.water_current) : '',
-            elec_current_unit:  room.elec_current  != null ? String(room.elec_current)  : '',
-        });
-    };
-
-    const closeModal = () => {
-        setModalRoom(null);
-        setForm({ water_current_unit: '', elec_current_unit: '' });
+    const getCell = (room, month) => {
+        const reading = room.readings[month];
+        if (!reading) return null;
+        return reading[activeTab]; // .water หรือ .elec
     };
 
     // ==========================================
-    // บันทึกมิเตอร์ผ่าน API
+    // เริ่มแก้ไขช่อง — เอาค่าเดิมมาใส่ในกล่อง
     // ==========================================
-    const handleSave = async () => {
-        const water = parseInt(form.water_current_unit, 10);
-        const elec  = parseInt(form.elec_current_unit, 10);
+    const startEdit = (room, month) => {
+        const value = getCell(room, month);
+        setEditing({ roomId: room.room_id, month });
+        setEditValue(value != null ? String(value) : '');
+    };
 
-        if (isNaN(water) || isNaN(elec) || water < 0 || elec < 0) {
-            alert('กรุณากรอกหน่วยมิเตอร์เป็นตัวเลขที่ไม่ติดลบ');
+    const cancelEdit = () => {
+        setEditing(null);
+        setEditValue('');
+    };
+
+    // ==========================================
+    // อัปเดตค่าในหน่วยความจำแบบ optimistic (ไม่ต้องโหลดใหม่ทั้งตาราง)
+    // ==========================================
+    const updateLocalReading = (roomId, month, value) => {
+        setRooms((prev) => prev.map((r) => {
+            if (r.room_id !== roomId) return r;
+            const readings = { ...r.readings };
+            const cell = { ...(readings[month] || { water: null, elec: null, meter_id: null }) };
+            cell[activeTab] = value;
+            readings[month] = cell;
+            return { ...r, readings };
+        }));
+    };
+
+    // ==========================================
+    // บันทึกช่องที่แก้ — ส่งเฉพาะฝั่งน้ำหรือไฟตามแท็บที่เลือก
+    // ==========================================
+    const commitEdit = async (room, month) => {
+        const raw = editValue.trim();
+        const current = getCell(room, month);
+        cancelEdit();
+
+        if (raw === '') return; // ไม่กรอกอะไร = ไม่บันทึก
+        const value = parseInt(raw, 10);
+        if (isNaN(value) || value < 0) {
+            alert('กรุณากรอกเลขมิเตอร์เป็นจำนวนเต็มที่ไม่ติดลบ');
             return;
         }
+        if (current != null && value === current) return; // ค่าเท่าเดิม ไม่ต้องบันทึก
 
+        // อัปเดตหน้าจอทันที แล้วค่อยยิง API (ถ้าพลาดค่อยดึงค่าจริงกลับมา)
+        updateLocalReading(room.room_id, month, value);
         try {
-            setSaving(true);
-            const res = await api.post('/meter', {
-                    room_id:            modalRoom.room_id,
-                    record_month:       selectedMonth,
-                    water_current_unit: water,
-                    elec_current_unit:  elec,
+            const field = activeTab === 'water' ? 'water_current_unit' : 'elec_current_unit';
+            await api.post('/meter', {
+                room_id: room.room_id,
+                record_month: month,
+                [field]: value,
             });
-            if (res.data.success) {
-                closeModal();
-                fetchMeters(selectedMonth); // โหลดใหม่เพื่อแสดง diff ที่คำนวณแล้ว
-            }
         } catch (err) {
-            console.error('บันทึกมิเตอร์ไม่สำเร็จ:', err);
-            alert('เกิดข้อผิดพลาด ไม่สามารถบันทึกมิเตอร์ได้');
-        } finally {
-            setSaving(false);
+            const msg = err.response?.data?.message || 'บันทึกมิเตอร์ไม่สำเร็จ';
+            alert(msg);
+            fetchYear(year); // ดึงค่าจริงกลับมาแทนค่าที่ optimistic ไว้
         }
     };
 
-    // ==========================================
-    // helper แสดงตัวเลข — null แสดงเป็น '—'
-    // ==========================================
-    const fmt = (val, unit = '') => val != null ? `${val.toLocaleString()}${unit}` : '—';
+    // กด Enter = บันทึก, Esc = ยกเลิก
+    const handleKeyDown = (e, room, month) => {
+        if (e.key === 'Enter') commitEdit(room, month);
+        else if (e.key === 'Escape') cancelEdit();
+    };
 
-    // สรุปสถานะการจด — นับเฉพาะห้องที่มีผู้เช่า (ห้องว่างไม่ต้องจด)
-    const occupiedRooms = meters.filter((m) => m.room_status === 'มีผู้เช่า');
-    const recordedCount = occupiedRooms.filter((m) => m.meter_id).length;
-    const totalOccupied = occupiedRooms.length;
-    const allRecorded = totalOccupied > 0 && recordedCount === totalOccupied;
+    // สีเน้นตามแท็บ (น้ำ = ฟ้า, ไฟ = เหลือง)
+    const tabAccent = activeTab === 'water' ? 'text-blue-700' : 'text-yellow-700';
 
     return (
-        <>
-            <div className="flex w-full flex-col bg-background p-6">
+        <div className="flex w-full flex-col bg-background p-6">
 
-                {/* ส่วนหัว + เลือกเดือน + badge อัตราค่า */}
-                <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-                    <h1 className="text-3xl font-bold text-foreground">บันทึกมิเตอร์น้ำ-ไฟ</h1>
-                    <div className="flex flex-wrap items-center gap-3">
-                        {/* badge อัตราค่า */}
-                        {meters.length > 0 && (
-                            <div className="flex gap-2 text-xs">
-                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">
-                                    น้ำ {meters[0].water_rate} บ./หน่วย
-                                </span>
-                                <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium">
-                                    ไฟ {meters[0].elec_rate} บ./หน่วย
-                                </span>
-                            </div>
-                        )}
-                        <label className="text-sm font-medium text-foreground">เดือน:</label>
-                        <input
-                            type="month"
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                    </div>
-                </div>
-
-                {/* แถบสรุปสถานะการจดมิเตอร์ (เฉพาะห้องมีผู้เช่า) */}
-                {!loading && totalOccupied > 0 && (
-                    <div className={`mb-4 rounded-lg px-4 py-3 text-sm font-medium ${allRecorded ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
-                        {allRecorded
-                            ? `✓ จดมิเตอร์ครบแล้วทุกห้อง (${recordedCount}/${totalOccupied})`
-                            : `⚠️ จดแล้ว ${recordedCount}/${totalOccupied} ห้อง · เหลืออีก ${totalOccupied - recordedCount} ห้องที่ยังไม่จดมิเตอร์เดือนนี้`}
-                    </div>
-                )}
-
-                {/* ตารางมิเตอร์ */}
-                <div className="bg-card shadow-md rounded-lg overflow-x-auto">
-                    {loading ? (
-                        <div className="text-center py-10 text-muted-foreground">กำลังโหลดข้อมูล...</div>
-                    ) : (
-                        <table className="min-w-full divide-y divide-border text-sm">
-                            <thead className="bg-muted">
-                                <tr>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">ห้อง</th>
-                                    <th className="px-4 py-3 text-center font-medium text-muted-foreground uppercase tracking-wider" colSpan={3}>
-                                        น้ำ (หน่วย)
-                                    </th>
-                                    <th className="px-4 py-3 text-center font-medium text-muted-foreground uppercase tracking-wider">
-                                        ค่าน้ำ (บ.)
-                                    </th>
-                                    <th className="px-4 py-3 text-center font-medium text-muted-foreground uppercase tracking-wider" colSpan={3}>
-                                        ไฟ (หน่วย)
-                                    </th>
-                                    <th className="px-4 py-3 text-center font-medium text-muted-foreground uppercase tracking-wider">
-                                        ค่าไฟ (บ.)
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">บันทึกโดย</th>
-                                    <th className="px-4 py-3 text-right font-medium text-muted-foreground uppercase tracking-wider">ดำเนินการ</th>
-                                </tr>
-                                <tr className="bg-muted/50 text-xs text-muted-foreground">
-                                    <th></th>
-                                    <th className="px-4 py-1 text-center">เดือนก่อน</th>
-                                    <th className="px-4 py-1 text-center">เดือนนี้</th>
-                                    <th className="px-4 py-1 text-center">ใช้ไป</th>
-                                    <th></th>
-                                    <th className="px-4 py-1 text-center">เดือนก่อน</th>
-                                    <th className="px-4 py-1 text-center">เดือนนี้</th>
-                                    <th className="px-4 py-1 text-center">ใช้ไป</th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-card divide-y divide-border">
-                                {meters.map((row) => {
-                                    // ไฮไลต์ห้องมีผู้เช่าที่ยังไม่จดมิเตอร์เดือนนี้
-                                    const needsMeter = row.room_status === 'มีผู้เช่า' && !row.meter_id;
-                                    return (
-                                    <tr key={row.room_id} className={needsMeter ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-muted/50'}>
-
-                                        {/* ห้อง */}
-                                        <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
-                                            {row.room_number}
-                                            {row.room_status === 'ว่าง' && (
-                                                <span className="ml-1 text-xs text-muted-foreground">(ว่าง)</span>
-                                            )}
-                                            {needsMeter && (
-                                                <span className="ml-1 text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full">ยังไม่จด</span>
-                                            )}
-                                        </td>
-
-                                        {/* น้ำ — เดือนก่อน / ปัจจุบัน / ใช้ไป */}
-                                        <td className="px-4 py-3 text-center text-muted-foreground">{fmt(row.prev_water)}</td>
-                                        <td className="px-4 py-3 text-center font-medium text-foreground">{fmt(row.water_current)}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            {row.diff_water != null ? (
-                                                <span className="text-blue-700 font-semibold">{row.diff_water}</span>
-                                            ) : '—'}
-                                        </td>
-
-                                        {/* ค่าน้ำ */}
-                                        <td className="px-4 py-3 text-center text-blue-600 font-medium">
-                                            {row.water_cost != null ? row.water_cost.toLocaleString() : '—'}
-                                        </td>
-
-                                        {/* ไฟ — เดือนก่อน / ปัจจุบัน / ใช้ไป */}
-                                        <td className="px-4 py-3 text-center text-muted-foreground">{fmt(row.prev_elec)}</td>
-                                        <td className="px-4 py-3 text-center font-medium text-foreground">{fmt(row.elec_current)}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            {row.diff_elec != null ? (
-                                                <span className="text-yellow-700 font-semibold">{row.diff_elec}</span>
-                                            ) : '—'}
-                                        </td>
-
-                                        {/* ค่าไฟ */}
-                                        <td className="px-4 py-3 text-center text-yellow-600 font-medium">
-                                            {row.elec_cost != null ? row.elec_cost.toLocaleString() : '—'}
-                                        </td>
-
-                                        {/* บันทึกโดย */}
-                                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                                            {row.recorded_by_name || '—'}
-                                        </td>
-
-                                        {/* ปุ่ม */}
-                                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                                            <button
-                                                onClick={() => openModal(row)}
-                                                className={`text-sm font-medium transition duration-200 ${
-                                                    row.meter_id
-                                                        ? 'text-primary hover:text-primary/70'
-                                                        : 'text-green-600 hover:text-green-900'
-                                                }`}
-                                            >
-                                                {row.meter_id ? 'แก้ไข' : 'บันทึก'}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    );
-                                })}
-
-                                {meters.length === 0 && (
-                                    <tr>
-                                        <td colSpan="11" className="text-center py-10 text-muted-foreground">
-                                            ไม่พบข้อมูลห้องพัก
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    )}
+            {/* ส่วนหัว + เลือกปี */}
+            <div className="flex flex-wrap justify-between items-center mb-4 gap-4">
+                <h1 className="text-3xl font-bold text-foreground">บันทึกมิเตอร์น้ำ-ไฟ</h1>
+                <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-foreground">ปี พ.ศ.:</label>
+                    <select
+                        value={year}
+                        onChange={(e) => setYear(Number(e.target.value))}
+                        className="border border-border rounded-lg px-3 py-1.5 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                        {getYearOptions().map((y) => (
+                            <option key={y} value={y}>{y + 543}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
-            {/* Modal บันทึก/แก้ไขมิเตอร์ */}
-            {modalRoom && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-card rounded-xl shadow-xl p-6 w-full max-w-sm">
-                        <h2 className="text-xl font-bold text-foreground mb-1">
-                            {modalRoom.meter_id ? 'แก้ไข' : 'บันทึก'}มิเตอร์
-                        </h2>
-                        <p className="text-sm text-muted-foreground mb-5">
-                            ห้อง {modalRoom.room_number} · เดือน {selectedMonth}
-                        </p>
+            {/* แท็บน้ำ / ไฟ */}
+            <div className="flex items-center gap-2 mb-4">
+                <button
+                    onClick={() => setActiveTab('water')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
+                        activeTab === 'water'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                >
+                    น้ำ ({rates.water} บ./หน่วย)
+                </button>
+                <button
+                    onClick={() => setActiveTab('elec')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
+                        activeTab === 'elec'
+                            ? 'bg-yellow-500 text-white'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                >
+                    ไฟ ({rates.elec} บ./หน่วย)
+                </button>
+                <span className="ml-2 text-xs text-muted-foreground">
+                    คลิกช่องเพื่อกรอก/แก้เลขมิเตอร์ (Enter = บันทึก, Esc = ยกเลิก)
+                </span>
+            </div>
 
-                        {/* หน่วยน้ำ */}
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                                หน่วยน้ำปัจจุบัน
-                                {modalRoom.prev_water != null && (
-                                    <span className="ml-2 text-xs text-muted-foreground font-normal">
-                                        (เดือนก่อน: {modalRoom.prev_water})
-                                    </span>
-                                )}
-                            </label>
-                            <input
-                                type="number"
-                                min="0"
-                                value={form.water_current_unit}
-                                onChange={(e) => setForm(prev => ({ ...prev, water_current_unit: e.target.value }))}
-                                className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                                placeholder="กรอกหน่วยน้ำ"
-                            />
-                        </div>
-
-                        {/* หน่วยไฟ */}
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                                หน่วยไฟปัจจุบัน
-                                {modalRoom.prev_elec != null && (
-                                    <span className="ml-2 text-xs text-muted-foreground font-normal">
-                                        (เดือนก่อน: {modalRoom.prev_elec})
-                                    </span>
-                                )}
-                            </label>
-                            <input
-                                type="number"
-                                min="0"
-                                value={form.elec_current_unit}
-                                onChange={(e) => setForm(prev => ({ ...prev, elec_current_unit: e.target.value }))}
-                                className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                placeholder="กรอกหน่วยไฟ"
-                            />
-                        </div>
-
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={closeModal}
-                                className="px-4 py-2 text-sm bg-muted hover:bg-muted/80 text-foreground rounded-lg transition"
-                            >
-                                ยกเลิก
-                            </button>
-                            <button
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="px-4 py-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition disabled:opacity-50"
-                            >
-                                {saving ? 'กำลังบันทึก...' : 'บันทึก'}
-                            </button>
-                        </div>
-                    </div>
+            {error && (
+                <div className="mb-4 rounded-lg bg-red-50 text-red-700 border border-red-200 px-4 py-3 text-sm">
+                    {error}
                 </div>
             )}
-        </>
+
+            {/* ตารางกริด: แถว = ห้อง, คอลัมน์ = เดือน */}
+            <div className="bg-card shadow-md rounded-lg overflow-x-auto">
+                {loading ? (
+                    <div className="text-center py-10 text-muted-foreground">กำลังโหลดข้อมูล...</div>
+                ) : (
+                    <table className="min-w-full border-collapse text-sm">
+                        <thead className="bg-muted">
+                            <tr>
+                                {/* คอลัมน์ห้อง — ตรึงซ้ายไว้ตอนเลื่อนแนวนอน */}
+                                <th className="sticky left-0 z-10 bg-muted px-4 py-3 text-left font-medium text-muted-foreground border-r border-border">
+                                    ห้อง
+                                </th>
+                                {months.map((m, idx) => (
+                                    <th key={m} className="px-3 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">
+                                        {THAI_MONTH_SHORT[idx]}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {rooms.map((room) => (
+                                <tr key={room.room_id} className="hover:bg-muted/30">
+                                    {/* ห้อง (ตรึงซ้าย) */}
+                                    <td className="sticky left-0 z-10 bg-card px-4 py-2 font-medium text-foreground whitespace-nowrap border-r border-border">
+                                        {room.room_number}
+                                        {room.room_status === 'ว่าง' && (
+                                            <span className="ml-1 text-xs text-muted-foreground">(ว่าง)</span>
+                                        )}
+                                    </td>
+
+                                    {/* ช่องเลขมิเตอร์รายเดือน */}
+                                    {months.map((month) => {
+                                        const isEditing = editing && editing.roomId === room.room_id && editing.month === month;
+                                        const value = getCell(room, month);
+                                        return (
+                                            <td key={month} className="px-1 py-1 text-center">
+                                                {isEditing ? (
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        autoFocus
+                                                        value={editValue}
+                                                        onChange={(e) => setEditValue(e.target.value)}
+                                                        onKeyDown={(e) => handleKeyDown(e, room, month)}
+                                                        onBlur={() => commitEdit(room, month)}
+                                                        className="w-20 text-center border border-primary rounded px-1 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
+                                                    />
+                                                ) : (
+                                                    <button
+                                                        onClick={() => startEdit(room, month)}
+                                                        className={`w-20 rounded px-1 py-1 hover:bg-muted transition ${
+                                                            value != null ? `font-medium ${tabAccent}` : 'text-muted-foreground'
+                                                        }`}
+                                                    >
+                                                        {value != null ? value.toLocaleString() : '—'}
+                                                    </button>
+                                                )}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+
+                            {rooms.length === 0 && (
+                                <tr>
+                                    <td colSpan={months.length + 1} className="text-center py-10 text-muted-foreground">
+                                        ไม่พบข้อมูลห้องพัก
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+        </div>
     );
 };
 
