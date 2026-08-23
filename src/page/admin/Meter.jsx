@@ -131,9 +131,6 @@ const Meter = () => {
         else if (e.key === 'Escape') cancelEdit();
     };
 
-    // สีเน้นตามแท็บ (น้ำ = ฟ้า, ไฟ = เหลือง)
-    const tabAccent = activeTab === 'water' ? 'text-blue-700' : 'text-yellow-700';
-
     return (
         <div className="flex w-full flex-col bg-background p-6">
 
@@ -212,9 +209,6 @@ const Meter = () => {
                                     {/* ห้อง (ตรึงซ้าย) */}
                                     <td className="sticky left-0 z-10 bg-card px-4 py-2 font-medium text-foreground whitespace-nowrap border-r border-border">
                                         {room.room_number}
-                                        {room.room_status === 'ว่าง' && (
-                                            <span className="ml-1 text-xs text-muted-foreground">(ว่าง)</span>
-                                        )}
                                     </td>
 
                                     {/* ช่องเลขมิเตอร์รายเดือน */}
@@ -238,7 +232,7 @@ const Meter = () => {
                                                     <button
                                                         onClick={() => startEdit(room, month)}
                                                         className={`w-20 rounded px-1 py-1 hover:bg-muted transition ${
-                                                            value != null ? `font-medium ${tabAccent}` : 'text-muted-foreground'
+                                                            value != null ? 'font-medium text-blue-700' : 'text-muted-foreground'
                                                         }`}
                                                     >
                                                         {value != null ? value.toLocaleString() : '—'}
