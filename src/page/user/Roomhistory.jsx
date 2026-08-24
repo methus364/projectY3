@@ -27,6 +27,7 @@ export default function Roomhistory() {
   const [loading, setLoading] = useState(true);
 
   const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
 
   // แก้ไขวันเข้าพัก
@@ -52,15 +53,17 @@ export default function Roomhistory() {
     loadBookings();
   }, [navigate]);
 
-  // ยกเลิกการจอง
+  // ยกเลิกการจอง — ต้องระบุเหตุผลก่อน (อ้างอิง mobile reservationlist.js)
   const handleCancel = async () => {
     if (!cancelTarget) return;
+    if (!cancelReason.trim()) { alert('กรุณากรอกเหตุผลก่อนยกเลิก'); return; }
     try {
       setCancelling(true);
-      await api.put(`/editBooking/${cancelTarget.bookingId}`, { status: 'ยกเลิก' });
+      await api.put(`/editBooking/${cancelTarget.bookingId}`, { status: 'ยกเลิก', cancelReason: cancelReason.trim() });
       setBookings((prev) => prev.map((b) =>
         b.bookingId === cancelTarget.bookingId ? { ...b, bookingStatus: 'ยกเลิก' } : b));
       setCancelTarget(null);
+      setCancelReason('');
     } catch (err) {
       alert(err.response?.data?.message || 'ยกเลิกการจองไม่สำเร็จ');
     } finally {
@@ -132,7 +135,7 @@ export default function Roomhistory() {
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
       <Navbar />
-      <PageHeader title="ประวัติการจองห้องพัก" subtitle="รายการจองทั้งหมดของคุณ" />
+      <PageHeader title="ประวัติการจองของฉัน" subtitle="รายการจองทั้งหมดของคุณ" />
 
       <div className="pt-6 pb-10 px-4 max-w-2xl mx-auto">
 
@@ -156,10 +159,10 @@ export default function Roomhistory() {
                   {/* หัว: ห้อง + badge + ราคา */}
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <p className="text-[#5A2D82] text-lg font-black">ห้อง {booking.roomNumber}</p>
+                      <p className="text-[#0194F3] text-lg font-black">ห้อง {booking.roomNumber}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${statusClass}`}>{booking.bookingStatus}</span>
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#F3EDF9] text-[#6A3A96]">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#E0F2FE] text-[#0284C7]">
                           {RENT_TYPE_LABEL[booking.rentType] || booking.rentType}
                         </span>
                       </div>
@@ -185,7 +188,7 @@ export default function Roomhistory() {
                   {/* ปุ่มดูบิล/ชำระเงิน */}
                   <button
                     onClick={() => toggleBills(booking.bookingId)}
-                    className="w-full py-2.5 bg-[#F3EDF9] text-[#5A2D82] font-bold rounded-2xl text-sm hover:bg-[#E9DDF5] transition mb-2"
+                    className="w-full py-2.5 bg-[#E0F2FE] text-[#0194F3] font-bold rounded-2xl text-sm hover:bg-[#D9F3FF] transition mb-2"
                   >
                     {openBillId === booking.bookingId ? 'ซ่อนบิล' : 'ดูบิล / ชำระเงิน'}
                   </button>
@@ -213,7 +216,7 @@ export default function Roomhistory() {
                                 </button>
                                 {remaining > 0 && inv.invoice_status !== 'ยกเลิก' && (
                                   <button onClick={() => navigate('/mybills')}
-                                    className="flex-1 py-1.5 bg-[#5A2D82] text-white font-bold rounded-lg text-xs hover:bg-[#46236A]">
+                                    className="flex-1 py-1.5 bg-[#0194F3] text-white font-bold rounded-lg text-xs hover:bg-[#0178C7]">
                                     ชำระเงิน
                                   </button>
                                 )}
@@ -260,15 +263,24 @@ export default function Roomhistory() {
             <p className="text-[#64748B] text-sm mb-3">
               ห้อง {cancelTarget.roomNumber} ({fmt(cancelTarget.startDate)} – {fmt(cancelTarget.endDate)})
             </p>
-            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-5">
+            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-4">
               <p className="text-red-600 text-sm font-bold">⚠️ การยกเลิกการจองไม่มีการคืนเงินมัดจำ</p>
             </div>
+            {/* เหตุผลที่ยกเลิก (บังคับกรอก เหมือน mobile) */}
+            <label className="block text-[#334155] text-sm font-bold mb-2">เหตุผลที่ยกเลิก <span className="text-red-400">*</span></label>
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={3}
+              placeholder="กรุณาระบุเหตุผลก่อนยกเลิก"
+              className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#0194F3] mb-5"
+            />
             <div className="flex gap-3">
-              <button onClick={() => setCancelTarget(null)}
+              <button onClick={() => { setCancelTarget(null); setCancelReason(''); }}
                 className="flex-1 py-3 bg-[#F1F5F9] text-[#64748B] font-bold rounded-2xl hover:bg-[#E2E8F0] transition">
                 ไม่ยกเลิก
               </button>
-              <button onClick={handleCancel} disabled={cancelling}
+              <button onClick={handleCancel} disabled={cancelling || !cancelReason.trim()}
                 className="flex-1 py-3 bg-red-500 text-white font-bold rounded-2xl hover:bg-red-600 transition disabled:opacity-50">
                 {cancelling ? 'กำลังยกเลิก...' : 'ยืนยันยกเลิก'}
               </button>
@@ -302,7 +314,7 @@ export default function Roomhistory() {
                 ยกเลิก
               </button>
               <button onClick={handleEdit} disabled={savingEdit}
-                className="flex-1 py-3 bg-[#5A2D82] text-white font-bold rounded-2xl hover:bg-[#46236A] transition disabled:opacity-50">
+                className="flex-1 py-3 bg-[#0194F3] text-white font-bold rounded-2xl hover:bg-[#0178C7] transition disabled:opacity-50">
                 {savingEdit ? 'กำลังบันทึก...' : 'บันทึก'}
               </button>
             </div>

@@ -1,266 +1,412 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import Navbar from '../../components/user/Navbar';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../../lib/api';
 import { getCurrentUser, isLoggedIn as checkIsLoggedIn } from '../../lib/auth';
 
-// รูปพื้นหลัง hero
-const heroImage = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1600';
-
-const amenities = [
-  { icon: '📶', label: 'WiFi ฟรี' },
-  { icon: '❄️', label: 'แอร์' },
-  { icon: '📹', label: 'CCTV' },
-  { icon: '🚗', label: 'ที่จอดรถ' },
+// รูป carousel (ชุดเดียวกับ mobile app)
+const images = [
+  'https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=1200',
+  'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=1200',
+  'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1200',
 ];
+
+const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
+const isCancelledStatus = (s) => ['ยกเลิก', 'cancelled', 'canceled'].includes(normalizeStatus(s));
+const isPendingStatus = (s) => ['รอชำระมัดจำ', 'รอดำเนินการ'].includes(normalizeStatus(s));
+
+// ข้อความ 2 ภาษา (ยกจาก mobile app)
+const TEXT = {
+  TH: {
+    subtitle: 'หอพักจังหวัดเลย', title: 'Around Loei', login: 'เข้าสู่ระบบ', register: 'สมัครสมาชิก',
+    slogan: 'หอพักสบาย ใกล้ มรภ.เลย', price: '฿500-5,xxx', unit: ' วัน/เดือน',
+    desc: 'สัมผัสการใช้ชีวิตที่เหนือระดับกับ "Around Loei" หอพักราย-รายเดือน เดินทางสะดวก ใกล้ มรภ.เลย และแหล่งของกินครบครัน',
+    bookingList: 'ประวัติการจองห้องพัก', repair: 'แจ้งซ่อมและแจ้งปัญหา', line: 'Line Official',
+    fb: 'Facebook Fanpage', call: 'โทรสอบถามห้องว่าง', amenTitle: 'สิ่งอำนวยความสะดวก',
+    bookButton: 'จองห้องพัก', bookingActiveButton: 'จองห้องพัก', logout: 'ออกจากระบบ',
+    editProfile: 'แก้ไขโปรไฟล์ผู้ใช้', gallery: 'แกลเลอรี่', about: 'เกี่ยวกับเรา',
+    welcome: 'Welcome to Around Loei', bookNow: 'จองเลย',
+    modalTitleCheck: 'จองห้องพัก', modalTitleBook: 'เริ่มการจองห้องพัก',
+    modalSubtitleCheck: 'เลือกประเภทห้องพักที่คุณต้องการเปิดดูข้อมูลครับ',
+    modalSubtitleBook: 'เลือกประเภทห้องพักที่คุณต้องการทำรายการจองครับ',
+    dailyChoice: 'ห้องพักรายวัน', monthlyChoice: 'ห้องพักรายเดือน',
+    roleDailyBadge: 'รายวัน', roleMonthlyBadge: 'รายเดือน', contactTitle: 'ช่องทางการติดต่อ',
+  },
+  EN: {
+    subtitle: 'LEOI RESIDENCE', title: 'Around Loei', login: 'Login', register: 'Register',
+    slogan: 'Cozy Living in Loei City', price: '฿500-5,xxx', unit: ' days/month',
+    desc: 'Experience superior living at "Around Loei". New, clean, and convenient location near Loei Rajabhat University.',
+    bookingList: 'My Bookings', repair: 'Maintenance Request', line: 'Line Official',
+    fb: 'Facebook Fanpage', call: 'Call for Inquiry', amenTitle: 'Premium Amenities',
+    bookButton: 'Check Available Rooms', bookingActiveButton: 'Book a Room', logout: 'Logout',
+    editProfile: 'Edit Profile', gallery: 'Gallery', about: 'About Us',
+    welcome: 'Welcome to Around Loei', bookNow: 'Book Now',
+    modalTitleCheck: 'Start Booking Room', modalTitleBook: 'Start Booking Room',
+    modalSubtitleCheck: 'Select the room type you would like to view.',
+    modalSubtitleBook: 'Select the room type you want to reserve.',
+    dailyChoice: 'Daily Room', monthlyChoice: 'Monthly Room',
+    roleDailyBadge: 'Daily', roleMonthlyBadge: 'Monthly', contactTitle: 'Contact',
+  },
+};
 
 export default function Home() {
   const navigate = useNavigate();
-  const user = getCurrentUser();
+  const [lang, setLang] = useState('TH');
+  const [user, setUser] = useState(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [confirmedRoom, setConfirmedRoom] = useState(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalAction, setModalAction] = useState('check');
+
+  const t = TEXT[lang];
   const isLoggedIn = checkIsLoggedIn();
-  const role = user?.role;
 
-  // ผู้เช่ารายวัน/รายเดือน เลือกได้แค่ประเภทตัวเอง (กันข้าม role ตอนค้นหา)
-  const lockedRentType = role === 'Daily_Tenant' ? 'daily' : role === 'Monthly_Tenant' ? 'monthly' : null;
-
-  // ค่าในกล่องค้นหาบน hero
-  const [rentType, setRentType] = useState(lockedRentType || 'daily');
-  const [checkIn, setCheckIn]   = useState('');
-  const [checkOut, setCheckOut] = useState('');
-
-  // สลับประเภทการเช่า — รายเดือนเลือกแค่วันเข้าพัก จึงเคลียร์วันออกทิ้ง
-  const handleChangeRentType = (type) => {
-    if (lockedRentType && type !== lockedRentType) return; // ผู้เช่าสลับข้ามประเภทตัวเองไม่ได้
-    setRentType(type);
-    if (type === 'monthly') {
-      setCheckOut('');
+  // โหลด user + ห้องที่ยืนยันแล้ว
+  const fetchConfirmedRoom = useCallback(async () => {
+    try {
+      const res = await api.post('/checkbooking', {});
+      const bookings = res.data?.success && Array.isArray(res.data.data) ? res.data.data : [];
+      const confirmed = bookings.find(
+        (b) => !isCancelledStatus(b.bookingStatus) && !isPendingStatus(b.bookingStatus)
+      );
+      setConfirmedRoom(confirmed || null);
+    } catch {
+      setConfirmedRoom(null);
     }
+  }, []);
+
+  useEffect(() => {
+    const u = getCurrentUser();
+    if (u && checkIsLoggedIn()) {
+      setUser(u);
+      fetchConfirmedRoom();
+    }
+  }, [fetchConfirmedRoom]);
+
+  // carousel เลื่อนอัตโนมัติทุก 4 วินาที
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentSlide((s) => (s + 1) % images.length), 4000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const roomNumber = confirmedRoom?.roomNumber || user?.roomNo || null;
+  const rentType = confirmedRoom?.rentType
+    || (user?.role === 'Monthly_Tenant' ? 'monthly' : user?.role === 'Daily_Tenant' ? 'daily' : null);
+  const isRoomRevealed = normalizeStatus(confirmedRoom?.bookingStatus) === 'กำลังเข้าพัก';
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setConfirmedRoom(null);
+    setIsMenuOpen(false);
+    navigate('/login');
   };
 
-  // กดค้นหา → พาไปหน้าจองพร้อมส่งค่าไปค้นหาอัตโนมัติ
-  const handleSearch = (e) => {
-    e.preventDefault();
-    // รายวันต้องมีทั้งวันเข้าพัก+วันออก / รายเดือนใช้แค่วันเข้าพัก
-    if (!checkIn) {
-      alert('กรุณาเลือกวันเข้าพัก');
-      return;
-    }
-    if (rentType === 'daily' && !checkOut) {
-      alert('กรุณาเลือกวันออก');
-      return;
-    }
-    navigate('/roomuser', { state: { rentType, checkIn, checkOut, autoSearch: true } });
+  const openContact = (type, value) => {
+    let url = '';
+    if (type === 'tel') url = `tel:${value}`;
+    if (type === 'line') url = `https://line.me/ti/p/~${value}`;
+    if (type === 'fb') url = `https://facebook.com/${value}`;
+    window.open(url, '_blank');
   };
+
+  // จอง: ถ้า user เป็นผู้เช่ารายวัน/รายเดือนอยู่แล้ว พาเข้าหน้าจองตามโรลทันที ไม่ต้องเลือก
+  const handleBookNow = (actionType) => {
+    if (actionType === 'book' && (user?.role === 'Daily_Tenant' || user?.role === 'Monthly_Tenant')) {
+      navigate('/roomuser', { state: { rentType: user.role === 'Daily_Tenant' ? 'daily' : 'monthly' } });
+      return;
+    }
+    setModalAction(actionType);
+    setModalOpen(true);
+  };
+
+  const handleSelectBookingType = (roomType) => {
+    setModalOpen(false);
+    navigate('/roomuser', { state: { rentType: roomType } });
+  };
+
+  const menuLinkClass = 'block w-full text-left text-white font-bold text-[15px] py-3.5 border-b border-white/10 hover:bg-white/10 transition px-1';
 
   return (
-    <>
-      <Navbar />
+    <div className="min-h-screen bg-[#F8F9FA]">
+      {/* ===== Header (ฟ้าเข้ม) ===== */}
+      <div className="bg-[#0178C7] fixed top-0 w-full z-[100] shadow-lg">
+        <div className="flex justify-between items-center px-5 py-3">
+          <div className="min-w-0">
+            <p className="text-white text-lg font-black tracking-wide truncate">{t.title}</p>
+            <p className="text-white/70 text-[10px] font-bold truncate">{t.subtitle}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {user && (
+              <div className="flex items-center gap-2">
+                <div className="text-right">
+                  <p className="text-white text-[13px] font-extrabold max-w-[110px] truncate">
+                    {user.name || user.full_name || user.username}
+                  </p>
+                  {(user.role === 'Daily_Tenant' || user.role === 'Monthly_Tenant') && (
+                    <span className="inline-block bg-white/25 text-white text-[10px] font-black px-2 py-0.5 rounded-full mt-0.5">
+                      {user.role === 'Daily_Tenant' ? t.roleDailyBadge : t.roleMonthlyBadge}
+                    </span>
+                  )}
+                </div>
+                <div className="w-[42px] h-[42px] rounded-full border-2 border-[#00E676] bg-white overflow-hidden shrink-0">
+                  <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="" className="w-full h-full object-cover" />
+                </div>
+              </div>
+            )}
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-white p-1" aria-label="menu">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                {isMenuOpen
+                  ? <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  : <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />}
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
 
-      <div className="bg-[#F8F9FA] min-h-screen">
+      {/* ===== เมนู slide-down ===== */}
+      {isMenuOpen && (
+        <>
+          <div className="fixed inset-0 z-[98]" onClick={() => setIsMenuOpen(false)} />
+          <div className="fixed top-[60px] left-0 right-0 z-[99] bg-[#0164A6] border-b-2 border-[#014E82] px-5 pb-4">
+            {user ? (
+              <div className="pt-2">
+                <button className={menuLinkClass} onClick={() => { navigate('/Editprofile'); setIsMenuOpen(false); }}>👤 {t.editProfile}</button>
+                {user.role !== 'Daily_Tenant' && (
+                  <button className={menuLinkClass} onClick={() => { navigate('/repairrequest'); setIsMenuOpen(false); }}>🛠️ {t.repair}</button>
+                )}
+                <button className={menuLinkClass} onClick={() => { navigate('/about'); setIsMenuOpen(false); }}>ℹ️ {t.about}</button>
+                <button className={menuLinkClass} onClick={() => { navigate('/gallery'); setIsMenuOpen(false); }}>🖼️ {t.gallery}</button>
+                <button
+                  onClick={handleLogout}
+                  className="w-full mt-4 py-3 rounded-lg bg-red-500/20 text-[#FFCDD2] font-bold text-sm hover:bg-white/10 transition"
+                >
+                  {t.logout}
+                </button>
+              </div>
+            ) : (
+              <div className="pt-2">
+                <button className={menuLinkClass} onClick={() => { navigate('/about'); setIsMenuOpen(false); }}>ℹ️ {t.about}</button>
+                <button className={menuLinkClass} onClick={() => { navigate('/gallery'); setIsMenuOpen(false); }}>🖼️ {t.gallery}</button>
+                <div className="flex gap-2.5 pt-4">
+                  <button
+                    onClick={() => { navigate('/login'); setIsMenuOpen(false); }}
+                    className="flex-1 py-2.5 border border-white rounded-[10px] text-white font-bold text-sm bg-white/10 hover:bg-white/20 transition"
+                  >
+                    {t.login}
+                  </button>
+                  <button
+                    onClick={() => { navigate('/register'); setIsMenuOpen(false); }}
+                    className="flex-1 py-2.5 rounded-[10px] bg-white text-[#0164A6] font-bold text-sm hover:bg-white/80 transition"
+                  >
+                    {t.register}
+                  </button>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={() => { setLang(lang === 'TH' ? 'EN' : 'TH'); setIsMenuOpen(false); }}
+              className="w-full mt-4 py-2.5 rounded-lg bg-white/15 text-white font-bold text-sm hover:bg-white/25 transition"
+            >
+              🌐 Change Language ({lang === 'TH' ? 'EN' : 'TH'})
+            </button>
+          </div>
+        </>
+      )}
 
-        {/* ===== Hero + กล่องค้นหา (สไตล์ Agoda) ===== */}
-        <div className="relative pt-16">
-          <div className="relative h-[380px] md:h-[440px]">
-            <img src={heroImage} alt="" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#2C1338]/70 to-[#2C1338]/40" />
+      {/* ===== เนื้อหา ===== */}
+      <div className="pt-[62px]">
+        {/* Carousel */}
+        <div className="relative w-full h-[320px] md:h-[420px] overflow-hidden">
+          {images.map((img, i) => (
+            <img
+              key={i}
+              src={img}
+              alt=""
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${i === currentSlide ? 'opacity-100' : 'opacity-0'}`}
+            />
+          ))}
+          <div className="absolute inset-0 bg-black/30" />
 
-            {/* หัวข้อกลาง hero */}
-            <div className="absolute inset-x-0 top-10 md:top-16 flex flex-col items-center px-6 text-center">
-              <h1 className="text-white text-3xl md:text-5xl font-black drop-shadow-lg">
-                หาห้องพักที่ใช่ ที่ Around Loei
-              </h1>
-              <p className="text-white/90 text-sm md:text-lg font-semibold mt-2 drop-shadow">
-                หอพักรายวัน–รายเดือน ใกล้ มรภ.เลย จองง่ายในไม่กี่ขั้นตอน
-              </p>
-            </div>
+          <button
+            onClick={() => setCurrentSlide((s) => (s === 0 ? images.length - 1 : s - 1))}
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 text-white flex items-center justify-center z-10 hover:bg-black/60"
+          >‹</button>
+          <button
+            onClick={() => setCurrentSlide((s) => (s + 1) % images.length)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 text-white flex items-center justify-center z-10 hover:bg-black/60"
+          >›</button>
+
+          <div className="absolute bottom-14 w-full flex justify-center gap-2 z-10">
+            {images.map((_, i) => (
+              <span key={i} className={`h-[7px] rounded-full transition-all ${i === currentSlide ? 'w-[18px] bg-[#0194F3]' : 'w-[7px] bg-white/60'}`} />
+            ))}
           </div>
 
-          {/* กล่องค้นหาลอยทับ hero */}
-          <div className="max-w-4xl mx-auto px-4 -mt-24 md:-mt-20 relative z-10">
-            <form onSubmit={handleSearch} className="bg-white rounded-2xl shadow-2xl p-4 md:p-5">
-              {/* ปุ่มสลับประเภท รายวัน/รายเดือน */}
-              <div className="flex gap-2 mb-4">
-                <button
-                  type="button"
-                  disabled={lockedRentType === 'monthly'}
-                  onClick={() => handleChangeRentType('daily')}
-                  title={lockedRentType === 'monthly' ? 'บัญชีผู้เช่ารายเดือน จองห้องรายวันไม่ได้' : undefined}
-                  className={`px-4 py-1.5 rounded-full text-sm font-bold transition
-                    ${rentType === 'daily' ? 'bg-[#5A2D82] text-white' : 'bg-[#F1F5F9] text-[#64748B]'}
-                    ${lockedRentType === 'monthly' ? 'opacity-40 cursor-not-allowed' : ''}`}
-                >
-                  🌅 รายวัน
-                </button>
-                <button
-                  type="button"
-                  disabled={lockedRentType === 'daily'}
-                  onClick={() => handleChangeRentType('monthly')}
-                  title={lockedRentType === 'daily' ? 'บัญชีผู้เช่ารายวัน จองห้องรายเดือนไม่ได้' : undefined}
-                  className={`px-4 py-1.5 rounded-full text-sm font-bold transition
-                    ${rentType === 'monthly' ? 'bg-[#5A2D82] text-white' : 'bg-[#F1F5F9] text-[#64748B]'}
-                    ${lockedRentType === 'daily' ? 'opacity-40 cursor-not-allowed' : ''}`}
-                >
-                  🏠 รายเดือน
-                </button>
-              </div>
-
-              {/* ช่องวันที่ + ปุ่มค้นหา — รายเดือนโชว์แค่วันเข้าพัก จึงเหลือ 2 คอลัมน์ */}
-              <div className={`grid grid-cols-1 gap-3 ${
-                rentType === 'daily' ? 'md:grid-cols-[1fr_1fr_auto]' : 'md:grid-cols-[1fr_auto]'
-              }`}>
-                <div className="border border-[#E2E8F0] rounded-xl px-3 py-2">
-                  <label className="block text-[#94A3B8] text-xs font-bold mb-0.5">วันเข้าพัก</label>
-                  <input
-                    type="date"
-                    value={checkIn}
-                    onChange={(e) => setCheckIn(e.target.value)}
-                    className="w-full text-sm text-[#1E293B] font-semibold focus:outline-none bg-transparent"
-                  />
-                </div>
-                {/* วันออก — เฉพาะรายวันเท่านั้น (รายเดือนเป็นสัญญาต่อเนื่อง ไม่กำหนดวันออกตอนจอง) */}
-                {rentType === 'daily' && (
-                  <div className="border border-[#E2E8F0] rounded-xl px-3 py-2">
-                    <label className="block text-[#94A3B8] text-xs font-bold mb-0.5">วันออก</label>
-                    <input
-                      type="date"
-                      value={checkOut}
-                      onChange={(e) => setCheckOut(e.target.value)}
-                      className="w-full text-sm text-[#1E293B] font-semibold focus:outline-none bg-transparent"
-                    />
-                  </div>
-                )}
-                <button
-                  type="submit"
-                  className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black px-8 py-3 rounded-xl transition"
-                >
-                  ค้นหา
-                </button>
-              </div>
-            </form>
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-10 pointer-events-none">
+            <h1 className="text-white text-2xl md:text-4xl font-black text-center mb-5 drop-shadow-lg animate-pulse">
+              {t.welcome}
+            </h1>
+            <button
+              onClick={() => handleBookNow(user ? 'book' : 'check')}
+              className="pointer-events-auto border-2 border-white px-8 py-3 bg-white/15 text-white font-black text-[15px] tracking-widest hover:bg-white/25 transition"
+            >
+              {t.bookNow}
+            </button>
           </div>
         </div>
 
-        {/* ===== เนื้อหาใต้ hero ===== */}
-        <div className="max-w-4xl mx-auto px-4 pt-8 pb-12">
+        {/* แผ่นขาวโค้งบน */}
+        <div className="-mt-10 bg-white rounded-t-[40px] p-6 relative">
+          {/* ปุ่มจองใหญ่ (เมื่อยังไม่มีห้อง) */}
+          {!roomNumber && (
+            <button
+              onClick={() => handleBookNow(user ? 'book' : 'check')}
+              className="w-full bg-[#0194F3] p-5 rounded-[25px] mb-5 flex items-center gap-4 hover:brightness-105 transition"
+            >
+              <span className="bg-white/20 p-2.5 rounded-[15px] text-white text-xl">🚪</span>
+              <span className="flex-1 text-left text-white font-black text-lg tracking-wide">{t.bookButton}</span>
+              <span className="text-white text-2xl">›</span>
+            </button>
+          )}
 
-          {/* การ์ด Daily Tenant */}
-          {role === 'Daily_Tenant' && (
-            <div className="bg-[#F7F2FB] border border-[#D9C5EC] p-5 rounded-2xl mb-6">
-              <p className="text-[#6A3A96] font-black text-base">ห้องพักรายวันของคุณ</p>
-              <p className="text-[#8B5CB8] text-xs font-semibold mb-4 mt-1">📅 รายการเข้าพักระยะสั้น (Daily Tenant)</p>
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-white border border-[#EDE4F5] rounded-2xl p-3 text-center">
-                  <div className="text-2xl mb-1">📶</div>
-                  <p className="text-xs font-bold text-slate-600">Wi-Fi หอพัก</p>
-                  <p className="text-xs text-[#8B5CB8] font-bold">Pass: ALoei999</p>
+          {/* การ์ดห้องรายวัน */}
+          {rentType === 'daily' && roomNumber && (
+            <div className="bg-[#F0F9FF] border border-[#BAE6FD] p-5 rounded-[25px] mb-5">
+              <div className="flex items-center justify-between">
+                <span className="text-[#0369A1] text-xs font-extrabold tracking-wide">ห้องพักรายวันของคุณ</span>
+                <span className="flex items-center gap-1 bg-white border border-[#BAE6FD] px-2.5 py-1 rounded-full text-[#0284C7] text-[11px] font-extrabold">✓ ยืนยันแล้ว</span>
+              </div>
+              <p className="text-[#0284C7] text-xs font-semibold mt-1 mb-4">📅 รายการเข้าพักระยะสั้น (Daily Tenant)</p>
+              <div className="flex gap-2.5 mb-4">
+                <div className="flex-1 bg-white p-3 rounded-[15px] flex flex-col items-center border border-[#E0F2FE]">
+                  <span className="text-[#0284C7] text-xl">📶</span>
+                  <span className="text-xs font-bold text-[#334155] mt-1">Wi-Fi หอพัก</span>
+                  <span className="text-[11px] text-[#0284C7] font-bold">Pass: ALoei999</span>
                 </div>
-                <div className="bg-white border border-[#EDE4F5] rounded-2xl p-3 text-center">
-                  <div className="text-2xl mb-1">🔑</div>
-                  <p className="text-xs font-bold text-slate-600">คีย์การ์ดเข้าตึก</p>
-                  <p className="text-xs text-slate-400">แสดง QR Code</p>
+                <div className="flex-1 bg-white p-3 rounded-[15px] flex flex-col items-center border border-[#E0F2FE]">
+                  <span className="text-[#0284C7] text-xl">🔳</span>
+                  <span className="text-xs font-bold text-[#334155] mt-1">คีย์การ์ดเข้าตึก</span>
+                  <span className="text-[10px] text-[#64748B]">แตะเปิด QR Code</span>
                 </div>
               </div>
-              <Link
-                to="/roomuser"
-                className="flex items-center justify-center gap-2 bg-[#8B5CB8] text-white py-3 rounded-2xl font-bold hover:bg-[#46236A] transition"
+              <button
+                onClick={() => handleBookNow('book')}
+                className="w-full bg-[#0284C7] py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 hover:brightness-105 transition"
               >
-                <span>➕</span> จองห้องพัก
-              </Link>
+                ＋ {t.bookingActiveButton}
+              </button>
             </div>
           )}
 
-          {/* การ์ด Monthly Tenant */}
-          {role === 'Monthly_Tenant' && (
-            <div className="mb-6">
-              <div className="bg-[#46236A] p-5 rounded-2xl mb-4">
-                <p className="text-white/80 text-xs font-bold">บัญชีลูกบ้านรายเดือน</p>
-                <p className="text-white text-2xl font-black mt-1">ยินดีต้อนรับ</p>
+          {/* การ์ดห้องรายเดือน */}
+          {rentType === 'monthly' && roomNumber && (
+            <div className="relative overflow-hidden bg-[#0178C7] p-5 rounded-[25px] mb-5 shadow-lg shadow-[#0178C7]/30">
+              <div className="absolute -top-10 -right-8 w-36 h-36 rounded-full bg-white/10" />
+              <div className="flex items-center justify-between relative">
+                <span className="text-white/85 text-xs font-extrabold tracking-wide">บัญชีลูกบ้านรายเดือน</span>
+                <span className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-full text-[#0178C7] text-[11px] font-extrabold">
+                  {isRoomRevealed ? '✓ ยืนยันแล้ว' : '🕐 รอยืนยัน'}
+                </span>
               </div>
-              <p className="text-[#1E293B] font-black text-base mb-3">บริการและฟังก์ชันลูกบ้าน</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Link to="/repairrequest" className="flex items-center gap-4 bg-white border border-[#E2E8F0] p-4 rounded-2xl hover:shadow transition group">
-                  <span className="bg-[#D32F2F] p-2.5 rounded-xl text-white text-sm">🛠️</span>
-                  <span className="flex-1 font-extrabold text-slate-700">แจ้งซ่อมและแจ้งปัญหา</span>
-                  <span className="text-slate-300 group-hover:translate-x-1 transition">›</span>
-                </Link>
-                <Link to="/mybills" className="flex items-center gap-4 bg-white border border-[#E2E8F0] p-4 rounded-2xl hover:shadow transition group">
-                  <span className="bg-emerald-500 p-2.5 rounded-xl text-white text-sm">🧾</span>
-                  <span className="flex-1 font-extrabold text-slate-700">บิลค่าน้ำ ค่าไฟ ค่าเช่า</span>
-                  <span className="text-slate-300 group-hover:translate-x-1 transition">›</span>
-                </Link>
-              </div>
+              <p className={`text-white font-black mt-1 relative ${isRoomRevealed ? 'text-3xl' : 'text-xl'}`}>
+                {isRoomRevealed ? `ห้อง ${roomNumber}` : 'รอยืนยันที่เคาน์เตอร์'}
+              </p>
             </div>
           )}
 
-          {/* แถบราคา + คำโฆษณา (สไตล์ Agoda deal) */}
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 mb-6 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-[#1E293B] text-lg font-black">หอพักสบาย ใกล้ มรภ.เลย</p>
-              <p className="text-[#64748B] text-sm mt-1">เดินทางสะดวก ใกล้แหล่งของกิน ปลอดภัย มี CCTV</p>
-            </div>
-            <div className="text-right shrink-0">
-              <p className="text-[#94A3B8] text-xs">เริ่มต้น</p>
-              <p className="text-[#D32F2F] text-2xl font-black">฿500</p>
-              <p className="text-[#94A3B8] text-xs">ต่อวัน</p>
-            </div>
+          {/* ปุ่มประวัติการจอง */}
+          {user && (
+            <button
+              onClick={() => navigate('/roomhistory')}
+              className="w-full bg-[#FFF0E6] border border-[#FFDAB9] p-4 rounded-[20px] mb-3 flex items-center gap-4 hover:brightness-105 transition"
+            >
+              <span className="bg-[#FF5E1F] p-2 rounded-[10px] text-white">📅</span>
+              <span className="flex-1 text-left font-bold text-base text-[#FF5E1F]">{t.bookingList}</span>
+              <span className="text-[#FF5E1F]">›</span>
+            </button>
+          )}
+
+          {/* ราคา + สโลแกน */}
+          <div className="mb-5 mt-1">
+            <p className="text-4xl font-bold text-[#0194F3]">
+              {t.price}<span className="text-lg text-[#999] font-normal">{t.unit}</span>
+            </p>
+            <p className="text-[22px] font-bold text-[#333] mt-1">{t.slogan}</p>
           </div>
 
+          <p className="text-[15px] text-[#666] leading-relaxed mb-6">{t.desc}</p>
+
           {/* สิ่งอำนวยความสะดวก */}
-          <p className="font-black text-[#1E293B] text-base mb-3">สิ่งอำนวยความสะดวก</p>
-          <div className="grid grid-cols-4 gap-3 mb-8">
-            {amenities.map((a, i) => (
-              <div key={i} className="flex flex-col items-center bg-white border border-[#E2E8F0] py-4 rounded-2xl">
-                <span className="text-2xl">{a.icon}</span>
-                <span className="text-[11px] font-bold text-[#5A2D82] mt-1">{a.label}</span>
+          <p className="text-lg font-bold text-[#1A1A1A] mb-4">{t.amenTitle}</p>
+          <div className="flex justify-between mb-5">
+            {[
+              { icon: '📶', label: 'WiFi' },
+              { icon: '❄️', label: lang === 'TH' ? 'แอร์' : 'Air' },
+              { icon: '📹', label: 'CCTV' },
+              { icon: '🚗', label: lang === 'TH' ? 'ที่จอดรถ' : 'Parking' },
+            ].map((item, i) => (
+              <div key={i} className="w-[23%] flex flex-col items-center bg-[#F0F8FF] py-3 rounded-[15px]">
+                <span className="text-[#0194F3] text-xl">{item.icon}</span>
+                <span className="text-[10px] font-bold text-[#0194F3] mt-1">{item.label}</span>
               </div>
             ))}
           </div>
 
-          {/* ปุ่มประวัติการจอง — เฉพาะผู้ที่ login แล้ว */}
-          {isLoggedIn && (
-            <Link
-              to="/roomhistory"
-              className="flex items-center gap-4 bg-white border border-[#E2E8F0] p-4 rounded-2xl mb-8 hover:shadow transition group"
-            >
-              <span className="bg-[#5A2D82] p-2 rounded-xl text-white">📅</span>
-              <span className="flex-1 font-bold text-base text-[#1E293B]">ประวัติการจองห้องของคุณ</span>
-              <span className="text-[#94A3B8] group-hover:translate-x-1 transition">›</span>
-            </Link>
-          )}
+          <div className="h-px bg-[#EEE] mb-6" />
 
           {/* ช่องทางติดต่อ */}
-          <p className="font-black text-[#1E293B] text-base mb-4">ช่องทางการติดต่อ</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <a
-              href="https://line.me/ti/p/~aroundloei"
-              target="_blank" rel="noreferrer"
-              className="flex items-center gap-3 bg-[#06C755] text-white p-4 rounded-2xl hover:opacity-90 transition"
-            >
-              <span className="text-2xl">💬</span>
-              <span className="font-bold">Line Official</span>
-            </a>
-            <a
-              href="https://facebook.com/aroundloei"
-              target="_blank" rel="noreferrer"
-              className="flex items-center gap-3 bg-[#1877F2] text-white p-4 rounded-2xl hover:opacity-90 transition"
-            >
-              <span className="text-2xl">📘</span>
-              <span className="font-bold">Facebook</span>
-            </a>
-            <a
-              href="tel:0812345678"
-              className="flex items-center gap-3 bg-[#5A2D82] text-white p-4 rounded-2xl hover:opacity-90 transition"
-            >
-              <span className="text-2xl">📞</span>
-              <span className="font-bold">โทรสอบถาม</span>
-            </a>
-          </div>
-        </div>
+          <p className="text-lg font-bold text-[#1A1A1A] mb-4">{t.contactTitle}</p>
+          <button onClick={() => openContact('line', 'aroundloei')} className="w-full flex items-center gap-3 bg-[#06C755] p-4 rounded-[18px] mb-3 text-white font-bold hover:brightness-105 transition">
+            <span className="w-9 text-center text-xl">💬</span>
+            <span className="flex-1 text-left text-base">{t.line}</span>
+            <span>›</span>
+          </button>
+          <button onClick={() => openContact('fb', 'aroundloei')} className="w-full flex items-center gap-3 bg-[#1877F2] p-4 rounded-[18px] mb-3 text-white font-bold hover:brightness-105 transition">
+            <span className="w-9 text-center text-xl">📘</span>
+            <span className="flex-1 text-left text-base">{t.fb}</span>
+            <span>›</span>
+          </button>
+          <button onClick={() => openContact('tel', '0812345678')} className="w-full flex items-center gap-3 bg-[#FF5E1F] p-4 rounded-[18px] mb-3 text-white font-bold hover:brightness-105 transition">
+            <span className="w-9 text-center text-xl">📞</span>
+            <span className="flex-1 text-left text-base">{t.call}</span>
+            <span>›</span>
+          </button>
 
-        {/* footer */}
-        <div className="bg-[#2C1338] text-white text-center py-4 text-sm">
-          © {new Date().getFullYear()} Around Loei — หอพักจังหวัดเลย
+          <div className="h-12" />
         </div>
       </div>
-    </>
+
+      {/* ===== Modal เลือกประเภทห้อง ===== */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-[200] bg-slate-900/60 flex items-center justify-center p-4" onClick={() => setModalOpen(false)}>
+          <div className="relative bg-white rounded-[28px] p-6 w-full max-w-[400px] flex flex-col items-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setModalOpen(false)} className="absolute top-4 right-4 bg-[#F1F5F9] rounded-full w-8 h-8 text-[#94A3B8]">✕</button>
+            <p className="text-xl font-black text-[#1E293B] mt-2.5">
+              {modalAction === 'book' ? t.modalTitleBook : t.modalTitleCheck}
+            </p>
+            <p className="text-sm text-[#64748B] mt-1.5 mb-6 text-center font-medium px-2.5">
+              {modalAction === 'book' ? t.modalSubtitleBook : t.modalSubtitleCheck}
+            </p>
+            <div className="w-full flex flex-col gap-3">
+              <button
+                onClick={() => handleSelectBookingType('daily')}
+                className="w-full py-4 rounded-[18px] flex items-center justify-center gap-2 border bg-[#E0F2FE] border-[#BAE6FD] text-[#0284C7] font-extrabold text-base hover:brightness-105 transition"
+              >
+                🔎 {t.dailyChoice}
+              </button>
+              <button
+                onClick={() => handleSelectBookingType('monthly')}
+                className="w-full py-4 rounded-[18px] flex items-center justify-center gap-2 border bg-[#CCFBF1] border-[#99F6E4] text-[#0D9488] font-extrabold text-base hover:brightness-105 transition"
+              >
+                🏢 {t.monthlyChoice}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

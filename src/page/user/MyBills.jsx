@@ -167,7 +167,7 @@ export default function MyBills() {
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
       <Navbar />
-      <PageHeader title="บิลค่าเช่าของฉัน" subtitle="รายการใบแจ้งหนี้และการชำระเงิน" />
+      <PageHeader title="บิลของฉัน" subtitle="รายการใบแจ้งหนี้และการชำระเงิน" />
 
       <div className="pt-6 pb-10 px-4 max-w-2xl mx-auto">
 
@@ -178,16 +178,19 @@ export default function MyBills() {
           </div>
         ) : (
           <div className="space-y-4">
-            {invoices.map((inv) => (
+            {invoices.map((inv) => {
+              const lateFee = Number(inv.late_fee || 0);
+              const grandTotal = Number(inv.total_amount || 0) + lateFee;
+              return (
               <div key={inv.invoice_id} className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-5">
                 {/* หัว: เลขบิล + สถานะ */}
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="text-[#1E293B] font-black text-base">
-                      INV-{new Date(inv.invoice_date).getFullYear()}-{String(inv.invoice_id).padStart(4, '0')}
+                      บิล #{inv.invoice_id} · ห้อง {inv.room_number}
                     </p>
-                    <p className="text-[#64748B] text-sm mt-0.5">
-                      ห้อง {inv.room_number} · ครบกำหนด {inv.due_date?.split('T')[0] || '-'}
+                    <p className="text-[#94A3B8] text-xs mt-0.5">
+                      ออกบิล {inv.invoice_date?.split('T')[0] || '-'} · ครบกำหนด {inv.due_date?.split('T')[0] || '-'}
                     </p>
                   </div>
                   <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${statusBadge(inv.invoice_status)}`}>
@@ -195,10 +198,18 @@ export default function MyBills() {
                   </span>
                 </div>
 
-                {/* ยอดรวม */}
-                <div className="bg-[#F8FAFC] rounded-2xl px-4 py-3 mb-3">
-                  <p className="text-[#94A3B8] text-xs font-semibold">ยอดรวม</p>
-                  <p className="text-[#1E293B] font-black text-xl">{money(inv.total_amount)} <span className="text-sm font-semibold text-[#64748B]">บาท</span></p>
+                {/* แจกแจงรายการ + ยอดรวม (อ้างอิง mobile mybills.js) */}
+                <div className="bg-[#F8FAFC] rounded-2xl px-4 py-3 mb-3 text-sm space-y-1.5">
+                  <div className="flex justify-between"><span className="text-[#64748B]">ค่าห้อง</span><span className="text-[#334155] font-semibold">{money(inv.room_cost)}</span></div>
+                  <div className="flex justify-between"><span className="text-[#64748B]">ค่าน้ำ</span><span className="text-[#334155] font-semibold">{money(inv.water_cost)}</span></div>
+                  <div className="flex justify-between"><span className="text-[#64748B]">ค่าไฟ</span><span className="text-[#334155] font-semibold">{money(inv.elec_cost)}</span></div>
+                  {lateFee > 0 && (
+                    <div className="flex justify-between"><span className="text-[#DC2626]">ค่าปรับล่าช้า</span><span className="text-[#DC2626] font-semibold">{money(lateFee)}</span></div>
+                  )}
+                  <div className="flex justify-between pt-2 mt-1 border-t border-[#E2E8F0]">
+                    <span className="text-[#1E293B] font-black">ยอดรวม</span>
+                    <span className="text-[#0194F3] font-black text-lg">฿{money(grandTotal)}</span>
+                  </div>
                 </div>
 
                 {/* ปุ่ม */}
@@ -220,7 +231,8 @@ export default function MyBills() {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -264,7 +276,7 @@ export default function MyBills() {
                 <p className="text-[#64748B] text-sm mt-1">ระบบยืนยันการชำระอัตโนมัติแล้ว</p>
                 <button
                   onClick={() => setPayInvoice(null)}
-                  className="mt-5 w-full py-3 bg-[#5A2D82] hover:bg-[#46236A] text-white font-bold rounded-2xl transition"
+                  className="mt-5 w-full py-3 bg-[#0194F3] hover:bg-[#0178C7] text-white font-bold rounded-2xl transition"
                 >
                   เสร็จสิ้น
                 </button>
@@ -275,7 +287,7 @@ export default function MyBills() {
                 <img src={qrCharge.qrImage} alt="QR PromptPay" className="mx-auto w-56 h-56 rounded-2xl border border-[#E2E8F0]" />
                 <p className="text-[#1E293B] font-black text-lg mt-2">สแกนจ่าย {money(qrCharge.amount)} บาท</p>
                 <p className="text-[#64748B] text-sm mt-1 flex items-center justify-center gap-2">
-                  <span className="inline-block w-2 h-2 bg-[#5A2D82] rounded-full animate-pulse" />
+                  <span className="inline-block w-2 h-2 bg-[#0194F3] rounded-full animate-pulse" />
                   กำลังรอการชำระเงิน... (ยืนยันอัตโนมัติ)
                 </p>
                 <button
@@ -291,7 +303,7 @@ export default function MyBills() {
             <button
               onClick={startQrPay}
               disabled={submitting}
-              className="w-full py-3 mb-4 bg-[#5A2D82] hover:bg-[#46236A] text-white font-black rounded-2xl transition disabled:opacity-50"
+              className="w-full py-3 mb-4 bg-[#0194F3] hover:bg-[#0178C7] text-white font-black rounded-2xl transition disabled:opacity-50"
             >
               {submitting ? 'กำลังสร้าง QR...' : '⚡ จ่ายด้วย QR อัตโนมัติ (ยืนยันทันที)'}
             </button>

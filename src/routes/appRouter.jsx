@@ -27,6 +27,9 @@ import MyBills from "../page/user/MyBills";
 import MyContracts from "../page/user/MyContracts";
 import LineCallback from "../page/user/LineCallback";
 import GoogleCallback from "../page/user/GoogleCallback";
+import ForgotPassword from "../page/user/ForgotPassword";
+import About from "../page/user/About";
+import Gallery from "../page/user/Gallery";
 import Contracts from "../page/admin/Contracts";
 import AuditLogs from "../page/admin/AuditLogs";
 
@@ -63,9 +66,12 @@ const router = createBrowserRouter([
       { path: "home", element: <Home /> },
       { path: "login", element: <Login /> },
       { path: "register", element: <Register /> },
+      { path: "forgot-password", element: <ForgotPassword /> },
       { path: "verify-email", element: <VerifyEmail /> },
       { path: "complete-profile", element: <PrivateRoute><CompleteProfile /></PrivateRoute> },
       { path: "contact", element: <Contact /> },
+      { path: "about", element: <About /> },
+      { path: "gallery", element: <Gallery /> },
       { path: "roomuser", element: <Roomuser /> },
       { path: "auth/line/callback", element: <LineCallback /> },
       { path: "auth/google/callback", element: <GoogleCallback /> },

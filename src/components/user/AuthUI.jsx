@@ -5,12 +5,12 @@ import React, { useState } from 'react';
 // รวมดีไซน์ไว้ที่เดียว ให้ทุกหน้าหน้าตาเป็นระบบเดียวกัน + แก้ธีมที่เดียวจบ
 // ============================================================
 
-// โครงหน้า auth: หัวสีม่วง (ไอคอน + แบรนด์ + คำโปรย) + การ์ดขาวโค้งมน
+// โครงหน้า auth: หัวสีฟ้า (ไอคอน + แบรนด์ + คำโปรย) + การ์ดขาวโค้งมน
 export function AuthLayout({ icon, tagline, title, children }) {
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col">
-      {/* หัวสีม่วง */}
-      <div className="bg-[#5A2D82] pt-14 pb-16 px-6 flex flex-col items-center">
+      {/* หัวสีฟ้า (ธีมเดียวกับ mobile) */}
+      <div className="bg-[#0178C7] pt-14 pb-16 px-6 flex flex-col items-center">
         <div className="w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center mb-4">
           <span className="text-3xl">{icon}</span>
         </div>
@@ -30,7 +30,7 @@ export function AuthLayout({ icon, tagline, title, children }) {
 // คลาส input มาตรฐาน (ใช้ซ้ำทุกช่อง)
 const inputClass =
   'w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] ' +
-  'focus:outline-none focus:border-[#5A2D82] focus:ring-2 focus:ring-[#5A2D82]/20';
+  'focus:outline-none focus:border-[#0194F3] focus:ring-2 focus:ring-[#0194F3]/20';
 
 // ป้ายกำกับช่องกรอก (มีดอกจันแดงถ้า required)
 function FieldLabel({ label, required }) {
@@ -96,8 +96,8 @@ export function RoleSelector({ value, onChange }) {
               onClick={() => onChange(val)}
               className={`rounded-2xl border px-4 py-3 text-left transition ${
                 selected
-                  ? 'border-[#5A2D82] bg-[#5A2D82]/5 ring-2 ring-[#5A2D82]/20'
-                  : 'border-[#CBD5E1] bg-[#F8FAFC] hover:border-[#5A2D82]/50'
+                  ? 'border-[#0194F3] bg-[#0194F3]/5 ring-2 ring-[#0194F3]/20'
+                  : 'border-[#CBD5E1] bg-[#F8FAFC] hover:border-[#0194F3]/50'
               }`}
             >
               <span className="block text-sm font-bold text-[#1E293B]">{label}</span>
@@ -135,7 +135,7 @@ export function SubmitButton({ loading, children, loadingText }) {
     <button
       type="submit"
       disabled={loading}
-      className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] disabled:opacity-50 text-white font-black py-3.5 rounded-2xl transition text-base mt-2"
+      className="w-full bg-[#0194F3] hover:bg-[#0178C7] disabled:opacity-50 text-white font-black py-3.5 rounded-2xl transition text-base mt-2"
     >
       {loading ? (loadingText || 'กำลังดำเนินการ...') : children}
     </button>

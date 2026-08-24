@@ -97,7 +97,7 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain, onExp
 
       <h2 className="text-[#1E293B] text-xl font-black mb-1">จองห้องสำเร็จ!</h2>
       <p className="text-[#64748B] text-sm mb-4">เลขที่การจองของคุณคือ</p>
-      <p className="text-[#5A2D82] text-2xl font-black mb-4">{result.bookingRef}</p>
+      <p className="text-[#0194F3] text-2xl font-black mb-4">{result.bookingRef}</p>
 
       {/* ตัวนับถอยหลังเวลาชำระ — โชว์ทันทีตั้งแต่จองสำเร็จ (ยังไม่แจ้งชำระ) */}
       {canPayNow && !submitted && result.holdExpiresAt && (
@@ -133,7 +133,7 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain, onExp
           <span className="text-[#94A3B8] font-semibold">
             {isMonthly ? 'ค่าเช่ารายเดือน (โดยประมาณ)' : 'ยอดรวมโดยประมาณ'}
           </span>
-          <span className="text-[#5A2D82] font-black">฿{Number(result.totalPrice).toLocaleString()}</span>
+          <span className="text-[#0194F3] font-black">฿{Number(result.totalPrice).toLocaleString()}</span>
         </div>
       </div>
 
@@ -174,7 +174,7 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain, onExp
             <button
               onClick={submitSlip}
               disabled={loading}
-              className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3 rounded-2xl transition disabled:opacity-50"
+              className="w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3 rounded-2xl transition disabled:opacity-50"
             >
               {loading ? 'กำลังส่ง...' : 'ส่งแจ้งชำระ'}
             </button>
@@ -183,7 +183,7 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain, onExp
           <button
             onClick={startPay}
             disabled={loading}
-            className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3.5 rounded-2xl transition mb-3 disabled:opacity-50"
+            className="w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition mb-3 disabled:opacity-50"
           >
             {loading
               ? 'กำลังสร้าง QR...'
@@ -207,7 +207,7 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain, onExp
       <div className="flex flex-col gap-3">
         <button
           onClick={onGoHistory}
-          className="w-full bg-[#5A2D82] hover:bg-[#46236A] text-white font-black py-3.5 rounded-2xl transition"
+          className="w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition"
         >
           ดูประวัติการจอง
         </button>

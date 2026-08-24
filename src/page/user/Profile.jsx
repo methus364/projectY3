@@ -59,7 +59,7 @@ export default function Profile() {
       <div className="pt-20 pb-10 px-4 max-w-md mx-auto">
 
         {/* Avatar + ชื่อ */}
-        <div className="bg-[#5A2D82] rounded-3xl p-6 mb-4 flex flex-col items-center shadow-sm">
+        <div className="bg-[#0194F3] rounded-3xl p-6 mb-4 flex flex-col items-center shadow-sm">
           <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-3xl font-black text-white mb-3">
             {user.full_name?.charAt(0) || '?'}
           </div>
@@ -72,7 +72,7 @@ export default function Profile() {
 
         {/* ข้อมูลพื้นฐาน */}
         <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-5 mb-4">
-          <p className="text-[#5A2D82] font-black text-sm mb-4">ข้อมูลส่วนตัว</p>
+          <p className="text-[#0194F3] font-black text-sm mb-4">ข้อมูลส่วนตัว</p>
           <div className="space-y-3">
             <Field label="ชื่อ - นามสกุล" value={user.full_name} />
             <Field label="Username" value={user.username} />
@@ -107,7 +107,7 @@ export default function Profile() {
         {/* ปุ่ม */}
         <button
           onClick={() => navigate('/Editprofile')}
-          className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3.5 rounded-2xl transition mb-3"
+          className="w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition mb-3"
         >
           แก้ไขโปรไฟล์
         </button>

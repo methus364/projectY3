@@ -79,7 +79,7 @@ export default function VerifyEmail() {
             value={otp}
             onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
             placeholder="______"
-            className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-center text-lg tracking-[0.5em] font-bold text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82] focus:ring-2 focus:ring-[#5A2D82]/20"
+            className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-center text-lg tracking-[0.5em] font-bold text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#0194F3] focus:ring-2 focus:ring-[#0194F3]/20"
           />
         </div>
 
@@ -95,13 +95,13 @@ export default function VerifyEmail() {
             type="button"
             onClick={handleResend}
             disabled={resending}
-            className="text-[#5A2D82] font-bold hover:underline disabled:opacity-50"
+            className="text-[#0194F3] font-bold hover:underline disabled:opacity-50"
           >
             {resending ? 'กำลังส่ง...' : 'ส่งรหัสใหม่'}
           </button>
         </p>
         <p className="text-sm">
-          <Link to="/login" className="text-[#94A3B8] hover:text-[#5A2D82]">← กลับไปเข้าสู่ระบบ</Link>
+          <Link to="/login" className="text-[#94A3B8] hover:text-[#0194F3]">← กลับไปเข้าสู่ระบบ</Link>
         </p>
       </div>
     </AuthLayout>

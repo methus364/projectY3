@@ -78,6 +78,10 @@ export default function Login() {
           placeholder="รหัสผ่าน"
         />
 
+        <div className="flex justify-end -mt-1">
+          <Link to="/forgot-password" className="text-[#0178C7] text-sm font-bold hover:underline">ลืมรหัสผ่าน?</Link>
+        </div>
+
         <FormMessage error={error} />
 
         <SubmitButton loading={loading} loadingText="กำลังเข้าสู่ระบบ...">เข้าสู่ระบบ</SubmitButton>
@@ -115,10 +119,10 @@ export default function Login() {
       <div className="mt-6 text-center space-y-2">
         <p className="text-sm text-[#64748B]">
           ยังไม่มีบัญชี?{' '}
-          <Link to="/register" className="text-[#5A2D82] font-bold hover:underline">สมัครสมาชิก</Link>
+          <Link to="/register" className="text-[#0178C7] font-bold hover:underline">สมัครสมาชิก</Link>
         </p>
         <p className="text-sm">
-          <Link to="/" className="text-[#94A3B8] hover:text-[#5A2D82]">← กลับหน้าแรก</Link>
+          <Link to="/" className="text-[#94A3B8] hover:text-[#0178C7]">← กลับหน้าแรก</Link>
         </p>
       </div>
     </AuthLayout>

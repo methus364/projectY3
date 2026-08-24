@@ -122,11 +122,11 @@ export default function MyContracts() {
                 <div key={c.contract_id} className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-5">
                   {/* หัวการ์ด */}
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="bg-[#F3EDF9] p-2.5 rounded-xl">
+                    <div className="bg-[#E0F2FE] p-2.5 rounded-xl">
                       <span className="text-lg">📄</span>
                     </div>
                     <div className="flex-1">
-                      <p className="text-[#5A2D82] font-black text-base">ห้อง {c.room_number}</p>
+                      <p className="text-[#0194F3] font-black text-base">ห้อง {c.room_number}</p>
                       <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${statusClass}`}>
                         {c.contract_status}
                       </span>
@@ -171,8 +171,16 @@ export default function MyContracts() {
                       <span className="text-[#1E293B] font-bold">{fmt(c.end_date)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-[#94A3B8] font-semibold">ค่าประกัน</span>
+                      <span className="text-[#94A3B8] font-semibold">ค่าเช่าล่วงหน้า</span>
+                      <span className="text-[#1E293B] font-bold">฿{Number(c.rent_prepaid || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#94A3B8] font-semibold">เงินประกัน</span>
                       <span className="text-[#1E293B] font-bold">฿{Number(c.security_deposit || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#94A3B8] font-semibold">มัดจำกุญแจ</span>
+                      <span className="text-[#1E293B] font-bold">฿{Number(c.key_deposit || 0).toLocaleString()}</span>
                     </div>
                   </div>
 
@@ -180,7 +188,7 @@ export default function MyContracts() {
                   <div className="flex flex-wrap gap-2">
                     {c.contract_file_url && (
                       <a href={c.contract_file_url} target="_blank" rel="noreferrer"
-                        className="flex-1 text-center py-2.5 bg-[#F3EDF9] text-[#5A2D82] font-bold rounded-2xl text-sm hover:bg-[#E9DDF5] transition">
+                        className="flex-1 text-center py-2.5 bg-[#E0F2FE] text-[#0194F3] font-bold rounded-2xl text-sm hover:bg-[#D9F3FF] transition">
                         📄 ดูสัญญา
                       </a>
                     )}

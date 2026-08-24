@@ -18,8 +18,8 @@ export default function RoomResultCard({ room, rentType, selected, onSelect, onV
       onClick={() => onSelect(room.id)}
       className={`flex gap-3 rounded-2xl border-2 overflow-hidden cursor-pointer transition bg-white
         ${selected
-          ? 'border-[#5A2D82] shadow-md shadow-[#5A2D82]/20'
-          : 'border-[#E2E8F0] hover:border-[#B98FD6]'
+          ? 'border-[#0194F3] shadow-md shadow-[#0194F3]/20'
+          : 'border-[#E2E8F0] hover:border-[#7DD3FC]'
         }`}
     >
       {/* รูปห้อง (ซ้าย) */}
@@ -34,7 +34,7 @@ export default function RoomResultCard({ room, rentType, selected, onSelect, onV
       {/* รายละเอียด (กลาง) + ราคา (ขวา) */}
       <div className="flex-1 flex flex-col sm:flex-row justify-between gap-2 py-3 pr-3">
         <div className="min-w-0">
-          <p className={`font-black text-base ${selected ? 'text-[#5A2D82]' : 'text-[#1E293B]'}`}>
+          <p className={`font-black text-base ${selected ? 'text-[#0194F3]' : 'text-[#1E293B]'}`}>
             ห้อง {room.number}
           </p>
           <p className="text-[#64748B] text-xs mb-1">{room.typeName || 'ทั่วไป'}{room.roomSize ? ` · ${room.roomSize}` : ''}</p>
@@ -43,7 +43,7 @@ export default function RoomResultCard({ room, rentType, selected, onSelect, onV
           {room.amenities && room.amenities.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-1">
               {room.amenities.slice(0, 3).map((item) => (
-                <span key={item} className="bg-[#F3EDF9] text-[#6A3A96] text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                <span key={item} className="bg-[#E0F2FE] text-[#0284C7] text-[10px] font-semibold px-2 py-0.5 rounded-full">
                   {item}
                 </span>
               ))}
@@ -54,7 +54,7 @@ export default function RoomResultCard({ room, rentType, selected, onSelect, onV
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onViewDetail(room); }}
-              className="text-xs text-[#5A2D82] font-semibold hover:underline"
+              className="text-xs text-[#0194F3] font-semibold hover:underline"
             >
               ดูรายละเอียด →
             </button>
@@ -64,7 +64,7 @@ export default function RoomResultCard({ room, rentType, selected, onSelect, onV
         {/* ราคา (ขวา) */}
         <div className="text-right shrink-0 flex sm:flex-col items-end justify-between sm:justify-center">
           <div>
-            <p className="text-[#D32F2F] font-black text-lg leading-none">
+            <p className="text-[#0194F3] font-black text-lg leading-none">
               ฿{Number(price).toLocaleString()}
             </p>
             <p className="text-[#94A3B8] text-xs">{unitLabel}</p>

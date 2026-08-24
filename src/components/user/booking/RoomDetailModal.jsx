@@ -17,7 +17,7 @@ export default function RoomDetailModal({ room, rentType, onClose, onBook }) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[#5A2D82] text-xl font-black">ห้อง {room.number}</h3>
+          <h3 className="text-[#0194F3] text-xl font-black">ห้อง {room.number}</h3>
           <button
             onClick={onClose}
             className="w-8 h-8 bg-[#F1F5F9] rounded-full flex items-center justify-center text-[#64748B] hover:bg-[#E2E8F0]"
@@ -41,7 +41,7 @@ export default function RoomDetailModal({ room, rentType, onClose, onBook }) {
           </div>
           <div className="flex justify-between py-2 border-b border-[#F1F5F9]">
             <span className="text-[#94A3B8] font-semibold">ราคา</span>
-            <span className="text-[#5A2D82] font-black">{priceText}</span>
+            <span className="text-[#0194F3] font-black">{priceText}</span>
           </div>
           {room.depositAmount && (
             <div className="flex justify-between py-2 border-b border-[#F1F5F9]">
@@ -60,7 +60,7 @@ export default function RoomDetailModal({ room, rentType, onClose, onBook }) {
               <p className="text-[#94A3B8] font-semibold mb-1.5">สิ่งอำนวยความสะดวก</p>
               <div className="flex flex-wrap gap-1.5">
                 {room.amenities.map((item) => (
-                  <span key={item} className="bg-[#F3EDF9] text-[#6A3A96] text-xs font-semibold px-2 py-0.5 rounded-full">
+                  <span key={item} className="bg-[#E0F2FE] text-[#0284C7] text-xs font-semibold px-2 py-0.5 rounded-full">
                     {item}
                   </span>
                 ))}
@@ -83,7 +83,7 @@ export default function RoomDetailModal({ room, rentType, onClose, onBook }) {
             </button>
             <button
               onClick={onBook}
-              className="flex-[2] bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3 rounded-2xl transition"
+              className="flex-[2] bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3 rounded-2xl transition"
             >
               จองห้องนี้
             </button>

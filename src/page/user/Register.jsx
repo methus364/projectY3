@@ -87,7 +87,7 @@ export default function Register() {
 
       <p className="mt-6 text-sm text-center text-[#64748B]">
         มีบัญชีอยู่แล้ว?{' '}
-        <Link to="/login" className="text-[#5A2D82] font-bold hover:underline">เข้าสู่ระบบ</Link>
+        <Link to="/login" className="text-[#0194F3] font-bold hover:underline">เข้าสู่ระบบ</Link>
       </p>
     </AuthLayout>
   );

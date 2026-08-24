@@ -111,11 +111,11 @@ export default function RepairRequest() {
         ) : (
           <>
             {/* ข้อมูลห้องที่กำลังเข้าพัก */}
-            <div className="bg-[#F3EDF9] border border-[#D9C5EC] rounded-3xl px-5 py-4 mb-5 flex items-center gap-3">
-              <span className="bg-[#5A2D82] p-2.5 rounded-xl text-white">🏠</span>
+            <div className="bg-[#E0F2FE] border border-[#BAE6FD] rounded-3xl px-5 py-4 mb-5 flex items-center gap-3">
+              <span className="bg-[#0194F3] p-2.5 rounded-xl text-white">🏠</span>
               <div>
-                <p className="text-[#46236A] font-black text-sm">กำลังเข้าพักห้อง {activeBooking.roomNumber || activeBooking.roomId}</p>
-                <p className="text-[#6A3A96] text-xs font-semibold">Booking #{activeBooking.bookingId}</p>
+                <p className="text-[#0369A1] font-black text-sm">กำลังเข้าพักห้อง {activeBooking.roomNumber || activeBooking.roomId}</p>
+                <p className="text-[#0284C7] text-xs font-semibold">Booking #{activeBooking.bookingId}</p>
               </div>
             </div>
 
@@ -137,15 +137,33 @@ export default function RepairRequest() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-[#334155] text-sm font-bold mb-2">
-                    หัวข้อปัญหา <span className="text-red-400">*</span>
+                    ประเภทปัญหา <span className="text-red-400">*</span>
                   </label>
+                  {/* ปุ่มเลือกประเภทปัญหาสำเร็จรูป (อ้างอิง mobile repair.js) — กดแล้วตั้งเป็นหัวข้อ */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {['ไฟฟ้า', 'แอร์', 'น้ำประปา', 'ประตู/กุญแจ', 'อินเทอร์เน็ต', 'บิล/มิเตอร์', 'อื่น ๆ'].map((type) => {
+                      const selected = problemTitle === type;
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setProblemTitle(type)}
+                          className={`px-3.5 py-1.5 rounded-full text-sm font-bold border transition ${
+                            selected ? 'bg-[#0194F3] border-[#0194F3] text-white' : 'bg-[#F1F5F9] border-[#E2E8F0] text-[#64748B] hover:border-[#0194F3]'
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      );
+                    })}
+                  </div>
                   <input
                     type="text"
                     value={problemTitle}
                     onChange={(e) => setProblemTitle(e.target.value)}
-                    placeholder="เช่น แอร์ไม่เย็น, น้ำรั่ว, หลอดไฟขาด"
+                    placeholder="หรือพิมพ์หัวข้อเอง เช่น หลอดไฟขาด"
                     required
-                    className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82] focus:ring-2 focus:ring-[#5A2D82]/20"
+                    className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#0194F3] focus:ring-2 focus:ring-[#0194F3]/20"
                   />
                 </div>
                 <div>
@@ -155,7 +173,7 @@ export default function RepairRequest() {
                     onChange={(e) => setProblemDetails(e.target.value)}
                     placeholder="อธิบายปัญหาเพิ่มเติม (ไม่บังคับ)"
                     rows={3}
-                    className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82] focus:ring-2 focus:ring-[#5A2D82]/20"
+                    className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#0194F3] focus:ring-2 focus:ring-[#0194F3]/20"
                   />
                 </div>
                 <div>
@@ -165,7 +183,7 @@ export default function RepairRequest() {
                     value={preferredTime}
                     onChange={(e) => setPreferredTime(e.target.value)}
                     placeholder="เช่น ช่วงเช้า 9-12 น. (ไม่บังคับ)"
-                    className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82] focus:ring-2 focus:ring-[#5A2D82]/20"
+                    className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-3 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#0194F3] focus:ring-2 focus:ring-[#0194F3]/20"
                   />
                 </div>
                 <div>
@@ -184,7 +202,7 @@ export default function RepairRequest() {
                 <button
                   type="submit"
                   disabled={submitting || !problemTitle.trim()}
-                  className="w-full py-3.5 bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black rounded-2xl transition disabled:opacity-50"
+                  className="w-full py-3.5 bg-[#0194F3] hover:bg-[#0178C7] text-white font-black rounded-2xl transition disabled:opacity-50"
                 >
                   {submitting ? 'กำลังส่ง...' : 'ส่งคำร้องแจ้งซ่อม'}
                 </button>

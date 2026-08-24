@@ -248,7 +248,14 @@ export default function Roomuser() {
   // ถ้าถูกส่งมาจากกล่องค้นหาหน้า Home (มี autoSearch) → เติมค่า + ค้นหาให้อัตโนมัติ
   useEffect(() => {
     const s = location.state;
-    if (!s || !s.autoSearch) return;
+    if (!s) return;
+    // มาจากหน้า Home แบบเลือกประเภทไว้ล่วงหน้า (ยังไม่ได้ค้นหา) → ตั้งประเภทแล้วไปหน้าเลือกวันที่
+    if (s.rentType && !s.autoSearch) {
+      if (!lockedRentType || s.rentType === lockedRentType) setRentType(s.rentType);
+      navigate('.', { replace: true, state: null });
+      return;
+    }
+    if (!s.autoSearch) return;
     // กันประเภทที่ role ไม่ให้จอง หลุดมาจากหน้า Home (เผื่อ state เก่า/แก้ URL เอง)
     if (lockedRentType && s.rentType !== lockedRentType) return;
 
@@ -337,14 +344,14 @@ export default function Roomuser() {
                 {lockedRentType !== 'monthly' && (
                   <button
                     onClick={() => setRentType('daily')}
-                    className="flex items-center gap-4 bg-[#F3EDF9] border border-[#D9C5EC] p-5 rounded-2xl hover:bg-[#E7D8F3] transition group"
+                    className="flex items-center gap-4 bg-[#E0F2FE] border border-[#BAE6FD] p-5 rounded-2xl hover:bg-[#D9F3FF] transition group"
                   >
                     <span className="text-3xl">🌅</span>
                     <div className="flex-1 text-left">
-                      <p className="text-[#6A3A96] font-black text-base">ห้องพักรายวัน</p>
-                      <p className="text-[#8B5CB8] text-xs font-semibold mt-0.5">เหมาะสำหรับพักระยะสั้น 1-30 วัน</p>
+                      <p className="text-[#0369A1] font-black text-base">ห้องพักรายวัน</p>
+                      <p className="text-[#0284C7] text-xs font-semibold mt-0.5">เหมาะสำหรับพักระยะสั้น 1-30 วัน</p>
                     </div>
-                    <span className="text-[#D9C5EC] group-hover:translate-x-1 transition text-xl">›</span>
+                    <span className="text-[#BAE6FD] group-hover:translate-x-1 transition text-xl">›</span>
                   </button>
                 )}
                 {lockedRentType !== 'daily' && (
@@ -365,7 +372,7 @@ export default function Roomuser() {
               <div className="mt-5 flex justify-center">
                 <button
                   onClick={() => navigate('/')}
-                  className="text-[#94A3B8] text-sm font-semibold hover:text-[#5A2D82]"
+                  className="text-[#94A3B8] text-sm font-semibold hover:text-[#0194F3]"
                 >
                   ← กลับหน้าแรก
                 </button>
@@ -375,14 +382,14 @@ export default function Roomuser() {
             <div className="space-y-4">
               {/* Badge ประเภทที่เลือก + เปลี่ยน */}
               <div className="flex items-center justify-between">
-                <span className="bg-[#5A2D82] text-white text-sm font-bold px-4 py-1.5 rounded-full">
+                <span className="bg-[#0194F3] text-white text-sm font-bold px-4 py-1.5 rounded-full">
                   {rentType === 'daily' ? '🌅 รายวัน' : '🏠 รายเดือน'}
                 </span>
                 {!lockedRentType && (
                   <button
                     type="button"
                     onClick={() => setRentType('')}
-                    className="text-sm text-[#64748B] hover:text-[#5A2D82] font-semibold"
+                    className="text-sm text-[#64748B] hover:text-[#0194F3] font-semibold"
                   >
                     เปลี่ยนประเภท
                   </button>
@@ -402,7 +409,7 @@ export default function Roomuser() {
                         value={checkIn}
                         onChange={(e) => setCheckIn(e.target.value)}
                         required
-                        className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82]"
+                        className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#0194F3]"
                       />
                       <p className="text-[#94A3B8] text-xs mt-2">เลือกวันเข้าพักแล้วดูผังห้องว่าง</p>
                     </div>
@@ -416,7 +423,7 @@ export default function Roomuser() {
                           value={checkIn}
                           onChange={(e) => setCheckIn(e.target.value)}
                           required
-                          className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82]"
+                          className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#0194F3]"
                         />
                       </div>
                       <div>
@@ -426,7 +433,7 @@ export default function Roomuser() {
                           value={checkOut}
                           onChange={(e) => setCheckOut(e.target.value)}
                           required
-                          className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#5A2D82]"
+                          className="w-full border border-[#CBD5E1] rounded-2xl px-3 py-2.5 text-sm text-[#0F172A] bg-[#F8FAFC] focus:outline-none focus:border-[#0194F3]"
                         />
                       </div>
                     </div>
@@ -434,7 +441,7 @@ export default function Roomuser() {
                   <button
                     type="submit"
                     disabled={searching}
-                    className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
+                    className="w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
                   >
                     {searching ? 'กำลังโหลด...' : (rentType === 'monthly' ? 'ดูผังห้องว่าง' : 'ค้นหาห้องว่าง')}
                   </button>
@@ -452,7 +459,7 @@ export default function Roomuser() {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-sm text-[#64748B] hover:text-[#5A2D82] font-semibold"
+                className="text-sm text-[#64748B] hover:text-[#0194F3] font-semibold"
               >
                 ← เปลี่ยนวันที่
               </button>
@@ -465,7 +472,7 @@ export default function Roomuser() {
                 type="date"
                 value={checkIn}
                 onChange={(e) => { setCheckIn(e.target.value); loadAvailability(e.target.value); }}
-                className="border border-[#CBD5E1] rounded-xl px-3 py-1.5 text-sm bg-white focus:outline-none focus:border-[#5A2D82]"
+                className="border border-[#CBD5E1] rounded-xl px-3 py-1.5 text-sm bg-white focus:outline-none focus:border-[#0194F3]"
               />
             </div>
 
@@ -488,7 +495,7 @@ export default function Roomuser() {
                       onClick={() => setSelectedFloor(f)}
                       className={`px-4 py-1.5 rounded-full text-sm font-bold transition ${
                         selectedFloor === f
-                          ? 'bg-[#5A2D82] text-white'
+                          ? 'bg-[#0194F3] text-white'
                           : 'bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]'
                       }`}
                     >
@@ -515,7 +522,7 @@ export default function Roomuser() {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-sm text-[#64748B] hover:text-[#5A2D82] font-semibold"
+                className="text-sm text-[#64748B] hover:text-[#0194F3] font-semibold"
               >
                 ← แก้ไขการค้นหา
               </button>
@@ -537,7 +544,7 @@ export default function Roomuser() {
                     <div
                       key={group.typeName}
                       className={`flex gap-3 rounded-2xl border-2 overflow-hidden bg-white transition
-                        ${groupSelected ? 'border-[#5A2D82] shadow-md shadow-[#5A2D82]/20' : 'border-[#E2E8F0]'}`}
+                        ${groupSelected ? 'border-[#0194F3] shadow-md shadow-[#0194F3]/20' : 'border-[#E2E8F0]'}`}
                     >
                       {/* รูป (ซ้าย) */}
                       <div className="w-28 sm:w-36 shrink-0 bg-[#F1F5F9]">
@@ -551,7 +558,7 @@ export default function Roomuser() {
                       {/* รายละเอียด (กลาง) + ราคา/ปุ่ม (ขวา) */}
                       <div className="flex-1 flex flex-col sm:flex-row justify-between gap-2 py-3 pr-3">
                         <div className="min-w-0">
-                          <p className={`font-black text-base ${groupSelected ? 'text-[#5A2D82]' : 'text-[#1E293B]'}`}>
+                          <p className={`font-black text-base ${groupSelected ? 'text-[#0194F3]' : 'text-[#1E293B]'}`}>
                             {group.typeName}
                           </p>
                           <p className="text-[#16A34A] text-xs font-bold mb-1">ว่าง {group.rooms.length} ห้อง</p>
@@ -559,7 +566,7 @@ export default function Roomuser() {
                           {group.sample.amenities && group.sample.amenities.length > 0 && (
                             <div className="flex flex-wrap gap-1 mb-1">
                               {group.sample.amenities.slice(0, 3).map((item) => (
-                                <span key={item} className="bg-[#F3EDF9] text-[#6A3A96] text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                                <span key={item} className="bg-[#E0F2FE] text-[#0284C7] text-[10px] font-semibold px-2 py-0.5 rounded-full">
                                   {item}
                                 </span>
                               ))}
@@ -570,7 +577,7 @@ export default function Roomuser() {
                             <button
                               type="button"
                               onClick={() => setDetailRoom(group.sample)}
-                              className="text-xs text-[#5A2D82] font-semibold hover:underline"
+                              className="text-xs text-[#0194F3] font-semibold hover:underline"
                             >
                               ดูรายละเอียด →
                             </button>
@@ -580,7 +587,7 @@ export default function Roomuser() {
                         {/* ราคา + ปุ่มเลือก (ขวา) */}
                         <div className="text-right shrink-0 flex sm:flex-col items-end justify-between sm:justify-center gap-2">
                           <div>
-                            <p className="text-[#D32F2F] font-black text-lg leading-none">
+                            <p className="text-[#0194F3] font-black text-lg leading-none">
                               ฿{Number(group.sample.price).toLocaleString()}
                             </p>
                             <p className="text-[#94A3B8] text-xs">/คืน</p>
@@ -590,7 +597,7 @@ export default function Roomuser() {
                             type="button"
                             onClick={() => setSelectedRoomId(group.rooms[0].id)}
                             className={`px-4 py-2 rounded-xl font-bold text-sm transition
-                              ${groupSelected ? 'bg-[#5A2D82] text-white' : 'bg-[#FEE2E2] text-[#D32F2F] hover:bg-[#FECACA]'}`}
+                              ${groupSelected ? 'bg-[#0194F3] text-white' : 'bg-[#E0F2FE] text-[#0194F3] hover:bg-[#BAE6FD]'}`}
                           >
                             {groupSelected ? '✓ เลือกแล้ว' : 'เลือก'}
                           </button>
@@ -607,7 +614,7 @@ export default function Roomuser() {
                 type="button"
                 onClick={handleGoToSummary}
                 disabled={!selectedRoomId}
-                className="mt-4 w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
+                className="mt-4 w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
               >
                 ถัดไป{selectedRoom ? ` (ห้อง ${selectedRoom.number})` : ''}
               </button>

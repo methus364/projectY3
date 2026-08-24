@@ -43,13 +43,13 @@ export default function Navbar() {
   );
 
   return (
-    <nav className="bg-[#2C1338] fixed top-0 w-full z-50 shadow-lg">
+    <nav className="bg-[#0178C7] fixed top-0 w-full z-50 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
 
           {/* โลโก้ Around Loei */}
           <Link to="/" className="flex items-center gap-2 text-xl font-black text-white">
-            <span className="text-[#D32F2F] text-2xl">◆</span>
+            <span className="text-[#00E676] text-2xl">◆</span>
             Around Loei
           </Link>
 
@@ -59,14 +59,14 @@ export default function Navbar() {
             {isLoggedIn ? (
               <button
                 onClick={handleSignOut}
-                className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white text-sm font-bold px-4 py-1.5 rounded-lg transition"
+                className="bg-white hover:bg-white/90 text-[#0178C7] text-sm font-bold px-4 py-1.5 rounded-lg transition"
               >
                 ออกจากระบบ
               </button>
             ) : (
               <Link
                 to="/login"
-                className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white font-bold px-4 py-1.5 rounded-lg transition"
+                className="bg-white hover:bg-white/90 text-[#0178C7] font-bold px-4 py-1.5 rounded-lg transition"
               >
                 เข้าสู่ระบบ
               </Link>
@@ -97,7 +97,7 @@ export default function Navbar() {
 
       {/* เมนู mobile */}
       {isOpen && (
-        <div className="md:hidden bg-[#3B1E52] border-t border-white/10">
+        <div className="md:hidden bg-[#0164A6] border-t border-white/10">
           <div className="px-4 py-3 space-y-2 text-white font-semibold" onClick={closeMenu}>
             <Link to="/" className="block hover:text-white/70">หน้าแรก</Link>
             <Link to="/roomuser" className="block hover:text-white/70">ค้นหาห้องพัก</Link>
