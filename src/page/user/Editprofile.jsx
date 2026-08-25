@@ -2,10 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 
+// รายการ provider ที่รองรับ (ใช้แสดงในการ์ด "บัญชีที่เชื่อม")
+// key ต้องตรงกับค่าใน social_accounts.provider ('google' / 'line')
+const SOCIAL_PROVIDERS = [
+  { key: 'google', label: 'Google', short: 'G', color: '#EA4335' },
+  { key: 'line', label: 'LINE', short: 'L', color: '#06C755' },
+];
+
 // แก้ไขโปรไฟล์ — อ้างอิง mobile app: app/(tabs)/profileedit.js (ธีมฟ้า, header เอง, ชื่อ read-only, success modal)
 export default function Editprofile() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: '', phone: '', email: '' });
+  const [socialProviders, setSocialProviders] = useState([]); // รายชื่อ provider ที่ผูกไว้ เช่น ['google']
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -21,6 +29,14 @@ export default function Editprofile() {
       })
       .catch(() => { alert('กรุณาเข้าสู่ระบบใหม่'); navigate('/login'); })
       .finally(() => setLoading(false));
+
+    // ดึงบัญชี social ที่ผูกไว้มาแสดง (แสดงอย่างเดียว — ยังไม่มีปุ่มเชื่อม/ถอดในเฟสนี้)
+    api.get('/my-social-accounts')
+      .then((res) => {
+        const providers = (res.data.data || []).map((row) => row.provider);
+        setSocialProviders(providers);
+      })
+      .catch(() => { /* ถ้าดึงไม่ได้ก็แค่ไม่แสดงการ์ด ไม่ต้องขัดจังหวะหน้าหลัก */ });
   }, [navigate]);
 
   const handleChange = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
@@ -90,6 +106,34 @@ export default function Editprofile() {
 
           <label className="block text-[#334155] text-[13px] font-bold mb-2 mt-2.5">Email</label>
           <input value={form.email} onChange={(e) => handleChange('email', e.target.value)} type="email" placeholder="กรอกอีเมล" className={inputClass} />
+        </div>
+
+        {/* การ์ดบัญชีที่เชื่อม (แสดงอย่างเดียว) — โชว์ว่าเชื่อม Google/LINE ไว้แล้วหรือยัง */}
+        <div className="bg-white rounded-3xl border border-[#E2E8F0] p-5 mt-4">
+          <p className="text-[#0194F3] text-lg font-black mb-4">บัญชีที่เชื่อม</p>
+          {SOCIAL_PROVIDERS.map((p) => {
+            const connected = socialProviders.includes(p.key);
+            return (
+              <div key={p.key} className="flex items-center gap-3 py-2.5">
+                {/* ไอคอนวงกลมตามสีของ provider */}
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-black" style={{ backgroundColor: p.color }}>
+                  {p.short}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[#1E293B] text-sm font-bold">{p.label}</p>
+                  {/* Google ใช้อีเมลเดียวกับบัญชี → โชว์อีเมลคู่ไว้ให้รู้ว่าเชื่อมด้วยเมลไหน */}
+                  {connected && p.key === 'google' && form.email && (
+                    <p className="text-[#64748B] text-xs truncate">{form.email}</p>
+                  )}
+                </div>
+                {connected ? (
+                  <span className="text-[#16A34A] text-xs font-bold bg-[#DCFCE7] px-3 py-1 rounded-full">✓ เชื่อมแล้ว</span>
+                ) : (
+                  <span className="text-[#94A3B8] text-xs font-bold bg-[#F1F5F9] px-3 py-1 rounded-full">ยังไม่เชื่อม</span>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <button onClick={handleSave} disabled={saving} className="w-full mt-4 bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-4 rounded-2xl transition disabled:opacity-70">
