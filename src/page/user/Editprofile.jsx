@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
+import { startGoogleLogin, startLineLogin } from '../../lib/socialAuth';
 
 // รายการ provider ที่รองรับ (ใช้แสดงในการ์ด "บัญชีที่เชื่อม")
 // key ต้องตรงกับค่าใน social_accounts.provider ('google' / 'line')
@@ -40,6 +41,14 @@ export default function Editprofile() {
   }, [navigate]);
 
   const handleChange = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
+
+  // กดปุ่ม "เชื่อม" — จำโหมดเชื่อมไว้ใน sessionStorage แล้วพาไป OAuth ของ provider นั้น
+  // callback (Google/LineCallback) เห็นโหมดนี้จะเรียก endpoint /link ผูกเข้าบัญชีปัจจุบันแทนการ login
+  const handleLink = (providerKey) => {
+    sessionStorage.setItem('social_link_mode', providerKey);
+    if (providerKey === 'google') startGoogleLogin();
+    else if (providerKey === 'line') startLineLogin();
+  };
 
   const handleSave = async () => {
     try {
@@ -97,9 +106,9 @@ export default function Editprofile() {
         <div className="bg-white rounded-3xl border border-[#E2E8F0] p-5">
           <p className="text-[#0194F3] text-lg font-black mb-4">ข้อมูลทั่วไป</p>
 
-          {/* ชื่อ-นามสกุล: read-only เหมือน mobile */}
+          {/* ชื่อ-นามสกุล: แก้ไขได้ */}
           <label className="block text-[#334155] text-[13px] font-bold mb-2 mt-2.5">ชื่อ-นามสกุล</label>
-          <input value={form.name} readOnly className={inputClass + ' opacity-90 cursor-not-allowed'} />
+          <input value={form.name} onChange={(e) => handleChange('name', e.target.value)} placeholder="ชื่อ-นามสกุล" className={inputClass} />
 
           <label className="block text-[#334155] text-[13px] font-bold mb-2 mt-2.5">Phone Number</label>
           <input value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} type="tel" placeholder="กรอกเบอร์โทรศัพท์" className={inputClass} />
@@ -108,7 +117,7 @@ export default function Editprofile() {
           <input value={form.email} onChange={(e) => handleChange('email', e.target.value)} type="email" placeholder="กรอกอีเมล" className={inputClass} />
         </div>
 
-        {/* การ์ดบัญชีที่เชื่อม (แสดงอย่างเดียว) — โชว์ว่าเชื่อม Google/LINE ไว้แล้วหรือยัง */}
+        {/* การ์ดบัญชีที่เชื่อม — โชว์สถานะ + ปุ่ม "เชื่อม" ถ้ายังไม่ได้ผูก (เฟส 2 มีเชื่อม ยังไม่มีถอด) */}
         <div className="bg-white rounded-3xl border border-[#E2E8F0] p-5 mt-4">
           <p className="text-[#0194F3] text-lg font-black mb-4">บัญชีที่เชื่อม</p>
           {SOCIAL_PROVIDERS.map((p) => {
@@ -129,7 +138,13 @@ export default function Editprofile() {
                 {connected ? (
                   <span className="text-[#16A34A] text-xs font-bold bg-[#DCFCE7] px-3 py-1 rounded-full">✓ เชื่อมแล้ว</span>
                 ) : (
-                  <span className="text-[#94A3B8] text-xs font-bold bg-[#F1F5F9] px-3 py-1 rounded-full">ยังไม่เชื่อม</span>
+                  <button
+                    type="button"
+                    onClick={() => handleLink(p.key)}
+                    className="text-[#0194F3] text-xs font-bold border border-[#0194F3] hover:bg-[#0194F3] hover:text-white px-4 py-1.5 rounded-full transition"
+                  >
+                    เชื่อม
+                  </button>
                 )}
               </div>
             );

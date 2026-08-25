@@ -33,6 +33,16 @@ export default function LineCallback() {
         // redirect_uri ต้องตรงกับตอนเริ่ม login เป๊ะ
         const redirectUri = `${window.location.origin}/auth/line/callback`;
 
+        // โหมด "เชื่อมบัญชี" — ผู้ใช้กดปุ่มเชื่อมจากหน้าโปรไฟล์ (ล็อกอินอยู่แล้ว)
+        // → ผูก LINE เข้าบัญชีปัจจุบันแทนการ login ใหม่ แล้วกลับหน้าแก้ไขโปรไฟล์
+        if (sessionStorage.getItem('social_link_mode') === 'line') {
+            sessionStorage.removeItem('social_link_mode');
+            api.post('/auth/line/link', { code, redirect_uri: redirectUri })
+                .then(() => navigate('/Editprofile'))
+                .catch((err) => setError(err.response?.data?.message || 'เชื่อมบัญชี LINE ไม่สำเร็จ'));
+            return;
+        }
+
         api.post('/auth/line/exchange', { code, redirect_uri: redirectUri })
             .then((res) => {
                 const { token, payload, isNewUser, profile } = res.data;

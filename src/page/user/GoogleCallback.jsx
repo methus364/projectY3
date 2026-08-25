@@ -33,6 +33,16 @@ export default function GoogleCallback() {
         // redirect_uri ต้องตรงกับตอนเริ่ม login เป๊ะ
         const redirectUri = `${window.location.origin}/auth/google/callback`;
 
+        // โหมด "เชื่อมบัญชี" — ผู้ใช้กดปุ่มเชื่อมจากหน้าโปรไฟล์ (ล็อกอินอยู่แล้ว)
+        // → ผูก Google เข้าบัญชีปัจจุบันแทนการ login ใหม่ แล้วกลับหน้าแก้ไขโปรไฟล์
+        if (sessionStorage.getItem('social_link_mode') === 'google') {
+            sessionStorage.removeItem('social_link_mode');
+            api.post('/auth/google/link', { code, redirect_uri: redirectUri })
+                .then(() => navigate('/Editprofile'))
+                .catch((err) => setError(err.response?.data?.message || 'เชื่อมบัญชี Google ไม่สำเร็จ'));
+            return;
+        }
+
         api.post('/auth/google/exchange', { code, redirect_uri: redirectUri })
             .then((res) => {
                 const { token, payload, isNewUser, profile } = res.data;
