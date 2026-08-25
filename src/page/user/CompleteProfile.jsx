@@ -100,11 +100,6 @@ export default function CompleteProfile() {
         <RoleSelector value={user_role} onChange={setUserRole} />
 
         <TextField
-          label="ชื่อผู้ใช้ (username) — ใช้เข้าสู่ระบบ" required
-          value={username} onChange={(e) => setUsername(e.target.value)} placeholder="ตั้งชื่อผู้ใช้ 4–20 ตัว"
-        />
-
-        <TextField
           label="ชื่อ" required
           value={first_name} onChange={(e) => setFirstName(e.target.value)} placeholder="ชื่อจริง"
         />
@@ -117,6 +112,12 @@ export default function CompleteProfile() {
         <TextField
           label="เบอร์โทรศัพท์" required type="tel"
           value={phone_number} onChange={(e) => setPhone(e.target.value)} placeholder="08x-xxx-xxxx"
+        />
+
+        {/* กลุ่มข้อมูลเข้าสู่ระบบ — username คู่กับ password */}
+        <TextField
+          label="ชื่อผู้ใช้ (username) — ใช้เข้าสู่ระบบ" required
+          value={username} onChange={(e) => setUsername(e.target.value)} placeholder="ตั้งชื่อผู้ใช้ 4–20 ตัว"
         />
 
         <PasswordField
