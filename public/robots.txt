@@ -1,0 +1,6 @@
+# อนุญาตให้ search engine เก็บหน้าเว็บได้ทั้งหมด
+User-agent: *
+Allow: /
+
+# ชี้ตำแหน่ง sitemap
+Sitemap: https://project-y3.vercel.app/sitemap.xml
