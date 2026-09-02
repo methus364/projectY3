@@ -27,15 +27,20 @@ export default function BookingSummary({ room, rentType, checkIn, checkOut, nigh
         {room.imageUrl && (
           <img
             src={room.imageUrl}
-            alt={`ห้อง ${room.number}`}
+            alt={room.typeName || 'ห้องพัก'}
             className="w-full h-32 object-cover rounded-2xl mb-4"
           />
         )}
 
         <div className="space-y-2 text-sm">
           <div className="flex justify-between py-1.5">
+            {/* รายวันโชว์แค่ประเภทห้อง (ไม่ระบุเลขห้อง) · รายเดือนเลือกห้องเจาะจงจากผัง จึงโชว์เลขห้องได้ */}
             <span className="text-[#94A3B8] font-semibold">ห้องพัก</span>
-            <span className="text-[#1E293B] font-bold">ห้อง {room.number} ({room.typeName || 'ทั่วไป'})</span>
+            <span className="text-[#1E293B] font-bold">
+              {rentType === 'monthly'
+                ? `ห้อง ${room.number} (${room.typeName || 'ทั่วไป'})`
+                : (room.typeName || 'ทั่วไป')}
+            </span>
           </div>
           <div className="flex justify-between py-1.5">
             <span className="text-[#94A3B8] font-semibold">ประเภทการเช่า</span>

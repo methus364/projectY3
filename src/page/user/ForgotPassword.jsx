@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 
 // หน้าลืมรหัสผ่าน — wizard 3 สเต็ป (อ้างอิง mobile app: editregister.js)
-//   1) กรอก username + email → POST /auth/send-otp
+//   1) กรอก username อย่างเดียว → POST /auth/send-otp (server หาอีเมลของบัญชีนั้นมาส่ง OTP เอง)
 //   2) กรอก OTP 6 หลัก → POST /auth/verify-otp (มีนับถอยหลัง 60 วิ + ส่งใหม่)
 //   3) ตั้งรหัสผ่านใหม่ → POST /auth/reset-password → กลับไปหน้า login
 export default function ForgotPassword() {
@@ -18,9 +18,10 @@ export default function ForgotPassword() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const timerRef = useRef(null);
+  const [sentTo, setSentTo] = useState('');   // อีเมล (ปิดบังบางส่วน) ที่ระบบส่ง OTP ไป
 
   const [form, setForm] = useState({
-    username: '', email: '', otp: '', newPassword: '', confirmPassword: '',
+    username: '', otp: '', newPassword: '', confirmPassword: '',
   });
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
@@ -43,16 +44,17 @@ export default function ForgotPassword() {
 
   const handleSendOtp = async () => {
     setErrorMsg('');
-    if (!form.username.trim() || !form.email.trim()) {
-      setErrorMsg('กรุณากรอกชื่อ user และ email ให้ครบ');
+    if (!form.username.trim()) {
+      setErrorMsg('กรุณากรอกชื่อ user');
       return;
     }
     try {
       setSendingOtp(true);
       const res = await api.post('/auth/send-otp', {
-        username: form.username.trim(), email: form.email.trim(),
+        username: form.username.trim(),
       });
       if (!res.data?.success) { setErrorMsg(res.data?.message || 'ไม่สามารถส่งรหัส OTP ได้'); return; }
+      setSentTo(res.data?.email || '');   // เก็บอีเมลปิดบังไว้แสดงในสเต็ป 2
       startTimer();
       setStep(2);
     } catch (error) {
@@ -69,7 +71,7 @@ export default function ForgotPassword() {
     try {
       setVerifyingOtp(true);
       const res = await api.post('/auth/verify-otp', {
-        username: form.username.trim(), email: form.email.trim(), otp: form.otp.trim(),
+        username: form.username.trim(), otp: form.otp.trim(),
       });
       if (!res.data?.success) { setErrorMsg(res.data?.message || 'กรุณากรอกรหัส OTP ให้ถูกต้อง'); return; }
       if (timerRef.current) clearInterval(timerRef.current);
@@ -90,7 +92,7 @@ export default function ForgotPassword() {
     try {
       setSavingPassword(true);
       const res = await api.post('/auth/reset-password', {
-        username: form.username.trim(), email: form.email.trim(), newPassword: form.newPassword,
+        username: form.username.trim(), newPassword: form.newPassword,
       });
       if (!res.data?.success) { setErrorMsg(res.data?.message || 'ไม่สามารถบันทึกรหัสผ่านได้'); return; }
       alert('เปลี่ยนรหัสผ่านเรียบร้อยแล้ว');
@@ -147,13 +149,13 @@ export default function ForgotPassword() {
         {/* สเต็ป 1: กรอก user + email */}
         {step === 1 && (
           <div className="bg-white rounded-3xl border border-[#E2E8F0] p-5">
-            <p className="text-[#0194F3] text-lg font-black mb-2">กรอกข้อมูลเพื่อรับ OTP</p>
+            <p className="text-[#0194F3] text-lg font-black mb-2">กรอกชื่อผู้ใช้เพื่อรับ OTP</p>
+            <p className="text-[#64748B] text-sm font-semibold mb-3.5">
+              ระบบจะส่งรหัส OTP ไปยังอีเมลที่ผูกกับบัญชีนี้
+            </p>
             <label className="block text-[#334155] text-sm font-bold mb-2 mt-2.5">User Name</label>
             <input value={form.username} onChange={(e) => handleChange('username', e.target.value)}
               placeholder="กรอกชื่อ user" autoCapitalize="none" className={inputClass} />
-            <label className="block text-[#334155] text-sm font-bold mb-2 mt-2.5">Email</label>
-            <input value={form.email} onChange={(e) => handleChange('email', e.target.value)}
-              type="email" placeholder="กรอกอีเมล" className={inputClass} />
             <button onClick={handleSendOtp} disabled={sendingOtp} className={actionBtnClass}>
               {sendingOtp ? 'กำลังส่ง...' : 'ส่งรหัส OTP ไปที่อีเมล'}
             </button>
@@ -164,6 +166,9 @@ export default function ForgotPassword() {
         {step === 2 && (
           <div className="bg-white rounded-3xl border border-[#E2E8F0] p-5">
             <p className="text-[#0194F3] text-lg font-black mb-2">กรอกรหัส OTP</p>
+            {sentTo && (
+              <p className="text-[#64748B] text-sm font-semibold mb-1">ส่งรหัสไปที่อีเมล {sentTo}</p>
+            )}
             <p className="text-[#64748B] text-sm font-semibold mb-3.5">รหัสจะหมดเวลาใน {countdown} วินาที</p>
             <input value={form.otp}
               onChange={(e) => handleChange('otp', e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}

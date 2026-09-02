@@ -616,7 +616,8 @@ export default function Roomuser() {
                 disabled={!selectedRoomId}
                 className="mt-4 w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition disabled:opacity-50"
               >
-                ถัดไป{selectedRoom ? ` (ห้อง ${selectedRoom.number})` : ''}
+                {/* รายวันจองเป็น "ประเภทห้อง" ไม่โชว์เลขห้อง (แอดมินกำหนดห้องจริงตอนเช็คอิน) */}
+                ถัดไป{selectedRoom ? ` (${selectedRoom.typeName || 'ทั่วไป'})` : ''}
               </button>
             )}
           </div>

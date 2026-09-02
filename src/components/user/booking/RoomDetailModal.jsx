@@ -13,11 +13,16 @@ export default function RoomDetailModal({ room, rentType, onClose, onBook }) {
     ? `฿${Number(room.priceMonthly).toLocaleString()} / เดือน`
     : `฿${Number(room.price).toLocaleString()} / วัน`;
 
+  // รายวันโชว์แค่ประเภทห้อง (ไม่ระบุเลขห้อง) · รายเดือนเลือกห้องเจาะจงจากผัง จึงโชว์เลขห้องได้
+  const title = rentType === 'monthly'
+    ? `ห้อง ${room.number}`
+    : (room.typeName || 'ห้องพัก');
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[#0194F3] text-xl font-black">ห้อง {room.number}</h3>
+          <h3 className="text-[#0194F3] text-xl font-black">{title}</h3>
           <button
             onClick={onClose}
             className="w-8 h-8 bg-[#F1F5F9] rounded-full flex items-center justify-center text-[#64748B] hover:bg-[#E2E8F0]"
@@ -29,7 +34,7 @@ export default function RoomDetailModal({ room, rentType, onClose, onBook }) {
         {room.imageUrl && (
           <img
             src={room.imageUrl}
-            alt={`ห้อง ${room.number}`}
+            alt={room.typeName || 'ห้องพัก'}
             className="w-full h-44 object-cover rounded-2xl mb-4"
           />
         )}

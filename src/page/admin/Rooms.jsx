@@ -9,6 +9,7 @@ const Rooms = () => {
     const [selectedFloor, setSelectedFloor] = useState('ทั้งหมด');
     const [selectedStatus, setSelectedStatus] = useState('ทั้งหมด');
     const [showModal, setShowModal] = useState(false);
+    const [uploading, setUploading] = useState(false);   // กำลังอัปโหลดรูปอยู่ไหม
 
     const initialForm = {
         id: null,
@@ -16,7 +17,7 @@ const Rooms = () => {
         type_name: '',
         room_price: '',
         price_monthly: '',
-        image_url: '',
+        images: [],      // รายการ URL รูปห้อง (หลายรูป · รูปแรก = รูปปก)
         room_status: 'ว่าง',
         description: '',
         amenities: '',   // กรอกคั่นด้วยจุลภาค เช่น "แอร์,ตู้เย็น,Wi-Fi"
@@ -40,16 +41,54 @@ const Rooms = () => {
 
     useEffect(() => { fetchRooms(); }, []);
 
+    // --- อัปโหลดรูปที่เลือก (ได้หลายไฟล์) → ได้ URL กลับมาต่อท้าย form.images ---
+    const handleUploadImages = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        try {
+            setUploading(true);
+            const formData = new FormData();
+            files.forEach(file => formData.append('images', file));
+
+            const res = await api.post('/uploadRoomImages', formData);
+            const newUrls = res.data.urls || [];
+            setForm(prev => ({ ...prev, images: [...prev.images, ...newUrls] }));
+        } catch (error) {
+            alert("อัปโหลดรูปไม่สำเร็จ: " + (error.response?.data?.message || error.message));
+            console.error("Upload Images Error:", error);
+        } finally {
+            setUploading(false);
+            e.target.value = '';   // เคลียร์ input เผื่อเลือกไฟล์เดิมซ้ำได้
+        }
+    };
+
+    // --- ลบรูปออกจากรายการ (เอาตำแหน่งที่ต้องการออก) ---
+    const removeImage = (index) => {
+        setForm(prev => ({
+            ...prev,
+            images: prev.images.filter((_, i) => i !== index),
+        }));
+    };
+
     // --- Open Modal ---
     const openModal = (room = null) => {
         if (room) {
+            // รูปห้อง: ใช้ imageUrls (หลายรูป) ถ้ามี · ถ้าไม่มีก็ fallback รูปเดียว imageUrl
+            let images = [];
+            if (Array.isArray(room.imageUrls) && room.imageUrls.length > 0) {
+                images = room.imageUrls;
+            } else if (room.imageUrl) {
+                images = [room.imageUrl];
+            }
+
             setForm({
                 id: room.id,
                 number: room.number,
                 type_name: room.typeName || '',
                 room_price: room.price || '',
                 price_monthly: room.priceMonthly || '',
-                image_url: room.imageUrl || '',
+                images: images,
                 room_status: room.status,
                 description: room.description || '',
                 // amenities เก็บเป็น array ใน DB → แสดงเป็น string คั่นจุลภาคในฟอร์ม
@@ -77,7 +116,7 @@ const Rooms = () => {
                 type_name: form.type_name || null,
                 room_price: form.room_price !== '' ? Number(form.room_price) : null,
                 price_monthly: form.price_monthly !== '' ? Number(form.price_monthly) : null,
-                image_url: form.image_url || null,
+                image_urls: form.images.length > 0 ? form.images : null,
                 description: form.description || null,
                 amenities: amenitiesArray,
                 room_size: form.room_size !== '' ? Number(form.room_size) : null,
@@ -191,6 +230,22 @@ const Rooms = () => {
                             <p className="opacity-80 font-medium">{selectedRoom.typeName || 'ไม่ระบุประเภท'} • {selectedRoom.status}</p>
                         </div>
                         <div className="p-8">
+                            {/* แกลเลอรีรูปห้อง (ถ้ามี) */}
+                            {(() => {
+                                const images = Array.isArray(selectedRoom.imageUrls) && selectedRoom.imageUrls.length > 0
+                                    ? selectedRoom.imageUrls
+                                    : (selectedRoom.imageUrl ? [selectedRoom.imageUrl] : []);
+                                if (images.length === 0) return null;
+                                return (
+                                    <div className="flex gap-2 overflow-x-auto mb-6 pb-2">
+                                        {images.map((url, i) => (
+                                            <img key={i} src={url} alt={`รูปห้อง ${i + 1}`}
+                                                className="w-28 h-28 object-cover rounded-2xl shadow-sm border border-border flex-shrink-0" />
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+
                             <div className="space-y-4 mb-8 text-muted-foreground">
                                 <div className="flex justify-between border-b pb-2">
                                     <span className="font-bold">ประเภทห้อง:</span>
@@ -286,13 +341,41 @@ const Rooms = () => {
                                     className="w-full bg-muted/50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-primary" />
                             </div>
 
-                            {/* URL รูปห้อง */}
+                            {/* รูปห้อง (อัปโหลดได้หลายรูป · รูปแรก = รูปปก) */}
                             <div className="col-span-2">
-                                <label className="block text-xs font-black text-muted-foreground mb-2 uppercase tracking-widest">URL รูปห้อง</label>
-                                <input type="url" value={form.image_url}
-                                    onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-                                    placeholder="https://..."
-                                    className="w-full bg-muted/50 rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-primary" />
+                                <label className="block text-xs font-black text-muted-foreground mb-2 uppercase tracking-widest">
+                                    รูปห้อง (เลือกได้หลายรูป)
+                                </label>
+
+                                {/* พรีวิวรูปที่มีอยู่ + ปุ่มลบทีละรูป */}
+                                {form.images.length > 0 && (
+                                    <div className="flex flex-wrap gap-3 mb-3">
+                                        {form.images.map((url, index) => (
+                                            <div key={index} className="relative w-24 h-24 rounded-xl overflow-hidden shadow-sm border border-border">
+                                                <img src={url} alt={`รูปห้อง ${index + 1}`} className="w-full h-full object-cover" />
+                                                {/* รูปแรก = รูปปก */}
+                                                {index === 0 && (
+                                                    <span className="absolute bottom-0 left-0 right-0 bg-primary/80 text-white text-[10px] text-center font-bold py-0.5">
+                                                        รูปปก
+                                                    </span>
+                                                )}
+                                                <button type="button" onClick={() => removeImage(index)}
+                                                    className="absolute top-1 right-1 bg-rose-500 text-white w-6 h-6 rounded-full text-sm font-bold flex items-center justify-center hover:bg-rose-600 shadow">
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* ปุ่มเลือกไฟล์ */}
+                                <label className={`inline-block px-5 py-3 rounded-2xl font-bold cursor-pointer transition-all ${uploading ? 'bg-muted text-muted-foreground cursor-wait' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}>
+                                    {uploading ? 'กำลังอัปโหลด...' : '+ เพิ่มรูปภาพ'}
+                                    <input type="file" accept="image/*" multiple hidden
+                                        disabled={uploading}
+                                        onChange={handleUploadImages} />
+                                </label>
+                                <p className="text-xs text-muted-foreground mt-1">รองรับ jpg, png, webp • สูงสุด 8 รูป • ไม่เกิน 5MB ต่อรูป</p>
                             </div>
 
                             {/* ขนาดห้อง */}
@@ -344,9 +427,9 @@ const Rooms = () => {
                         </div>
 
                         <div className="flex gap-4">
-                            <button type="submit"
-                                className="flex-1 bg-primary text-primary-foreground py-4 rounded-2xl font-black text-lg hover:bg-primary/90 shadow-xl transition-all active:scale-95">
-                                บันทึกข้อมูล
+                            <button type="submit" disabled={uploading}
+                                className="flex-1 bg-primary text-primary-foreground py-4 rounded-2xl font-black text-lg hover:bg-primary/90 shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                                {uploading ? 'กำลังอัปโหลดรูป...' : 'บันทึกข้อมูล'}
                             </button>
                             <button type="button" onClick={() => setShowModal(false)}
                                 className="px-8 py-4 bg-muted text-muted-foreground rounded-2xl font-bold hover:bg-muted/80">

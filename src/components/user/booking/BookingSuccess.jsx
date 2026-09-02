@@ -118,8 +118,11 @@ export default function BookingSuccess({ result, onGoHistory, onBookAgain, onExp
       {/* สรุปสั้นๆ */}
       <div className="bg-[#F8FAFC] rounded-2xl p-4 text-sm text-left space-y-2 mb-4">
         <div className="flex justify-between">
+          {/* รายวันโชว์แค่ประเภทห้อง (ไม่ระบุเลขห้อง) · รายเดือนโชว์เลขห้องที่เลือก */}
           <span className="text-[#94A3B8] font-semibold">ห้องพัก</span>
-          <span className="text-[#1E293B] font-bold">ห้อง {result.roomNumber}</span>
+          <span className="text-[#1E293B] font-bold">
+            {isMonthly ? `ห้อง ${result.roomNumber}` : (result.typeName || 'ทั่วไป')}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-[#94A3B8] font-semibold">วันเข้าพัก</span>
