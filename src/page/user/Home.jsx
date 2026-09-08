@@ -1,13 +1,16 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { getCurrentUser, isLoggedIn as checkIsLoggedIn } from '../../lib/auth';
+import Navbar from '../../components/user/Navbar';
 
-// รูป carousel (ชุดเดียวกับ mobile app)
+// รูป carousel (ชุดเดียวกับ mobile app — วางไว้ใน public/)
 const images = [
-  'https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=1200',
-  'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=1200',
-  'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1200',
+  '/hero-around-loei.jpg',
+  '/hero-slide-1.jpg',
+  '/hero-slide-2.jpg',
+  '/hero-slide-3.jpg',
+  '/hero-slide-4.jpg',
 ];
 
 const normalizeStatus = (s) => String(s || '').trim().toLowerCase();
@@ -22,14 +25,13 @@ const TEXT = {
     desc: 'สัมผัสการใช้ชีวิตที่เหนือระดับกับ "Around Loei" หอพักราย-รายเดือน เดินทางสะดวก ใกล้ มรภ.เลย และแหล่งของกินครบครัน',
     bookingList: 'ประวัติการจองห้องพัก', repair: 'แจ้งซ่อมและแจ้งปัญหา', line: 'Line Official',
     fb: 'Facebook Fanpage', call: 'โทรสอบถามห้องว่าง', amenTitle: 'สิ่งอำนวยความสะดวก',
-    bookButton: 'จองห้องพัก', bookingActiveButton: 'จองห้องพัก', logout: 'ออกจากระบบ',
-    editProfile: 'แก้ไขโปรไฟล์ผู้ใช้', gallery: 'แกลเลอรี่', about: 'เกี่ยวกับเรา',
+    bookButton: 'จองห้องพัก', bookingActiveButton: 'จองห้องพัก',
     welcome: 'Welcome to Around Loei', bookNow: 'จองเลย',
     modalTitleCheck: 'จองห้องพัก', modalTitleBook: 'เริ่มการจองห้องพัก',
     modalSubtitleCheck: 'เลือกประเภทห้องพักที่คุณต้องการเปิดดูข้อมูลครับ',
     modalSubtitleBook: 'เลือกประเภทห้องพักที่คุณต้องการทำรายการจองครับ',
     dailyChoice: 'ห้องพักรายวัน', monthlyChoice: 'ห้องพักรายเดือน',
-    roleDailyBadge: 'รายวัน', roleMonthlyBadge: 'รายเดือน', contactTitle: 'ช่องทางการติดต่อ',
+    contactTitle: 'ช่องทางการติดต่อ',
   },
   EN: {
     subtitle: 'LEOI RESIDENCE', title: 'Around Loei', login: 'Login', register: 'Register',
@@ -37,14 +39,13 @@ const TEXT = {
     desc: 'Experience superior living at "Around Loei". New, clean, and convenient location near Loei Rajabhat University.',
     bookingList: 'My Bookings', repair: 'Maintenance Request', line: 'Line Official',
     fb: 'Facebook Fanpage', call: 'Call for Inquiry', amenTitle: 'Premium Amenities',
-    bookButton: 'Check Available Rooms', bookingActiveButton: 'Book a Room', logout: 'Logout',
-    editProfile: 'Edit Profile', gallery: 'Gallery', about: 'About Us',
+    bookButton: 'Check Available Rooms', bookingActiveButton: 'Book a Room',
     welcome: 'Welcome to Around Loei', bookNow: 'Book Now',
     modalTitleCheck: 'Start Booking Room', modalTitleBook: 'Start Booking Room',
     modalSubtitleCheck: 'Select the room type you would like to view.',
     modalSubtitleBook: 'Select the room type you want to reserve.',
     dailyChoice: 'Daily Room', monthlyChoice: 'Monthly Room',
-    roleDailyBadge: 'Daily', roleMonthlyBadge: 'Monthly', contactTitle: 'Contact',
+    contactTitle: 'Contact',
   },
 };
 
@@ -52,14 +53,12 @@ export default function Home() {
   const navigate = useNavigate();
   const [lang, setLang] = useState('TH');
   const [user, setUser] = useState(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [confirmedRoom, setConfirmedRoom] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalAction, setModalAction] = useState('check');
 
   const t = TEXT[lang];
-  const isLoggedIn = checkIsLoggedIn();
 
   // โหลด user + ห้องที่ยืนยันแล้ว
   const fetchConfirmedRoom = useCallback(async () => {
@@ -94,15 +93,6 @@ export default function Home() {
     || (user?.role === 'Monthly_Tenant' ? 'monthly' : user?.role === 'Daily_Tenant' ? 'daily' : null);
   const isRoomRevealed = normalizeStatus(confirmedRoom?.bookingStatus) === 'กำลังเข้าพัก';
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    setConfirmedRoom(null);
-    setIsMenuOpen(false);
-    navigate('/login');
-  };
-
   const openContact = (type, value) => {
     let url = '';
     if (type === 'tel') url = `tel:${value}`;
@@ -126,100 +116,15 @@ export default function Home() {
     navigate('/roomuser', { state: { rentType: roomType } });
   };
 
-  const menuLinkClass = 'block w-full text-left text-white font-bold text-[15px] py-3.5 border-b border-white/10 hover:bg-white/10 transition px-1';
-
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
-      {/* ===== Header (ฟ้าเข้ม) ===== */}
-      <div className="bg-[#0178C7] fixed top-0 w-full z-[100] shadow-lg">
-        <div className="flex justify-between items-center px-5 py-3">
-          <div className="min-w-0">
-            <p className="text-white text-lg font-black tracking-wide truncate">{t.title}</p>
-            <p className="text-white/70 text-[10px] font-bold truncate">{t.subtitle}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {user && (
-              <div className="flex items-center gap-2">
-                <div className="text-right">
-                  <p className="text-white text-[13px] font-extrabold max-w-[110px] truncate">
-                    {user.name || user.full_name || user.username}
-                  </p>
-                  {(user.role === 'Daily_Tenant' || user.role === 'Monthly_Tenant') && (
-                    <span className="inline-block bg-white/25 text-white text-[10px] font-black px-2 py-0.5 rounded-full mt-0.5">
-                      {user.role === 'Daily_Tenant' ? t.roleDailyBadge : t.roleMonthlyBadge}
-                    </span>
-                  )}
-                </div>
-                <div className="w-[42px] h-[42px] rounded-full border-2 border-[#00E676] bg-white overflow-hidden shrink-0">
-                  <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="" className="w-full h-full object-cover" />
-                </div>
-              </div>
-            )}
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-white p-1" aria-label="menu">
-              <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                {isMenuOpen
-                  ? <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  : <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />}
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* ===== Navbar ของเว็บ (อันเดียวทั้งไซต์) ===== */}
+      <Navbar />
 
-      {/* ===== เมนู slide-down ===== */}
-      {isMenuOpen && (
-        <>
-          <div className="fixed inset-0 z-[98]" onClick={() => setIsMenuOpen(false)} />
-          <div className="fixed top-[60px] left-0 right-0 z-[99] bg-[#0164A6] border-b-2 border-[#014E82] px-5 pb-4">
-            {user ? (
-              <div className="pt-2">
-                <button className={menuLinkClass} onClick={() => { navigate('/Editprofile'); setIsMenuOpen(false); }}>👤 {t.editProfile}</button>
-                {user.role !== 'Daily_Tenant' && (
-                  <button className={menuLinkClass} onClick={() => { navigate('/repairrequest'); setIsMenuOpen(false); }}>🛠️ {t.repair}</button>
-                )}
-                <button className={menuLinkClass} onClick={() => { navigate('/about'); setIsMenuOpen(false); }}>ℹ️ {t.about}</button>
-                <button className={menuLinkClass} onClick={() => { navigate('/gallery'); setIsMenuOpen(false); }}>🖼️ {t.gallery}</button>
-                <button
-                  onClick={handleLogout}
-                  className="w-full mt-4 py-3 rounded-lg bg-red-500/20 text-[#FFCDD2] font-bold text-sm hover:bg-white/10 transition"
-                >
-                  {t.logout}
-                </button>
-              </div>
-            ) : (
-              <div className="pt-2">
-                <button className={menuLinkClass} onClick={() => { navigate('/about'); setIsMenuOpen(false); }}>ℹ️ {t.about}</button>
-                <button className={menuLinkClass} onClick={() => { navigate('/gallery'); setIsMenuOpen(false); }}>🖼️ {t.gallery}</button>
-                <div className="flex gap-2.5 pt-4">
-                  <button
-                    onClick={() => { navigate('/login'); setIsMenuOpen(false); }}
-                    className="flex-1 py-2.5 border border-white rounded-[10px] text-white font-bold text-sm bg-white/10 hover:bg-white/20 transition"
-                  >
-                    {t.login}
-                  </button>
-                  <button
-                    onClick={() => { navigate('/register'); setIsMenuOpen(false); }}
-                    className="flex-1 py-2.5 rounded-[10px] bg-white text-[#0164A6] font-bold text-sm hover:bg-white/80 transition"
-                  >
-                    {t.register}
-                  </button>
-                </div>
-              </div>
-            )}
-            <button
-              onClick={() => { setLang(lang === 'TH' ? 'EN' : 'TH'); setIsMenuOpen(false); }}
-              className="w-full mt-4 py-2.5 rounded-lg bg-white/15 text-white font-bold text-sm hover:bg-white/25 transition"
-            >
-              🌐 Change Language ({lang === 'TH' ? 'EN' : 'TH'})
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* ===== เนื้อหา ===== */}
-      <div className="pt-[62px]">
+      {/* ===== เนื้อหา (เว้น padding-top ให้พ้น navbar fixed h-16) ===== */}
+      <div className="pt-16">
         {/* Carousel */}
-        <div className="relative w-full h-[320px] md:h-[420px] overflow-hidden">
+        <div className="relative w-full h-[320px] md:h-[440px] overflow-hidden">
           {images.map((img, i) => (
             <img
               key={i}
@@ -228,7 +133,15 @@ export default function Home() {
               className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${i === currentSlide ? 'opacity-100' : 'opacity-0'}`}
             />
           ))}
-          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/15 to-black/70" />
+
+          {/* ปุ่มสลับภาษา (ลอยมุมขวาบนของ hero) */}
+          <button
+            onClick={() => setLang(lang === 'TH' ? 'EN' : 'TH')}
+            className="absolute top-4 right-4 z-20 border border-white/50 bg-white/85 backdrop-blur px-3.5 py-1.5 rounded-lg text-[#0178C7] font-bold text-xs hover:bg-white transition"
+          >
+            {lang === 'TH' ? 'EN' : 'TH'}
+          </button>
 
           <button
             onClick={() => setCurrentSlide((s) => (s === 0 ? images.length - 1 : s - 1))}
@@ -241,30 +154,34 @@ export default function Home() {
 
           <div className="absolute bottom-14 w-full flex justify-center gap-2 z-10">
             {images.map((_, i) => (
-              <span key={i} className={`h-[7px] rounded-full transition-all ${i === currentSlide ? 'w-[18px] bg-[#0194F3]' : 'w-[7px] bg-white/60'}`} />
+              <span key={i} className={`h-[7px] rounded-full transition-all ${i === currentSlide ? 'w-[18px] bg-white' : 'w-[7px] bg-white/60'}`} />
             ))}
           </div>
 
           <div className="absolute inset-0 flex flex-col items-center justify-center px-10 pointer-events-none">
-            <h1 className="text-white text-2xl md:text-4xl font-black text-center mb-5 drop-shadow-lg animate-pulse">
+            <h1
+              className="text-white text-3xl md:text-5xl font-bold text-center mb-2 drop-shadow-lg italic tracking-wide"
+              style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
+            >
               {t.welcome}
             </h1>
+            <div className="w-16 h-[3px] rounded bg-[#D9B25F] mb-6 shadow" />
             <button
               onClick={() => handleBookNow(user ? 'book' : 'check')}
-              className="pointer-events-auto border-2 border-white px-8 py-3 bg-white/15 text-white font-black text-[15px] tracking-widest hover:bg-white/25 transition"
+              className="pointer-events-auto rounded-full border-2 border-white/85 px-8 py-3 bg-white/15 backdrop-blur text-white font-extrabold text-[15px] tracking-widest hover:bg-white/25 transition"
             >
-              {t.bookNow}
+              {t.bookNow} →
             </button>
           </div>
         </div>
 
         {/* แผ่นขาวโค้งบน */}
-        <div className="-mt-10 bg-white rounded-t-[40px] p-6 relative">
+        <div className="-mt-10 bg-white rounded-t-[40px] p-6 relative max-w-3xl mx-auto">
           {/* ปุ่มจองใหญ่ (เมื่อยังไม่มีห้อง) */}
           {!roomNumber && (
             <button
               onClick={() => handleBookNow(user ? 'book' : 'check')}
-              className="w-full bg-[#0194F3] p-5 rounded-[25px] mb-5 flex items-center gap-4 hover:brightness-105 transition"
+              className="w-full bg-gradient-to-br from-[#38B6FF] via-[#0194F3] to-[#0166C8] p-5 rounded-[25px] mb-5 flex items-center gap-4 hover:brightness-105 transition shadow-lg shadow-[#0178C7]/30"
             >
               <span className="bg-white/20 p-2.5 rounded-[15px] text-white text-xl">🚪</span>
               <span className="flex-1 text-left text-white font-black text-lg tracking-wide">{t.bookButton}</span>
@@ -331,10 +248,11 @@ export default function Home() {
 
           {/* ราคา + สโลแกน */}
           <div className="mb-5 mt-1">
+            <div className="w-12 h-[3px] rounded bg-[#D9B25F] mb-3" />
             <p className="text-4xl font-bold text-[#0194F3]">
               {t.price}<span className="text-lg text-[#999] font-normal">{t.unit}</span>
             </p>
-            <p className="text-[22px] font-bold text-[#333] mt-1">{t.slogan}</p>
+            <p className="text-[22px] font-bold text-[#333] mt-1" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>{t.slogan}</p>
           </div>
 
           <p className="text-[15px] text-[#666] leading-relaxed mb-6">{t.desc}</p>
@@ -348,7 +266,7 @@ export default function Home() {
               { icon: '📹', label: 'CCTV' },
               { icon: '🚗', label: lang === 'TH' ? 'ที่จอดรถ' : 'Parking' },
             ].map((item, i) => (
-              <div key={i} className="w-[23%] flex flex-col items-center bg-[#F0F8FF] py-3 rounded-[15px]">
+              <div key={i} className="w-[23%] flex flex-col items-center bg-[#F0F8FF] py-3 rounded-[15px] border border-[#EAF2FA]">
                 <span className="text-[#0194F3] text-xl">{item.icon}</span>
                 <span className="text-[10px] font-bold text-[#0194F3] mt-1">{item.label}</span>
               </div>

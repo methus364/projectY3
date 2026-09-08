@@ -5,23 +5,37 @@ import React, { useState } from 'react';
 // รวมดีไซน์ไว้ที่เดียว ให้ทุกหน้าหน้าตาเป็นระบบเดียวกัน + แก้ธีมที่เดียวจบ
 // ============================================================
 
-// โครงหน้า auth: หัวสีฟ้า (ไอคอน + แบรนด์ + คำโปรย) + การ์ดขาวโค้งมน
+// โครงหน้า auth (ดีไซน์แบบ mobile app): รูปตึกจริงเต็มจอ + การ์ดฟอร์มกระจกฝ้าลอยตรงกลาง
+const SERIF = 'Georgia, "Times New Roman", serif';
+
 export function AuthLayout({ icon, tagline, title, children }) {
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col">
-      {/* หัวสีฟ้า (ธีมเดียวกับ mobile) */}
-      <div className="bg-[#0178C7] pt-14 pb-16 px-6 flex flex-col items-center">
-        <div className="w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center mb-4">
-          <span className="text-3xl">{icon}</span>
-        </div>
-        <h1 className="text-white text-2xl font-black">Around Loei</h1>
-        <p className="text-white/80 text-sm font-semibold mt-1">{tagline}</p>
-      </div>
+    <div className="relative min-h-screen bg-[#0B1F33] flex flex-col">
+      {/* รูปตึกจริง (จากแอพ) เป็นพื้นหลังเต็มจอ + ไล่เฉดทับให้อ่านง่าย */}
+      <img src="/hero-around-loei.jpg" alt="" className="fixed inset-0 w-full h-full object-cover" />
+      <div className="fixed inset-0 bg-gradient-to-b from-[#061424]/40 via-[#061424]/25 to-[#040e1a]/85" />
 
-      {/* การ์ดเนื้อหา */}
-      <div className="bg-white rounded-t-[40px] -mt-8 flex-1 px-6 pt-8 pb-10 max-w-md w-full mx-auto shadow-lg">
-        {title && <h2 className="text-[#1E293B] text-xl font-black mb-6">{title}</h2>}
-        {children}
+      {/* เนื้อหา (ลอยเหนือรูป) */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md rounded-[30px] border border-white/70 bg-white/85 backdrop-blur-xl shadow-2xl shadow-[#0a2540]/40 px-6 sm:px-9 py-8">
+          {/* หัวการ์ด: ไอคอน + แบรนด์ */}
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-[72px] h-[72px] rounded-[22px] bg-[#0194F3] flex items-center justify-center shadow-lg shadow-[#0194F3]/40">
+              <span className="text-3xl">{icon}</span>
+            </div>
+            <h1 className="text-[#14304C] text-3xl font-bold mt-3.5" style={{ fontFamily: SERIF }}>Around Loei</h1>
+            <p className="text-[#6B7B8C] text-sm font-semibold mt-1">{tagline}</p>
+          </div>
+
+          {title && <h2 className="text-[#1E293B] text-xl font-black mb-6 text-center">{title}</h2>}
+          {children}
+        </div>
+
+        {/* ป้ายตำแหน่ง (กระจกฝ้า) ใต้การ์ด */}
+        <div className="mt-5 flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 backdrop-blur px-3.5 py-1.5">
+          <span className="text-sm">📍</span>
+          <span className="text-[#EAF6FF] text-xs font-semibold">อ.เมือง จ.เลย</span>
+        </div>
       </div>
     </div>
   );
