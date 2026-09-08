@@ -52,10 +52,9 @@ export default function Register() {
 
   return (
     <AuthLayout
-      icon="🏠"
-      tagline="สมัครสมาชิกใหม่"
-      title="สร้างบัญชีใหม่"
-      align="right"
+      variant="panel"
+      heading="เริ่มต้นใช้งาน"
+      subtitle="สมัครสมาชิกเพื่อจองหอพัก Around Loei ได้ง่ายขึ้น"
       promo={{ eyebrow: 'เริ่มต้น', title: 'การเดินทางครั้งใหม่' }}
     >
       <form onSubmit={handleRegister} className="space-y-4">

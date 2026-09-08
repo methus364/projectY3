@@ -168,8 +168,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* แผ่นขาวโค้งบน */}
-        <div className="-mt-10 bg-white dark:bg-[#12233A] rounded-t-[40px] p-6 md:p-10 relative max-w-5xl mx-auto shadow-[0_-8px_30px_rgba(0,0,0,0.06)]">
+        {/* แผ่นขาวโค้งบน — เต็มความกว้าง */}
+        <div className="-mt-10 bg-white dark:bg-[#12233A] rounded-t-[40px] p-6 md:px-10 lg:px-16 md:py-10 relative w-full shadow-[0_-8px_30px_rgba(0,0,0,0.06)]">
           {/* ปุ่มจองใหญ่ (เมื่อยังไม่มีห้อง) */}
           {!roomNumber && (
             <button

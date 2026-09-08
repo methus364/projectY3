@@ -1,5 +1,6 @@
-@import "tailwindcss";
+/* ฟอนต์ต้อง @import ก่อน tailwindcss (v4 expand แล้วดัน @import อื่นตก → postcss เตือน) */
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import "tailwindcss";
 
 /* หมายเหตุ: @import ทุกตัวต้องอยู่บนสุดก่อนกฎอื่น ๆ (สเปก CSS) */
 

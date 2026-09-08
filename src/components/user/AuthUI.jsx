@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // ============================================================
 // ชุด UI กลางของหน้า auth (Login / Register / VerifyEmail / CompleteProfile)
@@ -46,7 +47,52 @@ const DEFAULT_PROMO = {
   desc: 'ที่พักสไตล์โมเดิร์นใจกลางเมืองเลย สะดวก สงบ พร้อมต้อนรับทุกการเดินทางของคุณ',
 };
 
-export function AuthLayout({ icon, tagline, title, children, align = 'left', promo = DEFAULT_PROMO }) {
+// แบรนด์ + ปุ่มย้อนกลับ มุมซ้ายบน (วางทับรูป) — ใช้ในโหมด panel
+function TopBrand() {
+  const navigate = useNavigate();
+  return (
+    <div className="absolute top-6 left-6 z-20 flex items-center gap-3.5">
+      <button
+        onClick={() => navigate('/')}
+        aria-label="กลับหน้าแรก"
+        className="w-11 h-11 rounded-2xl bg-[#0a1626]/50 border border-white/25 backdrop-blur flex items-center justify-center text-white text-xl hover:bg-[#0a1626]/70 transition"
+      >
+        ←
+      </button>
+      <div className="flex items-center gap-2 text-white">
+        <span className="text-xl">🏢</span>
+        <span className="font-black tracking-[0.2em] text-lg">AROUND LOEI</span>
+      </div>
+    </div>
+  );
+}
+
+export function AuthLayout({ icon, tagline, title, children, align = 'left', promo = DEFAULT_PROMO, variant = 'card', heading, subtitle }) {
+  // ===== โหมด panel: แผงฟอร์มเต็มความสูงชิดขวา + แบรนด์/ปุ่มย้อนกลับมุมซ้ายบน (แบบหน้าสมัครในแอพ) =====
+  if (variant === 'panel') {
+    return (
+      <div className="relative min-h-screen bg-[#0B1F33]">
+        <img src="/hero-around-loei.jpg" alt="" className="fixed inset-0 w-full h-full object-cover" />
+        <div className="fixed inset-0 bg-gradient-to-b from-[#061424]/45 via-[#061424]/25 to-[#040e1a]/85" />
+
+        <TopBrand />
+        <PromoBox promo={promo} side="left" />
+
+        {/* แผงฟอร์มเต็มความสูงชิดขวา (จอแคบ = เต็มกว้าง) */}
+        <div className="relative z-10 min-h-screen flex justify-center lg:justify-end">
+          <div className="w-full lg:max-w-xl min-h-screen bg-white/92 dark:bg-[#12233A]/95 backdrop-blur-xl lg:rounded-l-[40px] shadow-2xl shadow-[#0a2540]/40 px-6 sm:px-10 py-24 lg:py-16 overflow-y-auto">
+            <div className="max-w-md w-full mx-auto">
+              <h2 className="text-[#14304C] dark:text-white text-2xl font-black" style={{ fontFamily: SERIF }}>{heading}</h2>
+              {subtitle && <p className="text-[#6B7B8C] dark:text-slate-300 text-sm mt-1.5 mb-7">{subtitle}</p>}
+              {children}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ===== โหมด card (ค่าเริ่มต้น): การ์ดกระจกลอย ชิดซ้าย/ขวาตาม align =====
   // align = ฝั่งการ์ด · กล่องโปรโมทอยู่ฝั่งตรงข้าม
   const cardJustify = align === 'right' ? 'lg:justify-end' : 'lg:justify-start';
   const promoSide = align === 'right' ? 'left' : 'right';
