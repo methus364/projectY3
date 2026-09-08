@@ -5,18 +5,59 @@ import React, { useState } from 'react';
 // รวมดีไซน์ไว้ที่เดียว ให้ทุกหน้าหน้าตาเป็นระบบเดียวกัน + แก้ธีมที่เดียวจบ
 // ============================================================
 
-// โครงหน้า auth (ดีไซน์แบบ mobile app): รูปตึกจริงเต็มจอ + การ์ดฟอร์มกระจกฝ้าลอยตรงกลาง
+// โครงหน้า auth (ดีไซน์ split แบบ mobile app):
+//  · จอกว้าง = รูปตึกเต็มจอ + การ์ดฟอร์มชิดซ้าย + กล่องโปรโมทมุมขวาล่าง
+//  · จอแคบ  = รูปตึกพื้นหลัง + การ์ดฟอร์มกลางจอ
 const SERIF = 'Georgia, "Times New Roman", serif';
 
-export function AuthLayout({ icon, tagline, title, children }) {
+// กล่องโปรโมท (กระจกฝ้าโปร่ง) — โชว์เฉพาะจอกว้าง มุมล่าง (ฝั่งตรงข้ามการ์ด)
+// promo = { badge?, eyebrow, title, desc? } · side = 'left' | 'right'
+function PromoBox({ promo, side }) {
+  const pos = side === 'left' ? 'left-12' : 'right-12';
   return (
-    <div className="relative min-h-screen bg-[#0B1F33] flex flex-col">
+    <div className={`hidden lg:block absolute ${pos} bottom-11 max-w-md rounded-[22px] border border-white/20 bg-[#0a1626]/45 backdrop-blur-xl p-7`}>
+      {promo.badge && (
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 backdrop-blur px-3 py-1.5 mb-3.5">
+          <span className="text-sm">📍</span>
+          <span className="text-[#EAF6FF] text-xs font-semibold">{promo.badge}</span>
+        </div>
+      )}
+      <p className="text-white/80 italic text-2xl tracking-wide" style={{ fontFamily: SERIF }}>{promo.eyebrow}</p>
+      {/* หัวข้อ + ประกายดาวทองระยิบระยับ */}
+      <div className="relative inline-block">
+        <span className="sparkle text-sm" style={{ top: '-8px', left: '-10px', animationDelay: '0s' }}>✦</span>
+        <span className="sparkle text-xs" style={{ top: '6px', right: '-14px', animationDelay: '0.5s' }}>✦</span>
+        <span className="sparkle text-[10px]" style={{ bottom: '2px', left: '30%', animationDelay: '1s' }}>✧</span>
+        <span className="sparkle text-xs" style={{ top: '-6px', right: '32%', animationDelay: '1.4s' }}>✦</span>
+        <span className="sparkle text-[10px]" style={{ bottom: '-6px', right: '-8px', animationDelay: '0.8s' }}>✧</span>
+        <p className="gold-shimmer text-5xl font-bold mt-0.5 leading-tight" style={{ fontFamily: SERIF }}>{promo.title}</p>
+      </div>
+      <div className="w-14 h-[3px] rounded bg-[#D9B25F] mt-4 mb-3.5" />
+      {promo.desc && <p className="text-white/85 text-[15px] leading-relaxed">{promo.desc}</p>}
+    </div>
+  );
+}
+
+// promo เริ่มต้น (หน้า Login) — การ์ดชิดซ้าย, โปรโมทขวาล่าง
+const DEFAULT_PROMO = {
+  badge: 'อ.เมือง จ.เลย',
+  eyebrow: 'Welcome To',
+  title: 'Around Loei',
+  desc: 'ที่พักสไตล์โมเดิร์นใจกลางเมืองเลย สะดวก สงบ พร้อมต้อนรับทุกการเดินทางของคุณ',
+};
+
+export function AuthLayout({ icon, tagline, title, children, align = 'left', promo = DEFAULT_PROMO }) {
+  // align = ฝั่งการ์ด · กล่องโปรโมทอยู่ฝั่งตรงข้าม
+  const cardJustify = align === 'right' ? 'lg:justify-end' : 'lg:justify-start';
+  const promoSide = align === 'right' ? 'left' : 'right';
+  return (
+    <div className="relative min-h-screen bg-[#0B1F33]">
       {/* รูปตึกจริง (จากแอพ) เป็นพื้นหลังเต็มจอ + ไล่เฉดทับให้อ่านง่าย */}
       <img src="/hero-around-loei.jpg" alt="" className="fixed inset-0 w-full h-full object-cover" />
-      <div className="fixed inset-0 bg-gradient-to-b from-[#061424]/40 via-[#061424]/25 to-[#040e1a]/85" />
+      <div className="fixed inset-0 bg-gradient-to-b from-[#061424]/45 via-[#061424]/25 to-[#040e1a]/85" />
 
-      {/* เนื้อหา (ลอยเหนือรูป) */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-10">
+      {/* เนื้อหา (ลอยเหนือรูป) — จอแคบ: กลาง · จอกว้าง: ชิดซ้าย/ขวาตาม align */}
+      <div className={`relative z-10 min-h-screen flex items-center justify-center ${cardJustify} px-4 lg:px-14 py-10`}>
         <div className="w-full max-w-md rounded-[30px] border border-white/70 bg-white/85 backdrop-blur-xl shadow-2xl shadow-[#0a2540]/40 px-6 sm:px-9 py-8">
           {/* หัวการ์ด: ไอคอน + แบรนด์ */}
           <div className="flex flex-col items-center mb-6">
@@ -30,13 +71,10 @@ export function AuthLayout({ icon, tagline, title, children }) {
           {title && <h2 className="text-[#1E293B] text-xl font-black mb-6 text-center">{title}</h2>}
           {children}
         </div>
-
-        {/* ป้ายตำแหน่ง (กระจกฝ้า) ใต้การ์ด */}
-        <div className="mt-5 flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 backdrop-blur px-3.5 py-1.5">
-          <span className="text-sm">📍</span>
-          <span className="text-[#EAF6FF] text-xs font-semibold">อ.เมือง จ.เลย</span>
-        </div>
       </div>
+
+      {/* กล่องโปรโมทมุมล่าง (จอกว้าง) — ฝั่งตรงข้ามการ์ด */}
+      <PromoBox promo={promo} side={promoSide} />
     </div>
   );
 }

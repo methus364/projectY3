@@ -2,6 +2,21 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../ui/ThemeToggle';
 import { getUserRole, isLoggedIn as checkIsLoggedIn } from '../../lib/auth';
+import { useLanguage } from '../../contexts/LanguageContext';
+
+// ปุ่มสลับภาษา TH/EN (สไตล์เดียวกับ ThemeToggle)
+function LangToggle({ className = '' }) {
+  const { lang, toggleLang } = useLanguage();
+  return (
+    <button
+      onClick={toggleLang}
+      title={lang === 'TH' ? 'Switch to English' : 'เปลี่ยนเป็นภาษาไทย'}
+      className={`rounded-lg px-2.5 py-1.5 text-xs font-bold text-white border border-white/40 bg-white/10 hover:bg-white/25 transition ${className}`}
+    >
+      {lang === 'TH' ? 'EN' : 'TH'}
+    </button>
+  );
+}
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -71,11 +86,13 @@ export default function Navbar() {
                 เข้าสู่ระบบ
               </Link>
             )}
+            <LangToggle />
             <ThemeToggle />
           </div>
 
           {/* mobile: toggle + hamburger */}
           <div className="md:hidden flex items-center gap-2">
+            <LangToggle />
             <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}

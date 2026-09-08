@@ -51,7 +51,13 @@ export default function Register() {
   };
 
   return (
-    <AuthLayout icon="🏠" tagline="สมัครสมาชิกใหม่" title="สร้างบัญชีใหม่">
+    <AuthLayout
+      icon="🏠"
+      tagline="สมัครสมาชิกใหม่"
+      title="สร้างบัญชีใหม่"
+      align="right"
+      promo={{ eyebrow: 'เริ่มต้น', title: 'การเดินทางครั้งใหม่' }}
+    >
       <form onSubmit={handleRegister} className="space-y-4">
         <TextField
           label="ชื่อผู้ใช้ (Username)" name="username" required

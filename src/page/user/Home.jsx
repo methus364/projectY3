@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { getCurrentUser, isLoggedIn as checkIsLoggedIn } from '../../lib/auth';
 import Navbar from '../../components/user/Navbar';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 // รูป carousel (ชุดเดียวกับ mobile app — วางไว้ใน public/)
 const images = [
@@ -51,7 +52,7 @@ const TEXT = {
 
 export default function Home() {
   const navigate = useNavigate();
-  const [lang, setLang] = useState('TH');
+  const { lang } = useLanguage();
   const [user, setUser] = useState(null);
   const [confirmedRoom, setConfirmedRoom] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -117,8 +118,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
-      {/* ===== Navbar ของเว็บ (อันเดียวทั้งไซต์) ===== */}
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#0B1526]">
+      {/* ===== Navbar ของเว็บ (อันเดียวทั้งไซต์ + ปุ่มสลับภาษา/ธีมอยู่บนนี้) ===== */}
       <Navbar />
 
       {/* ===== เนื้อหา (เว้น padding-top ให้พ้น navbar fixed h-16) ===== */}
@@ -134,14 +135,6 @@ export default function Home() {
             />
           ))}
           <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/15 to-black/70" />
-
-          {/* ปุ่มสลับภาษา (ลอยมุมขวาบนของ hero) */}
-          <button
-            onClick={() => setLang(lang === 'TH' ? 'EN' : 'TH')}
-            className="absolute top-4 right-4 z-20 border border-white/50 bg-white/85 backdrop-blur px-3.5 py-1.5 rounded-lg text-[#0178C7] font-bold text-xs hover:bg-white transition"
-          >
-            {lang === 'TH' ? 'EN' : 'TH'}
-          </button>
 
           <button
             onClick={() => setCurrentSlide((s) => (s === 0 ? images.length - 1 : s - 1))}
@@ -160,8 +153,8 @@ export default function Home() {
 
           <div className="absolute inset-0 flex flex-col items-center justify-center px-10 pointer-events-none">
             <h1
-              className="text-white text-3xl md:text-5xl font-bold text-center mb-2 drop-shadow-lg italic tracking-wide"
-              style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
+              className="animate-hero-pulse text-white text-3xl md:text-5xl font-bold text-center mb-2 italic tracking-wide"
+              style={{ fontFamily: 'Georgia, "Times New Roman", serif', textShadow: '0 2px 10px rgba(0,0,0,0.55), 0 0 26px rgba(217,178,95,0.45)' }}
             >
               {t.welcome}
             </h1>
@@ -176,7 +169,7 @@ export default function Home() {
         </div>
 
         {/* แผ่นขาวโค้งบน */}
-        <div className="-mt-10 bg-white rounded-t-[40px] p-6 relative max-w-3xl mx-auto">
+        <div className="-mt-10 bg-white dark:bg-[#12233A] rounded-t-[40px] p-6 md:p-10 relative max-w-5xl mx-auto shadow-[0_-8px_30px_rgba(0,0,0,0.06)]">
           {/* ปุ่มจองใหญ่ (เมื่อยังไม่มีห้อง) */}
           {!roomNumber && (
             <button
@@ -250,15 +243,15 @@ export default function Home() {
           <div className="mb-5 mt-1">
             <div className="w-12 h-[3px] rounded bg-[#D9B25F] mb-3" />
             <p className="text-4xl font-bold text-[#0194F3]">
-              {t.price}<span className="text-lg text-[#999] font-normal">{t.unit}</span>
+              {t.price}<span className="text-lg text-[#999] dark:text-slate-400 font-normal">{t.unit}</span>
             </p>
-            <p className="text-[22px] font-bold text-[#333] mt-1" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>{t.slogan}</p>
+            <p className="text-[22px] font-bold text-[#333] dark:text-white mt-1" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>{t.slogan}</p>
           </div>
 
-          <p className="text-[15px] text-[#666] leading-relaxed mb-6">{t.desc}</p>
+          <p className="text-[15px] text-[#666] dark:text-slate-300 leading-relaxed mb-6">{t.desc}</p>
 
           {/* สิ่งอำนวยความสะดวก */}
-          <p className="text-lg font-bold text-[#1A1A1A] mb-4">{t.amenTitle}</p>
+          <p className="text-lg font-bold text-[#1A1A1A] dark:text-white mb-4">{t.amenTitle}</p>
           <div className="flex justify-between mb-5">
             {[
               { icon: '📶', label: 'WiFi' },
@@ -266,17 +259,17 @@ export default function Home() {
               { icon: '📹', label: 'CCTV' },
               { icon: '🚗', label: lang === 'TH' ? 'ที่จอดรถ' : 'Parking' },
             ].map((item, i) => (
-              <div key={i} className="w-[23%] flex flex-col items-center bg-[#F0F8FF] py-3 rounded-[15px] border border-[#EAF2FA]">
+              <div key={i} className="w-[23%] flex flex-col items-center bg-[#F0F8FF] dark:bg-[#16324D] py-3 rounded-[15px] border border-[#EAF2FA] dark:border-white/10">
                 <span className="text-[#0194F3] text-xl">{item.icon}</span>
-                <span className="text-[10px] font-bold text-[#0194F3] mt-1">{item.label}</span>
+                <span className="text-[10px] font-bold text-[#0194F3] dark:text-[#5EB8F5] mt-1">{item.label}</span>
               </div>
             ))}
           </div>
 
-          <div className="h-px bg-[#EEE] mb-6" />
+          <div className="h-px bg-[#EEE] dark:bg-white/10 mb-6" />
 
           {/* ช่องทางติดต่อ */}
-          <p className="text-lg font-bold text-[#1A1A1A] mb-4">{t.contactTitle}</p>
+          <p className="text-lg font-bold text-[#1A1A1A] dark:text-white mb-4">{t.contactTitle}</p>
           <button onClick={() => openContact('line', 'aroundloei')} className="w-full flex items-center gap-3 bg-[#06C755] p-4 rounded-[18px] mb-3 text-white font-bold hover:brightness-105 transition">
             <span className="w-9 text-center text-xl">💬</span>
             <span className="flex-1 text-left text-base">{t.line}</span>
