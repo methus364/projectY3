@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../ui/ThemeToggle';
 import { getUserRole, isLoggedIn as checkIsLoggedIn } from '../../lib/auth';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -36,52 +36,66 @@ export default function Navbar() {
     navigate('/login');
   };
 
-  // ลิงก์เมนูฝั่งขวา (ใช้ซ้ำทั้ง desktop/mobile) — คลาสสีจัดแยกในแต่ละจุด
-  const navLinks = (
-    <>
-      <Link to="/" className="hover:text-white/70 transition">หน้าแรก</Link>
-      <Link to="/roomuser" className="hover:text-white/70 transition">ค้นหาห้องพัก</Link>
-      {isLoggedIn && (
-        <>
-          <Link to="/roomhistory" className="hover:text-white/70 transition">ประวัติการจอง</Link>
-          <Link to="/mybills" className="hover:text-white/70 transition">บิล/ชำระเงิน</Link>
-          {isMonthly && (
-            <>
-              <Link to="/mycontracts" className="hover:text-white/70 transition">สัญญาเช่า</Link>
-              <Link to="/repairrequest" className="hover:text-white/70 transition">แจ้งซ่อม</Link>
-            </>
-          )}
-          <Link to="/profile" className="hover:text-white/70 transition">บัญชีผู้ใช้</Link>
-        </>
-      )}
-    </>
-  );
+  // รายการเมนู (ใช้สร้างทั้ง desktop/mobile)
+  const menuItems = [
+    { to: '/', label: 'หน้าแรก' },
+    { to: '/roomuser', label: 'ค้นหาห้องพัก' },
+    ...(isLoggedIn ? [
+      { to: '/roomhistory', label: 'ประวัติการจอง' },
+      { to: '/mybills', label: 'บิล/ชำระเงิน' },
+      ...(isMonthly ? [
+        { to: '/mycontracts', label: 'สัญญาเช่า' },
+        { to: '/repairrequest', label: 'แจ้งซ่อม' },
+      ] : []),
+      { to: '/profile', label: 'บัญชีผู้ใช้' },
+    ] : []),
+  ];
+
+  // ลิงก์เมนู desktop — ไฮไลต์หน้าที่กำลังอยู่ (pill โปร่งแสง)
+  const navLinks = menuItems.map(({ to, label }) => (
+    <NavLink
+      key={to}
+      to={to}
+      end={to === '/'}
+      className={({ isActive }) =>
+        `px-3 py-1.5 rounded-lg transition whitespace-nowrap ${
+          isActive ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/10 hover:text-white'
+        }`
+      }
+    >
+      {label}
+    </NavLink>
+  ));
 
   return (
     <nav className="bg-[#0178C7] fixed top-0 w-full z-50 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
+        <div className="flex justify-between h-16 items-center gap-4">
 
-          {/* โลโก้ Around Loei */}
-          <Link to="/" className="flex items-center gap-2 text-xl font-black text-white">
+          {/* โลโก้ Around Loei (ซ้าย) */}
+          <Link to="/" className="flex items-center gap-2 text-xl font-black text-white shrink-0">
             <span className="text-[#00E676] text-2xl">◆</span>
             Around Loei
           </Link>
 
-          {/* เมนู desktop */}
-          <div className="hidden md:flex items-center gap-6 text-sm font-semibold text-white">
+          {/* เมนู desktop (กลาง) */}
+          <div className="hidden md:flex items-center gap-1 text-sm font-semibold flex-1 justify-center">
             {navLinks}
+          </div>
+
+          {/* ปุ่ม/สลับ (ขวา) */}
+          <div className="hidden md:flex items-center gap-3 shrink-0">
             {isLoggedIn ? (
               <button
                 onClick={handleSignOut}
-                className="bg-white hover:bg-white/90 text-[#0178C7] text-sm font-bold px-4 py-1.5 rounded-lg transition"
+                className="bg-white hover:bg-white/90 text-[#0178C7] text-sm font-bold px-4 py-1.5 rounded-lg transition shadow-sm"
               >
                 ออกจากระบบ
               </button>
             ) : (
               <Link
                 to="/login"
-                className="bg-white hover:bg-white/90 text-[#0178C7] font-bold px-4 py-1.5 rounded-lg transition"
+                className="bg-white hover:bg-white/90 text-[#0178C7] font-bold px-4 py-1.5 rounded-lg transition shadow-sm"
               >
                 เข้าสู่ระบบ
               </Link>
