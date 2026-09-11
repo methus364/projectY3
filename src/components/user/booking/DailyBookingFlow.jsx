@@ -77,7 +77,57 @@ export default function DailyBookingFlow() {
   const [loading, setLoading] = useState(false);
   const [bookingResult, setBookingResult] = useState(null);
 
+  // ชำระเงินในหน้าสำเร็จ (QR รวม + แนบสลิป)
+  const [payQr, setPayQr] = useState(null);       // { invoiceIds, qrImage, amount }
+  const [slipFile, setSlipFile] = useState(null);
+  const [paying, setPaying] = useState(false);
+  const [paid, setPaid] = useState(false);
+  const [remaining, setRemaining] = useState(0);  // วินาทีที่เหลือจน hold หมดอายุ
+
   const isLoggedIn = !!localStorage.getItem('token');
+
+  // นับถอยหลังเวลาชำระจาก holdExpiresAt
+  useEffect(() => {
+    if (!bookingResult?.holdExpiresAt || paid) return;
+    const tick = () => setRemaining(Math.max(0, Math.floor((new Date(bookingResult.holdExpiresAt) - new Date()) / 1000)));
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [bookingResult, paid]);
+
+  // ขอ QR PromptPay รวมค่าจองทุกห้อง
+  const startPay = async () => {
+    const bookingIds = (bookingResult?.bookings || []).map((x) => x.bookingId).filter(Boolean);
+    if (!bookingIds.length) return;
+    const ok = window.confirm('คุณมีเวลา 5 นาทีในการชำระเงิน มิฉะนั้นการจองจะถูกยกเลิกอัตโนมัติและปล่อยห้องคืน');
+    if (!ok) return;
+    try {
+      setPaying(true);
+      const res = await api.post('/booking/batch/pay-now', { bookingIds });
+      if (res.data?.success) setPayQr(res.data.data);
+    } catch (e) {
+      alert(e.response?.data?.message || 'สร้าง QR ไม่สำเร็จ');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  // แนบสลิป → แจ้งชำระรวมทุกบิล
+  const submitSlip = async () => {
+    if (!slipFile) { alert('กรุณาแนบสลิปการโอนเงิน'); return; }
+    try {
+      setPaying(true);
+      const form = new FormData();
+      form.append('invoice_ids', JSON.stringify(payQr.invoiceIds));
+      form.append('slip', slipFile);
+      const res = await api.post('/payment/batch', form);
+      if (res.data?.success) setPaid(true);
+    } catch (e) {
+      alert(e.response?.data?.message || 'แจ้งชำระไม่สำเร็จ');
+    } finally {
+      setPaying(false);
+    }
+  };
 
   // ถ้าถูกส่งช่วงวันมาจากหน้า Home → เริ่มค้นหาเลย
   useEffect(() => {
@@ -191,7 +241,23 @@ export default function DailyBookingFlow() {
     setRoomsWanted(0);
     setSelectedRoomIds([]);
     setBedFilter(null);
+    setPayQr(null);
+    setSlipFile(null);
+    setPaid(false);
     fetchRooms();
+  };
+
+  // ยืนยันจำนวน → เลือกห้องว่างให้อัตโนมัติ แล้วเปิดหน้ายืนยันการจองเลย (ข้ามการเลือกห้องรายห้อง)
+  const handleConfirmCount = () => {
+    if (!canConfirmCount) return;
+    if (!isLoggedIn) { navigate('/login'); return; }
+    const ids = availableRooms.slice(0, roomsWanted).map((r) => r.id);
+    if (ids.length < roomsWanted) {
+      alert('ขออภัย ห้องว่างของประเภทนี้ไม่พอกับจำนวนที่เลือก');
+      return;
+    }
+    setSelectedRoomIds(ids);
+    setShowConfirm(true);
   };
 
   // ---------- หน้าเลือกวันที่ ----------
@@ -248,15 +314,47 @@ export default function DailyBookingFlow() {
           <div className="flex justify-between"><span className="text-[#94A3B8] font-semibold">ยอดรวมโดยประมาณ</span><span className="text-[#0194F3] font-black">฿{Number(b.totalPrice || 0).toLocaleString()}</span></div>
         </div>
 
-        <div className="bg-[#FFF7ED] border border-[#FED7AA] rounded-2xl p-3 mb-5 text-left">
-          <p className="text-[#9A3412] text-xs font-bold">⏱ กรุณาชำระเงินภายใน 5 นาที</p>
-          <p className="text-[#C2410C] text-[11px] mt-0.5">มิฉะนั้นการจองจะถูกยกเลิกอัตโนมัติและปล่อยห้องคืน — ชำระได้ที่ "บิล/ชำระเงิน"</p>
-        </div>
+        {/* ตัวนับถอยหลัง 5 นาที (ยังไม่แจ้งชำระ) */}
+        {!paid && b.holdExpiresAt && (
+          <div className="bg-[#FFF7ED] border border-[#FED7AA] rounded-2xl p-3 mb-5">
+            <p className="text-[#9A3412] text-xs font-semibold">⏱ กรุณาชำระเงินภายใน</p>
+            <p className="text-[#C2410C] font-black text-3xl tabular-nums leading-tight">
+              {String(Math.floor(remaining / 60)).padStart(2, '0')}:{String(remaining % 60).padStart(2, '0')}
+            </p>
+            <p className="text-[#9A3412] text-[11px] mt-0.5">มิฉะนั้นการจองจะถูกยกเลิกอัตโนมัติและปล่อยห้องคืน</p>
+          </div>
+        )}
+
+        {/* ===== ชำระเงิน: QR PromptPay + แนบสลิป ===== */}
+        {paid ? (
+          <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-2xl p-4 mb-5">
+            <p className="text-[#16A34A] font-black">✓ แจ้งชำระเงินสำเร็จ · ระบบล็อกห้องไว้แล้ว</p>
+            <p className="text-[#15803D] text-xs mt-1">รอแอดมินตรวจสอบสลิป · ดูสถานะได้ที่ "ประวัติการจอง"</p>
+          </div>
+        ) : payQr ? (
+          <div className="mb-5">
+            <p className="text-[#334155] text-sm font-black mb-2 text-left">ช่องทางการชำระเงิน · สแกน QR PromptPay</p>
+            <img src={payQr.qrImage} alt="QR PromptPay" className="mx-auto w-56 h-56 rounded-2xl border border-[#E2E8F0]" />
+            <p className="text-[#1E293B] font-black text-lg mt-2">สแกนโอน ฿{Number(payQr.amount).toLocaleString()}</p>
+            <p className="text-[#64748B] text-xs mt-1 mb-3">โอนแล้วแนบสลิปด้านล่างเพื่อส่งหลักฐาน</p>
+            <div className="text-left">
+              <label className="block text-[#334155] text-sm font-bold mb-2">แนบสลิปการโอนเงิน <span className="text-red-400">*</span></label>
+              <input type="file" accept="image/*" onChange={(e) => setSlipFile(e.target.files[0] || null)}
+                className="w-full text-sm border border-[#CBD5E1] rounded-2xl px-3 py-2.5 bg-[#F8FAFC] mb-3" />
+            </div>
+            <button onClick={submitSlip} disabled={paying}
+              className="w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3 rounded-2xl transition disabled:opacity-50">
+              {paying ? 'กำลังส่ง...' : 'ส่งแจ้งชำระ (แนบสลิป)'}
+            </button>
+          </div>
+        ) : (
+          <button onClick={startPay} disabled={paying}
+            className="w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition mb-3 disabled:opacity-50">
+            {paying ? 'กำลังสร้าง QR...' : '💳 ชำระค่าจอง (สแกน QR PromptPay)'}
+          </button>
+        )}
 
         <div className="flex flex-col gap-3">
-          <button onClick={() => navigate('/mybills')} className="w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition">
-            ไปชำระเงิน
-          </button>
           <button onClick={() => navigate('/roomhistory')} className="w-full bg-[#F1F5F9] text-[#64748B] font-bold py-3 rounded-2xl hover:bg-[#E2E8F0] transition">
             ดูประวัติการจอง
           </button>
@@ -389,16 +487,16 @@ export default function DailyBookingFlow() {
                 <div><p className="text-sm font-black text-[#1E293B]">ผู้เข้าพัก</p><p className="text-[11px] text-[#94A3B8] font-semibold">รวมทุกห้อง</p></div>
               </div>
               <Stepper value={guests} onDec={() => changeGuests(-1)} onInc={() => changeGuests(1)}
-                decDisabled={countConfirmed || guests <= 0} incDisabled={countConfirmed || guests >= 20} />
+                decDisabled={guests <= 0} incDisabled={guests >= 20} />
             </div>
             <div className="h-px bg-[#F1F5F9] my-3.5" />
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <HomeIcon className="w-5 h-5 text-[#0194F3]" />
-                <div><p className="text-sm font-black text-[#1E293B]">จำนวนห้อง</p><p className="text-[11px] text-[#94A3B8] font-semibold">เลือก {selectedRoomIds.length}/{roomsWanted} ห้อง</p></div>
+                <div><p className="text-sm font-black text-[#1E293B]">จำนวนห้อง</p><p className="text-[11px] text-[#94A3B8] font-semibold">ต้องการ {roomsWanted} ห้อง</p></div>
               </div>
               <Stepper value={roomsWanted} onDec={() => changeRooms(-1)} onInc={() => changeRooms(1)}
-                decDisabled={countConfirmed || roomsWanted <= 0} incDisabled={countConfirmed || roomsWanted >= MAX_ROOMS_PER_ACCOUNT} />
+                decDisabled={roomsWanted <= 0} incDisabled={roomsWanted >= MAX_ROOMS_PER_ACCOUNT} />
             </div>
             <p className={`text-[11px] font-semibold mt-2.5 ${countError ? 'text-[#EF4444]' : roomsWanted >= MAX_ROOMS_PER_ACCOUNT ? 'text-[#F97316]' : 'text-[#94A3B8]'}`}>
               {countError ? countError
@@ -406,69 +504,11 @@ export default function DailyBookingFlow() {
                 : `รองรับได้สูงสุด ${maxGuests} คนใน ${roomsWanted} ห้อง`}
             </p>
 
-            {!countConfirmed ? (
-              <button disabled={!canConfirmCount} onClick={() => setCountConfirmed(true)}
-                className={`mt-3.5 w-full flex items-center justify-center gap-1.5 py-3.5 rounded-2xl font-black text-sm text-white transition ${canConfirmCount ? 'bg-[#0194F3] hover:bg-[#0178C7]' : 'bg-[#CBD5E1] cursor-not-allowed'}`}>
-                ยืนยันจำนวน แล้วดูห้อง <ChevronRightIcon className="w-4 h-4" />
-              </button>
-            ) : (
-              <button onClick={() => { setCountConfirmed(false); setSelectedRoomIds([]); }}
-                className="mt-3.5 w-full py-3 rounded-2xl bg-[#F1F5F9] text-[#64748B] font-bold text-sm hover:bg-[#E2E8F0]">
-                แก้ไขจำนวนคน/ห้อง
-              </button>
-            )}
+            <button disabled={!canConfirmCount} onClick={handleConfirmCount}
+              className={`mt-3.5 w-full flex items-center justify-center gap-1.5 py-3.5 rounded-2xl font-black text-sm text-white transition ${canConfirmCount ? 'bg-[#0194F3] hover:bg-[#0178C7]' : 'bg-[#CBD5E1] cursor-not-allowed'}`}>
+              ยืนยันจำนวน แล้วดูสรุปการจอง <ChevronRightIcon className="w-4 h-4" />
+            </button>
           </div>
-
-          {/* ยังไม่ยืนยัน → ข้อความเทา */}
-          {!countConfirmed && (
-            <div className="text-center py-16 text-[#CBD5E1] font-bold">
-              <HomeIcon className="w-12 h-12 mx-auto mb-3 text-[#E2E8F0]" />
-              กรุณากดเพิ่มจำนวนห้องและจำนวนคนเพื่อจองห้อง
-            </div>
-          )}
-
-          {/* ห้องให้เลือก */}
-          {countConfirmed && displayRooms.map((room, idx) => {
-            const picked = selectedRoomIds.includes(room.id);
-            const img = room.imageUrl || ROOM_IMAGES[idx % ROOM_IMAGES.length];
-            const info = bedInfoOf(room.typeName);
-            return (
-              <div key={room.id} className={`bg-white rounded-3xl overflow-hidden shadow-md mb-4 transition ${picked ? 'border-2 border-[#0194F3]' : 'border border-[#EEF3F8]'}`}>
-                <div className="relative h-44">
-                  <img src={img} alt={info.label} className="w-full h-full object-cover" />
-                  <span className="absolute top-3 left-3 bg-[#0194F3] text-white text-xs font-black px-3 py-1.5 rounded-2xl">ว่าง</span>
-                  {room.roomNumber != null && (
-                    <span className="absolute top-3 right-3 bg-[#0F172A]/65 text-white text-xs font-black px-3 py-1.5 rounded-2xl">ห้อง {room.roomNumber}</span>
-                  )}
-                </div>
-                <div className="p-5">
-                  <p className="text-lg font-black text-[#1E293B]">{info.label}</p>
-                  <div className="flex items-center gap-2 mt-1.5 text-[#64748B] text-sm font-bold">
-                    <UsersIcon className="w-4 h-4 text-[#0194F3]" /> เข้าพักได้สูงสุด {info.capacity} คน
-                    <span className="w-1 h-1 rounded-full bg-[#CBD5E1]" /> {info.beds} เตียง
-                  </div>
-                  <div className="h-px bg-[#F1F5F9] my-3.5" />
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <p className="text-[11px] text-[#94A3B8] font-bold">ราคา</p>
-                      <p className="text-[#0194F3] font-black text-2xl leading-none">฿{Number(room.price || 0).toLocaleString()}<span className="text-xs text-[#94A3B8] ml-1">/คืน</span></p>
-                    </div>
-                    <button onClick={() => toggleRoom(room.id)}
-                      className={`flex items-center gap-1.5 px-5 py-3 rounded-2xl font-black text-sm text-white transition ${picked ? 'bg-[#10B981]' : 'bg-[#0194F3] hover:bg-[#0178C7]'}`}>
-                      {picked ? <><CheckCircleIcon className="w-4 h-4" /> เลือกแล้ว</> : <><PlusIcon className="w-4 h-4" /> เลือกห้องนี้</>}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          {countConfirmed && displayRooms.length === 0 && (
-            <div className="text-center bg-white rounded-3xl border border-[#FEE2E2] py-8 px-6">
-              <p className="font-black text-[#1E293B]">ห้องประเภทนี้เต็มแล้ว</p>
-              <p className="text-sm text-[#94A3B8] mt-1">กรุณาเลือกประเภทอื่น หรือติดต่อเจ้าหน้าที่</p>
-              <button onClick={closeType} className="mt-4 bg-[#0194F3] text-white font-black px-6 py-2.5 rounded-2xl">เลือกประเภทอื่น</button>
-            </div>
-          )}
         </>
       )}
 
