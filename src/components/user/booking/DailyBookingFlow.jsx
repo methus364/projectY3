@@ -119,10 +119,14 @@ export default function DailyBookingFlow() {
   const selectedCapacity = selectedRooms.reduce((sum, r) => sum + bedInfoOf(r.typeName).capacity, 0);
 
   const minGuests = roomsWanted;
+  // ความจุต่อห้องของประเภทที่เปิดอยู่ (2 เตียง=2 คน, 3 เตียง=3 คน)
+  const typeCapacity = openedType ? bedInfoOf(openedType).capacity : MAX_PER_ROOM;
+  const maxGuests = roomsWanted * typeCapacity;
   const countError =
     roomsWanted < 1 ? 'กรุณากดเพิ่มจำนวนห้องและจำนวนคนเพื่อจองห้อง'
     : guests < 1 ? 'กรุณาเพิ่มจำนวนผู้เข้าพัก'
     : guests < minGuests ? `ห้องประเภทนี้ต้องมีผู้เข้าพัก ${minGuests} คนขึ้นไป`
+    : guests > maxGuests ? `ห้องนี้รองรับได้สูงสุด ${maxGuests} คนใน ${roomsWanted} ห้อง กรุณาเพิ่มจำนวนห้องหรือลดจำนวนคน`
     : '';
   const canConfirmCount = countError === '';
 
@@ -399,7 +403,7 @@ export default function DailyBookingFlow() {
             <p className={`text-[11px] font-semibold mt-2.5 ${countError ? 'text-[#EF4444]' : roomsWanted >= MAX_ROOMS_PER_ACCOUNT ? 'text-[#F97316]' : 'text-[#94A3B8]'}`}>
               {countError ? countError
                 : roomsWanted >= MAX_ROOMS_PER_ACCOUNT ? `จองได้สูงสุด ${MAX_ROOMS_PER_ACCOUNT} ห้องต่อการจอง 1 ครั้ง`
-                : `รองรับได้สูงสุด ${roomsWanted * MAX_PER_ROOM} คนใน ${roomsWanted} ห้อง`}
+                : `รองรับได้สูงสุด ${maxGuests} คนใน ${roomsWanted} ห้อง`}
             </p>
 
             {!countConfirmed ? (
