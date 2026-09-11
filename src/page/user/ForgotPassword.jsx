@@ -32,7 +32,7 @@ export default function ForgotPassword() {
   const otpRefs = useRef([]);                  // refs ช่อง OTP 6 กล่อง (เลื่อนช่องอัตโนมัติ)
 
   const [form, setForm] = useState({
-    username: '', otp: '', newPassword: '', confirmPassword: '',
+    identifier: '', otp: '', newPassword: '', confirmPassword: '',
   });
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
@@ -87,14 +87,14 @@ export default function ForgotPassword() {
 
   const handleSendOtp = async () => {
     setErrorMsg('');
-    if (!form.username.trim()) {
-      setErrorMsg('กรุณากรอกชื่อ user');
+    if (!form.identifier.trim()) {
+      setErrorMsg('กรุณากรอกอีเมลหรือชื่อผู้ใช้');
       return;
     }
     try {
       setSendingOtp(true);
       const res = await api.post('/auth/send-otp', {
-        username: form.username.trim(),
+        identifier: form.identifier.trim(),
       });
       if (!res.data?.success) { setErrorMsg(res.data?.message || 'ไม่สามารถส่งรหัส OTP ได้'); return; }
       setSentTo(res.data?.email || '');   // เก็บอีเมลปิดบังไว้แสดงในสเต็ป 2
@@ -114,7 +114,7 @@ export default function ForgotPassword() {
     try {
       setVerifyingOtp(true);
       const res = await api.post('/auth/verify-otp', {
-        username: form.username.trim(), otp: form.otp.trim(),
+        identifier: form.identifier.trim(), otp: form.otp.trim(),
       });
       if (!res.data?.success) { setErrorMsg(res.data?.message || 'กรุณากรอกรหัส OTP ให้ถูกต้อง'); return; }
       if (timerRef.current) clearInterval(timerRef.current);
@@ -135,7 +135,7 @@ export default function ForgotPassword() {
     try {
       setSavingPassword(true);
       const res = await api.post('/auth/reset-password', {
-        username: form.username.trim(), newPassword: form.newPassword,
+        identifier: form.identifier.trim(), newPassword: form.newPassword,
       });
       if (!res.data?.success) { setErrorMsg(res.data?.message || 'ไม่สามารถบันทึกรหัสผ่านได้'); return; }
       alert('เปลี่ยนรหัสผ่านเรียบร้อยแล้ว');
@@ -168,22 +168,20 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen bg-[#EEF3F8]">
-      {/* Header ไล่เฉดฟ้า + ปุ่มย้อนกลับ */}
-      <div className="bg-gradient-to-br from-[#0A6FC2] via-[#0154A0] to-[#023E7D] px-4 pt-4 pb-8 rounded-b-[32px]">
-        <div className="flex items-center justify-between max-w-md mx-auto py-1">
-          <button
-            onClick={() => (step > 1 ? setStep(step - 1) : navigate('/login'))}
-            className="w-10 h-10 rounded-full bg-white/18 hover:bg-white/25 flex items-center justify-center text-white transition"
-            aria-label="ย้อนกลับ"
-          >
-            <ArrowLeftIcon className="w-5 h-5" />
-          </button>
-          <h1 className="text-white text-lg font-black tracking-wide">ลืมรหัสผ่าน</h1>
-          <div className="w-10" />
-        </div>
+      {/* Header ฟ้า + ปุ่มย้อนกลับ (ตรงกับแอป editregister) */}
+      <div className="bg-[#0178C7] px-4 py-4 flex items-center justify-between">
+        <button
+          onClick={() => (step > 1 ? setStep(step - 1) : navigate('/login'))}
+          className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition"
+          aria-label="ย้อนกลับ"
+        >
+          <ArrowLeftIcon className="w-5 h-5" />
+        </button>
+        <h1 className="text-white text-lg font-black tracking-wide">แก้ไขข้อมูลผู้ใช้</h1>
+        <div className="w-9" />
       </div>
 
-      <div className="px-5 pb-12 -mt-3 max-w-md mx-auto">
+      <div className="px-5 pb-12 max-w-md mx-auto">
         {/* ตัวบอกสเต็ป 3 จุด (ตัวที่ active ขยาย + เงา) */}
         <div className="flex items-center justify-center my-6">
           {[1, 2, 3].map((s, i) => (
@@ -207,17 +205,17 @@ export default function ForgotPassword() {
           </div>
         )}
 
-        {/* สเต็ป 1: กรอก username */}
+        {/* สเต็ป 1: กรอกอีเมลหรือชื่อผู้ใช้ */}
         {step === 1 && (
           <div className="bg-white rounded-[26px] border border-[#EAEFF5] p-6 shadow-[0_12px_24px_-8px_rgba(30,58,95,0.12)]">
             <CardIcon><EnvelopeIcon className="w-7 h-7 text-[#0194F3]" /></CardIcon>
-            <h2 className="text-[#0F172A] text-xl font-black mb-2">กรอกชื่อผู้ใช้เพื่อรับ OTP</h2>
+            <h2 className="text-[#0F172A] text-xl font-black mb-2">กรอกข้อมูลเพื่อรับ OTP</h2>
             <p className="text-[#64748B] text-sm font-semibold leading-relaxed">
-              ระบบจะส่งรหัส OTP ไปยังอีเมลที่ผูกกับบัญชีนี้
+              กรอกอีเมลหรือชื่อผู้ใช้ของคุณ ระบบจะส่งรหัส OTP ไปที่อีเมลที่ผูกกับบัญชีนี้
             </p>
-            <label className={labelClass}>User Name</label>
-            <input value={form.username} onChange={(e) => handleChange('username', e.target.value)}
-              placeholder="กรอกชื่อ user" autoCapitalize="none" className={inputClass} />
+            <label className={labelClass}>อีเมล หรือ ชื่อผู้ใช้</label>
+            <input value={form.identifier} onChange={(e) => handleChange('identifier', e.target.value)}
+              placeholder="กรอกอีเมลหรือชื่อ user" autoCapitalize="none" className={inputClass} />
             <button onClick={handleSendOtp} disabled={sendingOtp} className={actionBtnClass}>
               {sendingOtp ? 'กำลังส่ง...' : 'ส่งรหัส OTP ไปที่อีเมล'}
             </button>
