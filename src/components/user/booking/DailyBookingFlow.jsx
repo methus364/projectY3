@@ -99,8 +99,6 @@ export default function DailyBookingFlow() {
   const startPay = async () => {
     const bookingIds = (bookingResult?.bookings || []).map((x) => x.bookingId).filter(Boolean);
     if (!bookingIds.length) return;
-    const ok = window.confirm('คุณมีเวลา 5 นาทีในการชำระเงิน มิฉะนั้นการจองจะถูกยกเลิกอัตโนมัติและปล่อยห้องคืน');
-    if (!ok) return;
     try {
       setPaying(true);
       const res = await api.post('/booking/batch/pay-now', { bookingIds });
