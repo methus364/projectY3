@@ -112,6 +112,26 @@ export default function DailyBookingFlow() {
     }
   };
 
+  // ยกเลิกการจองทั้งหมดในรายการนี้ (ปล่อยห้องคืน)
+  const cancelBooking = async () => {
+    const bookingIds = (bookingResult?.bookings || []).map((x) => x.bookingId).filter(Boolean);
+    if (!bookingIds.length) return;
+    const ok = window.confirm('ยืนยันยกเลิกการจองทั้งหมดนี้? ระบบจะปล่อยห้องคืนทันที');
+    if (!ok) return;
+    try {
+      setPaying(true);
+      await Promise.all(bookingIds.map((id) =>
+        api.put(`/editBooking/${id}`, { status: 'ยกเลิก', cancelReason: 'ผู้ใช้ยกเลิกการจอง' })
+      ));
+      alert('ยกเลิกการจองเรียบร้อยแล้ว');
+      resetAll();
+    } catch (e) {
+      alert(e.response?.data?.message || 'ยกเลิกการจองไม่สำเร็จ');
+    } finally {
+      setPaying(false);
+    }
+  };
+
   // แนบสลิป → แจ้งชำระรวมทุกบิล
   const submitSlip = async () => {
     if (!slipFile) { alert('กรุณาแนบสลิปการโอนเงิน'); return; }
@@ -358,6 +378,12 @@ export default function DailyBookingFlow() {
           <button onClick={() => navigate('/roomhistory')} className="w-full bg-[#F1F5F9] text-[#64748B] font-bold py-3 rounded-2xl hover:bg-[#E2E8F0] transition">
             ดูประวัติการจอง
           </button>
+          {!paid && (
+            <button onClick={cancelBooking} disabled={paying}
+              className="w-full bg-white border border-[#FECACA] text-[#DC2626] font-bold py-3 rounded-2xl hover:bg-[#FEF2F2] transition disabled:opacity-50">
+              ยกเลิกการจอง
+            </button>
+          )}
           <button onClick={resetAll} className="w-full text-[#94A3B8] text-sm font-semibold hover:text-[#0194F3]">
             จองห้องอีกครั้ง
           </button>
