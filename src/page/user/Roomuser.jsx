@@ -8,6 +8,7 @@ import BookingStepper from '../../components/user/booking/BookingStepper';
 import RoomDetailModal from '../../components/user/booking/RoomDetailModal';
 import BookingSummary from '../../components/user/booking/BookingSummary';
 import BookingSuccess from '../../components/user/booking/BookingSuccess';
+import DailyBookingFlow from '../../components/user/booking/DailyBookingFlow';
 
 // ชื่อสเต็ปในแถบ progress (ใช้กับ BookingStepper)
 const STEP_LABELS = ['ค้นหา', 'เลือกห้อง', 'ยืนยัน', 'สำเร็จ'];
@@ -320,6 +321,19 @@ export default function Roomuser() {
       setSubmitting(false);
     }
   };
+
+  // ผู้เช่ารายเดือน → ใช้ผังชั้นเดิม · รายวัน/ผู้เยี่ยมชม → ใช้ flow แบบแอป (โคลนหน้าจองรายวัน)
+  if (lockedRentType !== 'monthly') {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA]">
+        <Navbar />
+        <PageHeader title="จองห้องพัก" subtitle="ค้นหาและจองห้องพักรายวัน" />
+        <div className="pt-6 pb-10 px-4 max-w-2xl mx-auto">
+          <DailyBookingFlow />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
