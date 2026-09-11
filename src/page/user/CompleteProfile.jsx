@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { AuthLayout, TextField, PasswordField, RoleSelector, FormMessage, SubmitButton } from '../../components/user/AuthUI';
+import AuthSuccessScreen from '../../components/user/AuthSuccessScreen';
 
 // อ่านชื่อ-นามสกุลที่ดึงมาจาก provider (Google/LINE) ที่ callback เก็บไว้ → เอามา prefill
 // full_name มาเป็นก้อนเดียว เช่น "สมชาย ใจดี" → แยกเป็น ชื่อ (คำแรก) + นามสกุล (ที่เหลือ)
@@ -32,6 +33,7 @@ export default function CompleteProfile() {
   const [user_role, setUserRole] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [registered, setRegistered] = useState(false); // สมัครสำเร็จแล้ว
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,25 +72,36 @@ export default function CompleteProfile() {
     setLoading(true);
     try {
       // backend ใช้ token ระบุว่าเป็นบัญชีไหน (socialCompleteCheck)
-      const res = await api.post('/auth/social/complete', {
+      await api.post('/auth/social/complete', {
         username: cleanUsername,
         full_name: `${cleanFirst} ${cleanLast}`,
         user_role,
         phone_number: cleanPhone,
         password,
       });
-      // สมัครสำเร็จ → backend ออก token จริงให้ → อัปเดต session แล้วพาไปหน้าตาม role
-      const { token, payload } = res.data;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(payload));
+      // สมัครสำเร็จ → ไม่ล็อกอินอัตโนมัติ ให้ผู้ใช้ไปเข้าสู่ระบบด้วย username/รหัสผ่านที่เพิ่งตั้ง
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       localStorage.removeItem('social_profile'); // ใช้เสร็จแล้ว ลบทิ้ง
-      navigate(payload.role === 'Admin' ? '/admin' : '/');
+      setRegistered(true);
     } catch (err) {
       setError(err.response?.data?.message || 'บันทึกข้อมูลไม่สำเร็จ');
     } finally {
       setLoading(false);
     }
   };
+
+  // สมัครสมาชิกสำเร็จ → โชว์หน้าสำเร็จ แล้วเด้งไปหน้าล็อกอินเพื่อเข้าสู่ระบบ
+  if (registered) {
+    return (
+      <AuthSuccessScreen
+        title="สมัครสมาชิกสำเร็จ"
+        subtitle="บันทึกข้อมูลเรียบร้อยแล้ว กดตกลงเพื่อเข้าสู่ระบบ"
+        buttonText="ไปหน้าเข้าสู่ระบบ"
+        onOk={() => navigate('/login')}
+      />
+    );
+  }
 
   return (
     <AuthLayout icon="👤" tagline="ตั้งค่าบัญชี" title="กรอกข้อมูลสมาชิก">

@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
+import AuthSuccessScreen from '../../components/user/AuthSuccessScreen';
 
 // หน้าปลายทางหลัง LINE login → รับ code มาแลกเป็น JWT ผ่าน backend
 export default function LineCallback() {
     const [error, setError] = useState('');
+    const [successTo, setSuccessTo] = useState(null); // ปลายทางหลังกดตกลงบนหน้า "เข้าสู่ระบบสำเร็จ"
     const navigate = useNavigate();
     // กัน useEffect รันซ้ำ (React StrictMode รัน 2 รอบตอน dev) — OAuth code ใช้ได้ครั้งเดียว
     // และ state ใน sessionStorage ถูกลบหลังใช้ ถ้ารันซ้ำจะเช็ค state ไม่ผ่าน
@@ -53,13 +55,24 @@ export default function LineCallback() {
                     if (profile) localStorage.setItem('social_profile', JSON.stringify(profile));
                     return navigate('/complete-profile');
                 }
-                // ผู้ใช้เดิม → เข้าตาม role ได้เลย
-                navigate(payload.role === 'Admin' ? '/admin' : '/');
+                // ผู้ใช้เดิม → โชว์หน้า "เข้าสู่ระบบสำเร็จ" ก่อนเข้าตาม role
+                setSuccessTo(payload.role === 'Admin' ? '/admin' : '/');
             })
             .catch((err) => {
                 setError(err.response?.data?.message || 'เข้าสู่ระบบด้วย LINE ไม่สำเร็จ');
             });
     }, [navigate]);
+
+    // เข้าสู่ระบบสำเร็จ (ผู้ใช้เดิม) → โชว์หน้าสำเร็จ ไอคอนเช็คขยับได้
+    if (successTo) {
+        return (
+            <AuthSuccessScreen
+                title="เข้าสู่ระบบสำเร็จ"
+                subtitle="ยินดีต้อนรับกลับมา! กดตกลงเพื่อไปยังหน้าแรก"
+                onOk={() => navigate(successTo)}
+            />
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background">

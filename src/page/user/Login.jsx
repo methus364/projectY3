@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { isConfigured, startGoogleLogin, startLineLogin } from '../../lib/socialAuth';
 import { AuthLayout, TextField, PasswordField, FormMessage, SubmitButton } from '../../components/user/AuthUI';
+import AuthSuccessScreen from '../../components/user/AuthSuccessScreen';
 
 export default function Login() {
   const [loginId, setLoginId] = useState(''); // อีเมลหรือชื่อผู้ใช้ก็ได้
@@ -61,40 +62,14 @@ export default function Login() {
     startGoogleLogin();
   };
 
-  // หน้า/โมดัล "เข้าสู่ระบบสำเร็จ" — ไอคอนเช็คขยับได้ + ปุ่มตกลงเพื่อไปหน้าแรก
+  // หน้า "เข้าสู่ระบบสำเร็จ" — ไอคอนเช็คขยับได้ + ปุ่มตกลงเพื่อไปหน้าแรก
   if (successVisible) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#0a1626]/60 backdrop-blur-sm success-overlay">
-        <div className="success-card w-full max-w-sm rounded-[28px] bg-white shadow-2xl px-8 py-10 text-center">
-          {/* ไอคอนเช็คมาร์คขยับได้ */}
-          <div className="success-badge mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#DCFCE7]">
-            <svg viewBox="0 0 52 52" className="h-14 w-14">
-              <circle cx="26" cy="26" r="24" fill="none" stroke="#16A34A" strokeWidth="3" opacity="0.25" />
-              <path
-                className="success-check-path"
-                fill="none"
-                stroke="#16A34A"
-                strokeWidth="5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 27 l7 7 l15 -16"
-              />
-            </svg>
-          </div>
-
-          <h2 className="text-2xl font-black text-[#0F172A]">เข้าสู่ระบบสำเร็จ</h2>
-          <p className="mt-2 text-sm font-medium text-[#64748B]">
-            ยินดีต้อนรับกลับมา! กดตกลงเพื่อไปยังหน้าแรก
-          </p>
-
-          <button
-            onClick={() => navigate(redirectTo)}
-            className="mt-8 w-full rounded-2xl bg-[#0178C7] py-3.5 font-bold text-white shadow-lg shadow-[#0178C7]/30 transition hover:bg-[#0164A6] active:scale-[0.98]"
-          >
-            ตกลง
-          </button>
-        </div>
-      </div>
+      <AuthSuccessScreen
+        title="เข้าสู่ระบบสำเร็จ"
+        subtitle="ยินดีต้อนรับกลับมา! กดตกลงเพื่อไปยังหน้าแรก"
+        onOk={() => navigate(redirectTo)}
+      />
     );
   }
 

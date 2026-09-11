@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../lib/api';
 import { AuthLayout, TextField, FormMessage, SubmitButton } from '../../components/user/AuthUI';
+import AuthSuccessScreen from '../../components/user/AuthSuccessScreen';
 
-// หน้ายืนยันอีเมลด้วย OTP หลังสมัคร — ยืนยันสำเร็จแล้วระบบ login ให้เลย (คืน token)
+// หน้ายืนยันอีเมลด้วย OTP หลังสมัคร — ยืนยันสำเร็จ → โชว์ "สมัครสมาชิกสำเร็จ" แล้วเด้งไปหน้าล็อกอิน
 export default function VerifyEmail() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -15,13 +16,7 @@ export default function VerifyEmail() {
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
-
-  // ยืนยันสำเร็จ → เก็บ session แล้วพาไปหน้าตาม role
-  const saveSessionAndRedirect = ({ token, payload }) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(payload));
-    navigate(payload.role === 'Admin' ? '/admin' : '/');
-  };
+  const [registered, setRegistered] = useState(false); // สมัคร/ยืนยันสำเร็จแล้ว
 
   const handleVerify = async (e) => {
     e.preventDefault();
@@ -29,8 +24,11 @@ export default function VerifyEmail() {
     setInfo('');
     setLoading(true);
     try {
-      const res = await api.post('/auth/verify-registration', { email, otp });
-      saveSessionAndRedirect(res.data);
+      await api.post('/auth/verify-registration', { email, otp });
+      // ยืนยันสำเร็จ → ไม่ล็อกอินอัตโนมัติ ให้ผู้ใช้ไปล็อกอินเองตาม flow ที่ต้องการ
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setRegistered(true);
     } catch (err) {
       setError(err.response?.data?.message || 'ยืนยันไม่สำเร็จ');
     } finally {
@@ -56,6 +54,18 @@ export default function VerifyEmail() {
       setResending(false);
     }
   };
+
+  // สมัครสมาชิกสำเร็จ → โชว์หน้าสำเร็จ แล้วเด้งไปหน้าล็อกอินเพื่อเข้าสู่ระบบ
+  if (registered) {
+    return (
+      <AuthSuccessScreen
+        title="สมัครสมาชิกสำเร็จ"
+        subtitle="ยืนยันอีเมลเรียบร้อยแล้ว กดตกลงเพื่อเข้าสู่ระบบ"
+        buttonText="ไปหน้าเข้าสู่ระบบ"
+        onOk={() => navigate('/login')}
+      />
+    );
+  }
 
   return (
     <AuthLayout icon="✉️" tagline="ยืนยันอีเมล" title="กรอกรหัส OTP">
