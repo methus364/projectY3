@@ -5,12 +5,28 @@ import api from '../../lib/api';
 const fmtMoney = (val) =>
   Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// จัดรูปแบบวันที่เป็น YYYY-MM-DD จากเวลาท้องถิ่น (ไม่ใช้ toISOString เพราะจะเลื่อนเป็น UTC → วันเพี้ยน)
+const fmtDate = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// วันที่วันนี้ + วันแรกของเดือน ใช้เป็นค่าเริ่มต้นช่วงเวลาสถิติผู้เข้าพัก
+const todayStr = () => fmtDate(new Date());
+const monthStartStr = () => {
+  const now = new Date();
+  return fmtDate(new Date(now.getFullYear(), now.getMonth(), 1));
+};
+
 const Dashbord = () => {
   const [summary, setSummary] = useState(null);
   const [revenue, setRevenue] = useState([]);
   const [occupancy, setOccupancy] = useState([]);
   const [debt, setDebt] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // สถิติผู้เข้าพักตามช่วงเวลา (เลือกช่วงได้)
+  const [occStats, setOccStats] = useState({ daily: 0, monthly: 0 });
+  const [occStart, setOccStart] = useState(monthStartStr());
+  const [occEnd, setOccEnd] = useState(todayStr());
 
   // ==========================================
   // โหลดข้อมูลทั้งหมดของแดชบอร์ดพร้อมกัน
@@ -37,6 +53,19 @@ const Dashbord = () => {
     };
     fetchAll();
   }, []);
+
+  // โหลดสถิติผู้เข้าพักใหม่ทุกครั้งที่ช่วงเวลาเปลี่ยน
+  useEffect(() => {
+    const fetchOccStats = async () => {
+      try {
+        const res = await api.get(`/dashboard/occupancy-stats?start=${occStart}&end=${occEnd}`);
+        if (res.data.success) setOccStats(res.data.data);
+      } catch (err) {
+        console.error('โหลดสถิติผู้เข้าพักไม่สำเร็จ:', err);
+      }
+    };
+    fetchOccStats();
+  }, [occStart, occEnd]);
 
   if (loading) {
     return <div className="text-center py-20 text-muted-foreground">กำลังโหลดข้อมูล...</div>;
@@ -91,6 +120,25 @@ const Dashbord = () => {
         </div>
       )}
 
+      {/* ===== ห้องว่างวันนี้ แยกรายวัน / รายเดือน ===== */}
+      {summary && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          {/* ห้องว่างสำหรับรายวัน (วันนี้) */}
+          <div className="bg-teal-50 dark:bg-teal-950/30 border border-teal-100 dark:border-teal-900 rounded-xl p-5">
+            <p className="text-sm text-muted-foreground">ห้องว่างวันนี้ (รายวัน)</p>
+            <p className="text-2xl font-bold text-teal-600 mt-1">{summary.availableDaily} ห้อง</p>
+            <p className="text-xs text-muted-foreground mt-1">ไม่มีการจองคาบเกี่ยววันนี้ · รับผู้เช่ารายวันได้</p>
+          </div>
+
+          {/* ห้องว่างสำหรับรายเดือน */}
+          <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 rounded-xl p-5">
+            <p className="text-sm text-muted-foreground">ห้องว่าง (รายเดือน)</p>
+            <p className="text-2xl font-bold text-indigo-600 mt-1">{summary.availableMonthly} ห้อง</p>
+            <p className="text-xs text-muted-foreground mt-1">ไม่มีผู้เช่ารายเดือนพักอยู่ · เสนอสัญญารายเดือนได้</p>
+          </div>
+        </div>
+      )}
+
       {/* ===== กราฟรายได้รายเดือน ===== */}
       <div className="bg-card shadow-sm border border-border rounded-lg p-6 mb-8">
         <h2 className="text-lg font-semibold text-foreground mb-4">รายได้ย้อนหลัง 6 เดือน</h2>
@@ -113,6 +161,55 @@ const Dashbord = () => {
             <p className="text-center w-full text-muted-foreground">ยังไม่มีข้อมูลรายได้</p>
           )}
         </div>
+      </div>
+
+      {/* ===== สถิติผู้เข้าพัก แยกรายวัน/รายเดือน ตามช่วงเวลา ===== */}
+      <div className="bg-card shadow-sm border border-border rounded-lg p-6 mb-8">
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
+          <h2 className="text-lg font-semibold text-foreground">จำนวนผู้เข้าพักตามช่วงเวลา</h2>
+          {/* เลือกช่วงเวลา */}
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">ตั้งแต่</label>
+              <input
+                type="date"
+                value={occStart}
+                max={occEnd}
+                onChange={(e) => setOccStart(e.target.value)}
+                className="border border-border rounded-lg px-3 py-1.5 bg-muted/50 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">ถึง</label>
+              <input
+                type="date"
+                value={occEnd}
+                min={occStart}
+                onChange={(e) => setOccEnd(e.target.value)}
+                className="border border-border rounded-lg px-3 py-1.5 bg-muted/50 text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* รายวัน */}
+          <div className="bg-teal-50 dark:bg-teal-950/30 border border-teal-100 dark:border-teal-900 rounded-xl p-5">
+            <p className="text-sm text-muted-foreground">ผู้เข้าพัก — รายวัน</p>
+            <p className="text-2xl font-bold text-teal-600 mt-1">{occStats.daily} ราย</p>
+          </div>
+          {/* รายเดือน */}
+          <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 rounded-xl p-5">
+            <p className="text-sm text-muted-foreground">ผู้เข้าพัก — รายเดือน</p>
+            <p className="text-2xl font-bold text-indigo-600 mt-1">{occStats.monthly} ราย</p>
+          </div>
+          {/* รวม */}
+          <div className="bg-muted/40 border border-border rounded-xl p-5">
+            <p className="text-sm text-muted-foreground">รวมทั้งหมด</p>
+            <p className="text-2xl font-bold text-foreground mt-1">{occStats.daily + occStats.monthly} ราย</p>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground mt-3">นับการจองที่เข้าพักคาบเกี่ยวช่วงเวลาที่เลือก (เช็คอินแล้ว/ย้ายออกแล้ว)</p>
       </div>
 
       {/* ===== รายงาน 2 คอลัมน์: ผู้เข้าพัก / หนี้ค้างชำระ ===== */}
