@@ -80,7 +80,7 @@ const router = createBrowserRouter([
       { path: "profile", element: <PrivateRoute><Profile /></PrivateRoute> },
       { path: "Editprofile", element: <PrivateRoute><Editprofile /></PrivateRoute> },
       { path: "repairrequest", element: <MonthlyRoute><RepairRequest /></MonthlyRoute> },
-      { path: "mybills", element: <PrivateRoute><MyBills /></PrivateRoute> },
+      { path: "mybills", element: <MonthlyRoute><MyBills /></MonthlyRoute> },
       { path: "mycontracts", element: <MonthlyRoute><MyContracts /></MonthlyRoute> },
     ],
   },

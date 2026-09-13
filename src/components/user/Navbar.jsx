@@ -42,8 +42,9 @@ export default function Navbar() {
     { to: '/roomuser', label: 'ค้นหาห้องพัก' },
     ...(isLoggedIn ? [
       { to: '/roomhistory', label: 'ประวัติการจอง' },
-      { to: '/mybills', label: 'บิล/ชำระเงิน' },
+      // บิล/ชำระเงิน + สัญญาเช่า + แจ้งซ่อม → เฉพาะรายเดือน (รายวันจ่าย/ดูบิลจากประวัติการจองแล้ว)
       ...(isMonthly ? [
+        { to: '/mybills', label: 'บิล/ชำระเงิน' },
         { to: '/mycontracts', label: 'สัญญาเช่า' },
         { to: '/repairrequest', label: 'แจ้งซ่อม' },
       ] : []),
@@ -135,9 +136,9 @@ export default function Navbar() {
             {isLoggedIn && (
               <>
                 <Link to="/roomhistory" className="block hover:text-white/70">ประวัติการจอง</Link>
-                <Link to="/mybills" className="block hover:text-white/70">บิล/ชำระเงิน</Link>
                 {isMonthly && (
                   <>
+                    <Link to="/mybills" className="block hover:text-white/70">บิล/ชำระเงิน</Link>
                     <Link to="/mycontracts" className="block hover:text-white/70">สัญญาเช่า</Link>
                     <Link to="/repairrequest" className="block hover:text-white/70">แจ้งซ่อม</Link>
                   </>
