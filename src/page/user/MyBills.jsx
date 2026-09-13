@@ -181,17 +181,25 @@ export default function MyBills() {
             {invoices.map((inv) => {
               const lateFee = Number(inv.late_fee || 0);
               const grandTotal = Number(inv.total_amount || 0) + lateFee;
+              // บิลรายวัน: โชว์หมายเลขการจองแทนเลขห้อง (ตามที่ผู้เช่ารายวันต้องการ)
+              const isDaily = inv.rent_type === 'daily';
               return (
               <div key={inv.invoice_id} className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-5">
                 {/* หัว: เลขบิล + สถานะ */}
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="text-[#1E293B] font-black text-base">
-                      บิล #{inv.invoice_id} · ห้อง {inv.room_number}
+                      บิล #{inv.invoice_id} · {isDaily ? `การจอง #${inv.booking_id}` : `ห้อง ${inv.room_number}`}
                     </p>
                     <p className="text-[#94A3B8] text-xs mt-0.5">
                       ออกบิล {inv.invoice_date?.split('T')[0] || '-'} · ครบกำหนด {inv.due_date?.split('T')[0] || '-'}
                     </p>
+                    {/* รายวัน: โชว์ช่วงวันเข้าพักด้วย */}
+                    {isDaily && (inv.check_in_date || inv.check_out_date) && (
+                      <p className="text-[#94A3B8] text-xs mt-0.5">
+                        เข้าพัก {inv.check_in_date?.split('T')[0] || '-'} → {inv.check_out_date?.split('T')[0] || '-'}
+                      </p>
+                    )}
                   </div>
                   <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${statusBadge(inv.invoice_status)}`}>
                     {inv.invoice_status}

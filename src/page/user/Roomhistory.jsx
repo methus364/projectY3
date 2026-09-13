@@ -30,11 +30,6 @@ export default function Roomhistory() {
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
 
-  // แก้ไขวันเข้าพัก
-  const [editTarget, setEditTarget] = useState(null);
-  const [editForm, setEditForm] = useState({ startDate: '', endDate: '' });
-  const [savingEdit, setSavingEdit] = useState(false);
-
   // บิลของแต่ละ booking (โหลดเมื่อกดดู)
   const [billsMap, setBillsMap] = useState({}); // { [bookingId]: [invoices] }
   const [openBillId, setOpenBillId] = useState(null);
@@ -68,33 +63,6 @@ export default function Roomhistory() {
       alert(err.response?.data?.message || 'ยกเลิกการจองไม่สำเร็จ');
     } finally {
       setCancelling(false);
-    }
-  };
-
-  // เปิด modal แก้ไขวันเข้าพัก
-  const openEdit = (booking) => {
-    setEditTarget(booking);
-    setEditForm({ startDate: fmt(booking.startDate), endDate: fmt(booking.endDate) });
-  };
-
-  const handleEdit = async () => {
-    try {
-      setSavingEdit(true);
-      const res = await api.put(`/editBooking/${editTarget.bookingId}`, {
-        startDate: editForm.startDate,
-        endDate: editForm.endDate,
-      });
-      if (res.data.success) {
-        setBookings((prev) => prev.map((b) =>
-          b.bookingId === editTarget.bookingId
-            ? { ...b, startDate: editForm.startDate, endDate: editForm.endDate }
-            : b));
-        setEditTarget(null);
-      }
-    } catch (err) {
-      alert(err.response?.data?.message || 'แก้ไขวันเข้าพักไม่สำเร็จ');
-    } finally {
-      setSavingEdit(false);
     }
   };
 
@@ -159,7 +127,10 @@ export default function Roomhistory() {
                   {/* หัว: ห้อง + badge + ราคา */}
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <p className="text-[#0194F3] text-lg font-black">ห้อง {booking.roomNumber}</p>
+                      {/* รายวัน: โชว์หมายเลขการจองแทนเลขห้อง */}
+                      <p className="text-[#0194F3] text-lg font-black">
+                        {booking.rentType === 'daily' ? `การจอง #${booking.bookingId}` : `ห้อง ${booking.roomNumber}`}
+                      </p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${statusClass}`}>{booking.bookingStatus}</span>
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#E0F2FE] text-[#0284C7]">
@@ -228,18 +199,12 @@ export default function Roomhistory() {
                     </div>
                   )}
 
-                  {/* แก้ไขวันเข้าพัก / ยกเลิก — เฉพาะก่อนเช็คอิน */}
+                  {/* ยกเลิกการจอง — เฉพาะก่อนเช็คอิน */}
                   {canEdit && (
-                    <div className="flex gap-2">
-                      <button onClick={() => openEdit(booking)}
-                        className="flex-1 py-2.5 bg-blue-50 border border-blue-200 text-blue-600 font-bold rounded-2xl text-sm hover:bg-blue-100 transition">
-                        แก้ไขวันเข้าพัก
-                      </button>
-                      <button onClick={() => setCancelTarget(booking)}
-                        className="flex-1 py-2.5 bg-red-50 border border-red-200 text-red-600 font-bold rounded-2xl text-sm hover:bg-red-100 transition">
-                        ยกเลิกการจอง
-                      </button>
-                    </div>
+                    <button onClick={() => setCancelTarget(booking)}
+                      className="w-full py-2.5 bg-red-50 border border-red-200 text-red-600 font-bold rounded-2xl text-sm hover:bg-red-100 transition">
+                      ยกเลิกการจอง
+                    </button>
                   )}
                 </div>
               );
@@ -261,7 +226,7 @@ export default function Roomhistory() {
           <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm">
             <h2 className="text-[#1E293B] text-lg font-black mb-2">ยืนยันยกเลิกการจอง</h2>
             <p className="text-[#64748B] text-sm mb-3">
-              ห้อง {cancelTarget.roomNumber} ({fmt(cancelTarget.startDate)} – {fmt(cancelTarget.endDate)})
+              {cancelTarget.rentType === 'daily' ? `การจอง #${cancelTarget.bookingId}` : `ห้อง ${cancelTarget.roomNumber}`} ({fmt(cancelTarget.startDate)} – {fmt(cancelTarget.endDate)})
             </p>
             <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-4">
               <p className="text-red-600 text-sm font-bold">⚠️ การยกเลิกการจองไม่มีการคืนเงินมัดจำ</p>
@@ -283,39 +248,6 @@ export default function Roomhistory() {
               <button onClick={handleCancel} disabled={cancelling || !cancelReason.trim()}
                 className="flex-1 py-3 bg-red-500 text-white font-bold rounded-2xl hover:bg-red-600 transition disabled:opacity-50">
                 {cancelling ? 'กำลังยกเลิก...' : 'ยืนยันยกเลิก'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal แก้ไขวันเข้าพัก */}
-      {editTarget && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm">
-            <h2 className="text-[#1E293B] text-lg font-black mb-4">แก้ไขวันเข้าพัก — ห้อง {editTarget.roomNumber}</h2>
-            <div className="space-y-3 mb-5">
-              <div>
-                <label className="block text-[#334155] text-sm font-bold mb-1">วันเข้าพัก</label>
-                <input type="date" value={editForm.startDate}
-                  onChange={(e) => setEditForm((p) => ({ ...p, startDate: e.target.value }))}
-                  className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-2.5 text-sm bg-[#F8FAFC]" />
-              </div>
-              <div>
-                <label className="block text-[#334155] text-sm font-bold mb-1">วันออก</label>
-                <input type="date" value={editForm.endDate}
-                  onChange={(e) => setEditForm((p) => ({ ...p, endDate: e.target.value }))}
-                  className="w-full border border-[#CBD5E1] rounded-2xl px-4 py-2.5 text-sm bg-[#F8FAFC]" />
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setEditTarget(null)}
-                className="flex-1 py-3 bg-[#F1F5F9] text-[#64748B] font-bold rounded-2xl hover:bg-[#E2E8F0] transition">
-                ยกเลิก
-              </button>
-              <button onClick={handleEdit} disabled={savingEdit}
-                className="flex-1 py-3 bg-[#0194F3] text-white font-bold rounded-2xl hover:bg-[#0178C7] transition disabled:opacity-50">
-                {savingEdit ? 'กำลังบันทึก...' : 'บันทึก'}
               </button>
             </div>
           </div>
