@@ -94,15 +94,18 @@ const Dashbord = () => {
       {/* ===== กราฟรายได้รายเดือน ===== */}
       <div className="bg-card shadow-sm border border-border rounded-lg p-6 mb-8">
         <h2 className="text-lg font-semibold text-foreground mb-4">รายได้ย้อนหลัง 6 เดือน</h2>
-        <div className="flex items-end justify-between gap-3 h-48">
+        <div className="flex items-end justify-between gap-3 h-52">
           {revenue.map((r) => (
-            <div key={r.month} className="flex flex-col items-center flex-1">
-              <span className="text-xs text-muted-foreground mb-1">{fmtMoney(r.revenue)}</span>
-              {/* ความสูงแท่ง = สัดส่วนเทียบรายได้สูงสุด */}
-              <div
-                className="w-full bg-primary rounded-t"
-                style={{ height: `${(r.revenue / maxRevenue) * 100}%` }}
-              ></div>
+            <div key={r.month} className="flex h-full flex-1 flex-col items-center">
+              {/* พื้นที่แท่ง — flex-1 ทำให้มีความสูงชัดเจน แท่งจึงคิด % ได้ถูก, justify-end ดันแท่งชิดล่าง */}
+              <div className="flex w-full flex-1 flex-col items-center justify-end">
+                <span className="text-xs text-muted-foreground mb-1">{fmtMoney(r.revenue)}</span>
+                {/* ความสูงแท่ง = สัดส่วนเทียบรายได้สูงสุด */}
+                <div
+                  className="w-full max-w-[40px] bg-primary rounded-t"
+                  style={{ height: `${(r.revenue / maxRevenue) * 100}%` }}
+                ></div>
+              </div>
               <span className="text-xs text-muted-foreground mt-2">{r.month}</span>
             </div>
           ))}
