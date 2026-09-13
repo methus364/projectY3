@@ -71,8 +71,12 @@ const Dashbord = () => {
     return <div className="text-center py-20 text-muted-foreground">กำลังโหลดข้อมูล...</div>;
   }
 
-  // หาค่ารายได้สูงสุดไว้คิดสัดส่วนความสูงแท่งกราฟ (กันหาร 0)
-  const maxRevenue = Math.max(...revenue.map((r) => r.revenue), 1);
+  // หาค่ารายได้สูงสุดของแต่ละแท่ง (รายวัน/รายเดือน) ไว้คิดสัดส่วนความสูง (กันหาร 0)
+  const maxRevenue = Math.max(
+    ...revenue.map((r) => r.revenueDaily),
+    ...revenue.map((r) => r.revenueMonthly),
+    1
+  );
 
   return (
     <div className="flex w-full flex-col bg-background p-6">
@@ -161,20 +165,41 @@ const Dashbord = () => {
         </div>
       )}
 
-      {/* ===== กราฟรายได้รายเดือน ===== */}
+      {/* ===== กราฟรายได้รายเดือน (แยกรายวัน/รายเดือน) ===== */}
       <div className="bg-card shadow-sm border border-border rounded-lg p-6 mb-8">
-        <h2 className="text-lg font-semibold text-foreground mb-4">รายได้ย้อนหลัง 6 เดือน</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h2 className="text-lg font-semibold text-foreground">รายได้ย้อนหลัง 6 เดือน</h2>
+          {/* คำอธิบายสีของแท่งกราฟ */}
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded-sm bg-sky-500"></span>รายวัน
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded-sm bg-primary"></span>รายเดือน
+            </span>
+          </div>
+        </div>
         <div className="flex items-end justify-between gap-3 h-52">
           {revenue.map((r) => (
             <div key={r.month} className="flex h-full flex-1 flex-col items-center">
               {/* พื้นที่แท่ง — flex-1 ทำให้มีความสูงชัดเจน แท่งจึงคิด % ได้ถูก, justify-end ดันแท่งชิดล่าง */}
-              <div className="flex w-full flex-1 flex-col items-center justify-end">
-                <span className="text-xs text-muted-foreground mb-1">{fmtMoney(r.revenue)}</span>
-                {/* ความสูงแท่ง = สัดส่วนเทียบรายได้สูงสุด */}
-                <div
-                  className="w-full max-w-[40px] bg-primary rounded-t"
-                  style={{ height: `${(r.revenue / maxRevenue) * 100}%` }}
-                ></div>
+              <div className="flex w-full flex-1 items-end justify-center gap-1">
+                {/* แท่งรายวัน */}
+                <div className="flex flex-1 flex-col items-center justify-end h-full max-w-[24px]">
+                  <span className="text-[10px] text-muted-foreground mb-1">{fmtMoney(r.revenueDaily)}</span>
+                  <div
+                    className="w-full bg-sky-500 rounded-t"
+                    style={{ height: `${(r.revenueDaily / maxRevenue) * 100}%` }}
+                  ></div>
+                </div>
+                {/* แท่งรายเดือน */}
+                <div className="flex flex-1 flex-col items-center justify-end h-full max-w-[24px]">
+                  <span className="text-[10px] text-muted-foreground mb-1">{fmtMoney(r.revenueMonthly)}</span>
+                  <div
+                    className="w-full bg-primary rounded-t"
+                    style={{ height: `${(r.revenueMonthly / maxRevenue) * 100}%` }}
+                  ></div>
+                </div>
               </div>
               <span className="text-xs text-muted-foreground mt-2">{r.month}</span>
             </div>
