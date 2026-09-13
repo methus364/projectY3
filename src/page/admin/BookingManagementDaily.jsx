@@ -18,7 +18,6 @@ const STATUS_COLOR = {
 const BookingManagementDaily = () => {
     const [bookings, setBookings] = useState([]);
     const [rooms, setRooms] = useState([]);
-    const [availableToday, setAvailableToday] = useState([]); // ห้องว่างของวันนี้ (เช็ค overlap การจองจริง)
     const [loading, setLoading] = useState(true);
 
     // modal สร้างการจอง walk-in
@@ -73,16 +72,7 @@ const BookingManagementDaily = () => {
         } catch { /* ignore */ }
     };
 
-    // ห้องว่างจริงของวันนี้ (เช็ค overlap การจองแล้ว ไม่ใช่แค่ room_status)
-    const fetchAvailabilityToday = async () => {
-        try {
-            const todayDate = new Date().toISOString().split('T')[0];
-            const res = await api.get(`/rooms/availability?date=${todayDate}`);
-            if (res.data.success) setAvailableToday(res.data.data.filter((r) => r.available));
-        } catch { /* ignore */ }
-    };
-
-    useEffect(() => { fetchBookings(); fetchRooms(); fetchAvailabilityToday(); }, []);
+    useEffect(() => { fetchBookings(); fetchRooms(); }, []);
 
     // สร้างการจอง walk-in: สร้าง/หาสมาชิกด้วยเบอร์ก่อน แล้วสร้างการจอง
     const handleCreate = async () => {
@@ -196,19 +186,6 @@ const BookingManagementDaily = () => {
         return true;
     });
 
-    // สรุปยอดสำหรับการ์ดด้านขวา
-    const arrivalsToday = bookings.filter((b) => b.checkInDate?.split('T')[0] === today).length;
-    const departuresToday = bookings.filter((b) => b.checkOutDate?.split('T')[0] === today).length;
-    const totalGuests = bookings.filter((b) => b.bookingStatus === 'กำลังเข้าพัก').length;
-
-    // นับห้องว่างวันนี้แยกตามประเภทห้อง
-    const availableByType = availableToday.reduce((acc, r) => {
-        const type = r.type_name || 'ไม่ระบุประเภท';
-        acc[type] = (acc[type] || 0) + 1;
-        return acc;
-    }, {});
-    const availableRoomsCount = availableToday.length;
-
     const STATUS_TABS = [
         { key: 'all', label: 'ทั้งหมด' },
         { key: 'arrivals', label: 'เช็คอินวันนี้' },
@@ -228,9 +205,8 @@ const BookingManagementDaily = () => {
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* คอลัมน์ซ้าย: ค้นหา + แท็บสถานะ + รายการจอง */}
-                    <div className="lg:col-span-2 bg-card p-6 shadow-md rounded-xl">
+                {/* รายการจอง: ค้นหา + แท็บสถานะ + รายการ */}
+                <div className="bg-card p-6 shadow-md rounded-xl">
                         <div className="flex flex-col sm:flex-row gap-3 mb-4">
                             <input
                                 type="text"
@@ -311,50 +287,6 @@ const BookingManagementDaily = () => {
                         </div>
                     </div>
 
-                    {/* คอลัมน์ขวา: สรุปยอดวันนี้ */}
-                    <div className="flex flex-col gap-4">
-                        <div className="bg-card p-5 rounded-xl shadow-md flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground">เช็คอินวันนี้</p>
-                                <p className="text-2xl font-black">{arrivalsToday}</p>
-                            </div>
-                            <span className="text-primary text-2xl">→</span>
-                        </div>
-                        <div className="bg-card p-5 rounded-xl shadow-md flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground">เช็คเอาท์วันนี้</p>
-                                <p className="text-2xl font-black">{departuresToday}</p>
-                            </div>
-                            <span className="text-orange-500 text-2xl">←</span>
-                        </div>
-                        <div className="bg-card p-5 rounded-xl shadow-md flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground">กำลังเข้าพักทั้งหมด</p>
-                                <p className="text-2xl font-black">{totalGuests}</p>
-                            </div>
-                            <span className="text-blue-500 text-2xl">👥</span>
-                        </div>
-                        <div className="bg-card p-5 rounded-xl shadow-md">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">ห้องว่างวันนี้</p>
-                                    <p className="text-2xl font-black">{availableRoomsCount}</p>
-                                </div>
-                                <span className="text-green-500 text-2xl">✓</span>
-                            </div>
-                            {availableRoomsCount > 0 && (
-                                <ul className="mt-3 pt-3 border-t border-border space-y-1">
-                                    {Object.entries(availableByType).map(([type, count]) => (
-                                        <li key={type} className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">{type}</span>
-                                            <span className="font-bold">{count} ห้อง</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-                    </div>
-                </div>
             </div>
 
             {/* Modal สร้างการจอง walk-in */}
