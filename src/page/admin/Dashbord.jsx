@@ -127,14 +127,36 @@ const Dashbord = () => {
           <div className="bg-teal-50 dark:bg-teal-950/30 border border-teal-100 dark:border-teal-900 rounded-xl p-5">
             <p className="text-sm text-muted-foreground">ห้องว่างวันนี้ (รายวัน)</p>
             <p className="text-2xl font-bold text-teal-600 mt-1">{summary.availableDaily} ห้อง</p>
-            <p className="text-xs text-muted-foreground mt-1">ไม่มีการจองคาบเกี่ยววันนี้ · รับผู้เช่ารายวันได้</p>
+            {/* แยกตามประเภทห้อง */}
+            {summary.availableDailyByType?.length > 0 && (
+              <ul className="mt-3 pt-3 border-t border-teal-100 dark:border-teal-900 space-y-1">
+                {summary.availableDailyByType.map((t) => (
+                  <li key={t.type_name} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{t.type_name}</span>
+                    <span className="font-bold text-foreground">{t.count} ห้อง</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-xs text-muted-foreground mt-3">ไม่มีการจองคาบเกี่ยววันนี้ · รับผู้เช่ารายวันได้</p>
           </div>
 
           {/* ห้องว่างสำหรับรายเดือน */}
           <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 rounded-xl p-5">
             <p className="text-sm text-muted-foreground">ห้องว่าง (รายเดือน)</p>
             <p className="text-2xl font-bold text-indigo-600 mt-1">{summary.availableMonthly} ห้อง</p>
-            <p className="text-xs text-muted-foreground mt-1">ไม่มีผู้เช่ารายเดือนพักอยู่ · เสนอสัญญารายเดือนได้</p>
+            {/* แยกตามประเภทห้อง */}
+            {summary.availableMonthlyByType?.length > 0 && (
+              <ul className="mt-3 pt-3 border-t border-indigo-100 dark:border-indigo-900 space-y-1">
+                {summary.availableMonthlyByType.map((t) => (
+                  <li key={t.type_name} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{t.type_name}</span>
+                    <span className="font-bold text-foreground">{t.count} ห้อง</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-xs text-muted-foreground mt-3">ไม่มีผู้เช่ารายเดือนพักอยู่ · เสนอสัญญารายเดือนได้</p>
           </div>
         </div>
       )}
