@@ -112,7 +112,14 @@ export default function Roomhistory() {
         ) : (
           <div className="space-y-4">
             {bookings.map((booking) => {
-              const statusClass = STATUS_STYLE[booking.bookingStatus] || 'bg-gray-100 text-gray-500';
+              // ป้ายสถานะ: 'ยืนยันการจอง' จะเป็นเขียวก็ต่อเมื่อแอดมินยืนยันการชำระแล้ว
+              // ถ้ายังไม่ยืนยัน (สลิปรอตรวจ) แสดง 'รอตรวจสอบการชำระ' (เหลือง) แทน
+              let statusLabel = booking.bookingStatus;
+              let statusClass = STATUS_STYLE[booking.bookingStatus] || 'bg-gray-100 text-gray-500';
+              if (booking.bookingStatus === 'ยืนยันการจอง' && !booking.depositConfirmed) {
+                statusLabel = 'รอตรวจสอบการชำระ';
+                statusClass = 'bg-yellow-100 text-yellow-700';
+              }
               const price = booking.rentType === 'monthly'
                 ? `฿${Number(booking.priceMonthly || 0).toLocaleString()} / เดือน`
                 : `฿${Number(booking.pricePerDay || 0).toLocaleString()} / วัน`;
@@ -129,7 +136,7 @@ export default function Roomhistory() {
                         {booking.rentType === 'daily' ? `การจอง #${booking.bookingId}` : `ห้อง ${booking.roomNumber}`}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${statusClass}`}>{booking.bookingStatus}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${statusClass}`}>{statusLabel}</span>
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#E0F2FE] text-[#0284C7]">
                           {RENT_TYPE_LABEL[booking.rentType] || booking.rentType}
                         </span>
@@ -152,6 +159,14 @@ export default function Roomhistory() {
                       </div>
                     </div>
                   </div>
+
+                  {/* เหตุผลที่ยกเลิก (แอดมินกรอกตอนยกเลิก/ปฏิเสธ) */}
+                  {booking.bookingStatus === 'ยกเลิก' && booking.cancelReason && (
+                    <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-2.5 mb-3">
+                      <p className="text-xs font-bold text-red-600 mb-0.5">เหตุผลที่ยกเลิก</p>
+                      <p className="text-sm text-red-700">{booking.cancelReason}</p>
+                    </div>
+                  )}
 
                   {/* ปุ่มดูบิล/ชำระเงิน */}
                   <button

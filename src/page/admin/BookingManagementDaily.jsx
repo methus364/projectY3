@@ -34,6 +34,10 @@ const BookingManagementDaily = () => {
     // modal ตรวจสอบสลิป + ข้อมูลลูกค้า
     const [verifyTarget, setVerifyTarget] = useState(null);
 
+    // modal ยกเลิกการจอง (แอดมินกรอกเหตุผล → โชว์ให้ลูกค้าเห็น)
+    const [cancelTarget, setCancelTarget] = useState(null);
+    const [cancelReason, setCancelReason] = useState('');
+
     // ค้นหา + แท็บกรองสถานะ (ทั้งหมด / เช็คอินวันนี้ / เช็คเอาท์วันนี้ / กำลังเข้าพัก)
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -136,13 +140,23 @@ const BookingManagementDaily = () => {
         }
     };
 
-    const handleCancel = async (id) => {
-        if (!window.confirm('ยืนยันยกเลิกการจองนี้?')) return;
+    // ยกเลิกการจอง — ต้องกรอกเหตุผล (เก็บไว้โชว์ให้ลูกค้าเห็น)
+    const handleCancel = async () => {
+        if (!cancelTarget) return;
+        if (!cancelReason.trim()) { alert('กรุณากรอกเหตุผลก่อนยกเลิก'); return; }
         try {
-            await api.put(`/editBooking/${id}`, { status: 'ยกเลิก' });
+            setSaving(true);
+            await api.put(`/editBooking/${cancelTarget.bookingId}`, {
+                status: 'ยกเลิก',
+                cancelReason: cancelReason.trim(),
+            });
+            setCancelTarget(null);
+            setCancelReason('');
             fetchBookings();
         } catch (err) {
             alert(err.response?.data?.message || 'ยกเลิกไม่สำเร็จ');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -286,7 +300,7 @@ const BookingManagementDaily = () => {
                                             <button onClick={() => handleCheckOut(b.bookingId)} className="px-3 py-1.5 bg-orange-500 text-white rounded-lg font-bold">เช็คเอาท์</button>
                                         )}
                                         {b.bookingStatus !== 'ยกเลิก' && b.bookingStatus !== 'ย้ายออกแล้ว' && (
-                                            <button onClick={() => handleCancel(b.bookingId)} className="text-red-400 font-bold hover:underline">ยกเลิก</button>
+                                            <button onClick={() => { setCancelTarget(b); setCancelReason(''); }} className="text-red-400 font-bold hover:underline">ยกเลิก</button>
                                         )}
                                     </div>
                                 </div>
@@ -402,6 +416,32 @@ const BookingManagementDaily = () => {
                                 className="px-6 py-3 text-muted-foreground font-bold hover:bg-muted rounded-xl">ยกเลิก</button>
                             <button onClick={handleCheckIn} disabled={saving} className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-black disabled:opacity-50">
                                 {saving ? 'กำลังบันทึก...' : 'ยืนยันเช็คอิน'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal ยกเลิกการจอง (กรอกเหตุผล) */}
+            {cancelTarget && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+                    <div className="bg-card rounded-3xl p-8 w-full max-w-md shadow-2xl">
+                        <h2 className="text-2xl font-black mb-1">ยกเลิกการจอง — ห้อง {cancelTarget.roomNumber}</h2>
+                        <p className="text-sm text-muted-foreground mb-5">{cancelTarget.guestName || cancelTarget.username || 'ไม่ระบุ'}</p>
+                        <label className="block text-sm font-bold mb-2">เหตุผลที่ยกเลิก <span className="text-red-500">*</span></label>
+                        <textarea
+                            value={cancelReason}
+                            onChange={(e) => setCancelReason(e.target.value)}
+                            rows={3}
+                            placeholder="ระบุเหตุผล เช่น ห้องมีปัญหา / ลูกค้าขอยกเลิก — ลูกค้าจะเห็นข้อความนี้"
+                            className="w-full border border-border rounded-xl p-3 bg-muted/50"
+                        />
+                        <div className="flex justify-end gap-3 mt-6">
+                            <button onClick={() => { setCancelTarget(null); setCancelReason(''); }}
+                                className="px-6 py-3 text-muted-foreground font-bold hover:bg-muted rounded-xl">ไม่ยกเลิก</button>
+                            <button onClick={handleCancel} disabled={saving || !cancelReason.trim()}
+                                className="px-6 py-3 bg-red-500 text-white rounded-xl font-black disabled:opacity-50">
+                                {saving ? 'กำลังยกเลิก...' : 'ยืนยันยกเลิก'}
                             </button>
                         </div>
                     </div>
