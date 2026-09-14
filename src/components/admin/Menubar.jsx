@@ -40,13 +40,6 @@ const menuGroups = [
     ],
   },
   {
-    label: 'การเงิน — รายวัน',
-    items: [
-      { to: '/admin/bill-daily',  icon: ReceiptPercentIcon, label: 'บิลรายวัน' },
-      { to: '/admin/money-daily', icon: BanknotesIcon,      label: 'ชำระเงิน/ใบเสร็จรายวัน' },
-    ],
-  },
-  {
     label: 'การเงิน — รายเดือน',
     items: [
       { to: '/admin/bill-monthly',  icon: ReceiptPercentIcon, label: 'บิลรายเดือน' },
