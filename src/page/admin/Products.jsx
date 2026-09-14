@@ -19,6 +19,9 @@ const Products = () => {
     const [sellProduct, setSellProduct] = useState(null);
     const [sellForm, setSellForm] = useState({ quantity: '1', member_id: '' });
 
+    // ฟอร์มหน้าบันทึกการขาย (เลือกสินค้า + จำนวน)
+    const [recordForm, setRecordForm] = useState({ product_id: '', quantity: '1' });
+
     const [saving, setSaving] = useState(false);
 
     // ==========================================
@@ -168,8 +171,44 @@ const Products = () => {
         }
     };
 
+    // บันทึกการขายจากหน้า "บันทึกการขาย" — เลือกสินค้า + จำนวน แล้วยิง /sale
+    const handleRecordSale = async () => {
+        const product = products.find((p) => String(p.product_id) === String(recordForm.product_id));
+        if (!product) {
+            alert('กรุณาเลือกสินค้า');
+            return;
+        }
+        const quantity = parseInt(recordForm.quantity, 10);
+        if (isNaN(quantity) || quantity <= 0) {
+            alert('กรุณากรอกจำนวนที่ขายมากกว่า 0');
+            return;
+        }
+        if (quantity > product.stock) {
+            alert(`สินค้าคงเหลือไม่พอ (เหลือ ${product.stock} ชิ้น)`);
+            return;
+        }
+
+        try {
+            setSaving(true);
+            // member_id = null (ขายหน้าร้านทั่วไป) · ยอดรวมคำนวณจริงฝั่ง server
+            await api.post('/sale', { product_id: product.product_id, quantity, member_id: null });
+            setRecordForm({ product_id: '', quantity: '1' });
+            fetchProducts(); // refresh stock
+            alert('บันทึกการขายเรียบร้อย');
+        } catch (err) {
+            console.error('บันทึกการขายไม่สำเร็จ:', err);
+            alert(err.response?.data?.message || 'เกิดข้อผิดพลาดในการขายสินค้า');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     // helper แสดงเงิน
     const fmtMoney = (val) => Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // สินค้าที่เลือกในหน้าบันทึกการขาย + ยอดรวมโชว์ (server คำนวณจริง)
+    const recordProduct = products.find((p) => String(p.product_id) === String(recordForm.product_id));
+    const recordTotal = recordProduct ? (parseInt(recordForm.quantity, 10) || 0) * Number(recordProduct.price) : 0;
 
     return (
         <>
@@ -197,6 +236,14 @@ const Products = () => {
                         }`}
                     >
                         สินค้า
+                    </button>
+                    <button
+                        onClick={() => setTab('record')}
+                        className={`px-4 py-2 text-sm rounded-lg transition ${
+                            tab === 'record' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-muted/80'
+                        }`}
+                    >
+                        บันทึกการขาย
                     </button>
                     <button
                         onClick={() => setTab('sales')}
@@ -265,6 +312,52 @@ const Products = () => {
                                 </tbody>
                             </table>
                         )}
+                    </div>
+                )}
+
+                {/* หน้าบันทึกการขาย — เลือกสินค้า + จำนวน แล้วบันทึก */}
+                {tab === 'record' && (
+                    <div className="bg-card shadow-md rounded-lg p-6 w-full max-w-md">
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-foreground mb-1">เลือกสินค้า</label>
+                            <select
+                                value={recordForm.product_id}
+                                onChange={(e) => setRecordForm(prev => ({ ...prev, product_id: e.target.value }))}
+                                className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            >
+                                <option value="">— เลือกสินค้า —</option>
+                                {products.map((p) => (
+                                    <option key={p.product_id} value={p.product_id} disabled={p.stock === 0}>
+                                        {p.product_name} · {fmtMoney(p.price)} บ. · คงเหลือ {p.stock}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-foreground mb-1">จำนวนที่ขาย</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max={recordProduct ? recordProduct.stock : undefined}
+                                value={recordForm.quantity}
+                                onChange={(e) => setRecordForm(prev => ({ ...prev, quantity: e.target.value }))}
+                                className="w-full border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            />
+                        </div>
+
+                        {/* ยอดรวมโชว์เฉยๆ — server คำนวณจริงตอนบันทึก */}
+                        <p className="text-sm text-foreground mb-6">
+                            ยอดรวม: <span className="font-semibold text-green-600">{fmtMoney(recordTotal)}</span> บาท
+                        </p>
+
+                        <button
+                            onClick={handleRecordSale}
+                            disabled={saving || !recordForm.product_id}
+                            className="w-full px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition disabled:opacity-50"
+                        >
+                            {saving ? 'กำลังบันทึก...' : 'บันทึกการขาย'}
+                        </button>
                     </div>
                 )}
 
