@@ -124,6 +124,22 @@ const Dashbord = () => {
         </div>
       )}
 
+      {/* ===== ภาพรวมยอดขายสินค้าเดือนนี้ ===== */}
+      {summary && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          {/* ยอดขาย (บาท) */}
+          <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900 rounded-xl p-5">
+            <p className="text-sm text-muted-foreground">ยอดขายสินค้าเดือนนี้</p>
+            <p className="text-2xl font-bold text-purple-600 mt-1">{fmtMoney(summary.productSalesThisMonth)} บ.</p>
+          </div>
+          {/* จำนวนที่ขายได้ (ชิ้น) */}
+          <div className="bg-fuchsia-50 dark:bg-fuchsia-950/30 border border-fuchsia-100 dark:border-fuchsia-900 rounded-xl p-5">
+            <p className="text-sm text-muted-foreground">จำนวนที่ขายได้เดือนนี้</p>
+            <p className="text-2xl font-bold text-fuchsia-600 mt-1">{summary.productSoldQtyThisMonth} ชิ้น</p>
+          </div>
+        </div>
+      )}
+
       {/* ===== ห้องว่างวันนี้ แยกรายวัน / รายเดือน ===== */}
       {summary && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
