@@ -278,11 +278,8 @@ const Products = () => {
                                 <thead className="bg-muted">
                                     <tr>
                                         <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">วันที่</th>
-                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">สินค้า</th>
                                         <th className="px-4 py-3 text-center font-medium text-muted-foreground uppercase tracking-wider">จำนวน</th>
                                         <th className="px-4 py-3 text-right font-medium text-muted-foreground uppercase tracking-wider">รวม (บ.)</th>
-                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">ผู้ซื้อ</th>
-                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">ผู้บันทึก</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-card divide-y divide-border">
@@ -291,17 +288,14 @@ const Products = () => {
                                             <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                                                 {new Date(s.sale_date).toLocaleString('th-TH')}
                                             </td>
-                                            <td className="px-4 py-3 font-medium text-foreground">{s.product_name}</td>
                                             <td className="px-4 py-3 text-center text-foreground">{s.quantity}</td>
                                             <td className="px-4 py-3 text-right text-green-600 font-medium">{fmtMoney(s.total_price)}</td>
-                                            <td className="px-4 py-3 text-muted-foreground">{s.buyer_name || 'ลูกค้าทั่วไป'}</td>
-                                            <td className="px-4 py-3 text-muted-foreground">{s.seller_name || '—'}</td>
                                         </tr>
                                     ))}
 
                                     {sales.length === 0 && (
                                         <tr>
-                                            <td colSpan="6" className="text-center py-10 text-muted-foreground">ยังไม่มีประวัติการขาย</td>
+                                            <td colSpan="3" className="text-center py-10 text-muted-foreground">ยังไม่มีประวัติการขาย</td>
                                         </tr>
                                     )}
                                 </tbody>

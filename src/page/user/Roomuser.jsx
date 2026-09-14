@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../lib/api';
-import { getUserRole } from '../../lib/auth';
+import { getUserRole, getCurrentUser } from '../../lib/auth';
 import Navbar from '../../components/user/Navbar';
 import PageHeader from '../../components/user/PageHeader';
 import BookingStepper from '../../components/user/booking/BookingStepper';
@@ -12,6 +12,10 @@ import DailyBookingFlow from '../../components/user/booking/DailyBookingFlow';
 
 // ชื่อสเต็ปในแถบ progress (ใช้กับ BookingStepper)
 const STEP_LABELS = ['ค้นหา', 'เลือกห้อง', 'ยืนยัน', 'สำเร็จ'];
+
+// สถานะการจองที่ถือว่า "ยังใช้งานอยู่" — ผู้เช่ารายเดือนที่มีการจองสถานะเหล่านี้ ห้ามจองห้องใหม่
+// จนกว่าจะย้ายออก ('ย้ายออกแล้ว') หรือยกเลิก ('ยกเลิก') การจองเดิมก่อน
+const ACTIVE_BOOKING_STATUSES = ['รอชำระมัดจำ', 'ยืนยันการจอง', 'กำลังเข้าพัก'];
 
 // ชั้นของห้อง = เลขตัวแรกของเลขห้อง (102 → ชั้น 1) — ใช้จัดกลุ่มผังชั้นรายเดือน
 const floorOf = (roomNumber) => String(roomNumber || '').charAt(0) || '?';
@@ -138,6 +142,38 @@ export default function Roomuser() {
   // ระหว่างส่งคำขอจอง + ผลลัพธ์ตอนจองสำเร็จ
   const [submitting, setSubmitting]     = useState(false);
   const [bookingResult, setBookingResult] = useState(null);
+
+  // การจองเดิมที่ยัง active อยู่ของผู้เช่ารายเดือน (ถ้ามี = ห้ามจองห้องใหม่)
+  const [existingBooking, setExistingBooking] = useState(null);
+  const [checkingExisting, setCheckingExisting] = useState(true);
+
+  // เช็คตอนเข้าหน้า: ผู้เช่ารายเดือนที่มีการจอง active อยู่แล้ว จองห้องใหม่ไม่ได้
+  useEffect(() => {
+    // เงื่อนไขนี้ใช้เฉพาะผู้เช่ารายเดือน — ประเภทอื่นข้ามไปเลย
+    if (lockedRentType !== 'monthly') {
+      setCheckingExisting(false);
+      return;
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setCheckingExisting(false);
+      return;
+    }
+    const user = getCurrentUser() || {};
+    api.post('/checkbooking', { userId: user.id })
+      .then((res) => {
+        if (!res.data.success) return;
+        // หาการจองที่สถานะยัง active อยู่ (ถ้าเจอ = บล็อกการจองใหม่)
+        const active = (res.data.data || []).find((b) =>
+          ACTIVE_BOOKING_STATUSES.includes(b.bookingStatus));
+        setExistingBooking(active || null);
+      })
+      .catch(() => {
+        // เช็คไม่สำเร็จก็ปล่อยให้จองต่อได้ (ฝั่ง backend ยังกันจองซ้อนวันอยู่)
+      })
+      .finally(() => setCheckingExisting(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedRoom = rooms.find((r) => r.id === selectedRoomId);
   const nights = checkIn && checkOut ? countNights(checkIn, checkOut) : 0;
@@ -330,6 +366,68 @@ export default function Roomuser() {
         <PageHeader title="จองห้องพัก" subtitle="ค้นหาและจองห้องพักรายวัน" />
         <div className="pt-6 pb-10 px-4 max-w-2xl mx-auto">
           <DailyBookingFlow />
+        </div>
+      </div>
+    );
+  }
+
+  // ระหว่างเช็คการจองเดิม (ผู้เช่ารายเดือน) — แสดงสถานะกำลังโหลดก่อน
+  if (checkingExisting) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA]">
+        <Navbar />
+        <PageHeader title="จองห้องพัก" subtitle="ค้นหาและจองห้องพักที่ต้องการ" />
+        <div className="pt-10 text-center text-[#64748B] font-bold">กำลังตรวจสอบข้อมูลการจอง...</div>
+      </div>
+    );
+  }
+
+  // มีการจองเดิมที่ยัง active อยู่ → บล็อกไม่ให้จองห้องใหม่
+  // ต้องย้ายออก (ถ้าเข้าพักแล้ว) หรือยกเลิกการจองก่อน จึงจะจองใหม่ได้
+  if (existingBooking) {
+    const isCheckedIn = existingBooking.bookingStatus === 'กำลังเข้าพัก';
+    // ข้อความแนะนำต่างกันตามสถานะ: เข้าพักแล้วต้องแจ้งย้ายออก / ยังไม่เข้าพักให้ยกเลิกก่อน
+    const hint = isCheckedIn
+      ? 'คุณกำลังเข้าพักอยู่ ต้องย้ายออกก่อนจึงจะจองห้องใหม่ได้'
+      : 'คุณมีการจองที่ยังไม่สิ้นสุด กรุณายกเลิกการจองเดิมก่อนจึงจะจองห้องใหม่ได้';
+
+    return (
+      <div className="min-h-screen bg-[#F8F9FA]">
+        <Navbar />
+        <PageHeader title="จองห้องพัก" subtitle="ค้นหาและจองห้องพักที่ต้องการ" />
+        <div className="pt-6 pb-10 px-4 max-w-2xl mx-auto">
+          <div className="bg-white rounded-3xl shadow-sm border border-[#E2E8F0] p-8 text-center">
+            <p className="text-4xl mb-3">🏠</p>
+            <p className="text-[#1E293B] font-black text-lg mb-2">คุณมีห้องพักอยู่แล้ว</p>
+            <p className="text-[#64748B] text-sm mb-4">{hint}</p>
+
+            {/* สรุปการจองเดิม */}
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl px-4 py-3 mb-5 text-left">
+              <div className="flex justify-between text-sm">
+                <span className="text-[#94A3B8] font-semibold">ห้อง</span>
+                <span className="text-[#1E293B] font-bold">{existingBooking.roomNumber || '-'}</span>
+              </div>
+              <div className="flex justify-between text-sm mt-1.5">
+                <span className="text-[#94A3B8] font-semibold">สถานะ</span>
+                <span className="text-[#1E293B] font-bold">{existingBooking.bookingStatus}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => navigate('/roomhistory')}
+                className="w-full bg-[#0194F3] hover:bg-[#0178C7] text-white font-black py-3.5 rounded-2xl transition"
+              >
+                ไปที่การจองของฉัน
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="text-[#94A3B8] text-sm font-semibold hover:text-[#0194F3]"
+              >
+                ← กลับหน้าแรก
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
