@@ -50,7 +50,6 @@ const menuGroups = [
     label: 'การเงิน — รายเดือน',
     items: [
       { to: '/admin/bill-monthly',  icon: ReceiptPercentIcon, label: 'บิลรายเดือน' },
-      { to: '/admin/money-monthly', icon: BanknotesIcon,      label: 'ชำระเงิน/ใบเสร็จรายเดือน' },
       { to: '/admin/contracts',     icon: DocumentTextIcon,   label: 'สัญญาเช่า' },
     ],
   },

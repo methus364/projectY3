@@ -24,6 +24,11 @@ const BillList = ({ rentType, title }) => {
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
 
+    // การชำระที่ "รอตรวจ" ของแต่ละบิล (invoice_id → payment) — ใช้โชว์ปุ่มตรวจสลิปในแถว
+    const [pendingByInvoice, setPendingByInvoice] = useState({});
+    const [slipPayment, setSlipPayment] = useState(null); // payment ที่กำลังเปิดดูสลิปใน modal
+    const [verifying, setVerifying] = useState(false);
+
     // modal ออกบิล
     const [showCreate, setShowCreate] = useState(false);
     const [bookings, setBookings] = useState([]);
@@ -57,8 +62,29 @@ const BillList = ({ rentType, title }) => {
         }
     };
 
+    // ==========================================
+    // โหลดการชำระที่ "รอตรวจ" ของประเภทเช่านี้ แล้วจับคู่กับบิลตาม invoice_id
+    // (ทำให้กดตรวจสลิป + ยืนยันได้ในหน้าบิลเลย ไม่ต้องสลับไปหน้าชำระเงิน)
+    // ==========================================
+    const fetchPendingPayments = async () => {
+        try {
+            const res = await api.get(`/payments?rentType=${rentType}&status=รอตรวจ`);
+            if (res.data.success) {
+                const map = {};
+                for (const p of res.data.data) {
+                    // 1 บิลอาจมีหลายการชำระ — เก็บอันแรกที่รอตรวจไว้พอ
+                    if (!map[p.invoice_id]) map[p.invoice_id] = p;
+                }
+                setPendingByInvoice(map);
+            }
+        } catch (err) {
+            console.error('โหลดสลิปรอตรวจไม่สำเร็จ:', err);
+        }
+    };
+
     useEffect(() => {
         fetchInvoices();
+        fetchPendingPayments();
     }, [selectedMonth, statusFilter]);
 
     // ==========================================
@@ -227,6 +253,29 @@ const BillList = ({ rentType, title }) => {
         }
     };
 
+    // ==========================================
+    // ยืนยัน/ปฏิเสธการชำระ (ตรวจสลิปจบในหน้าบิลเลย)
+    // ==========================================
+    const handleVerify = async (paymentId, action) => {
+        const label = action === 'approve' ? 'ยืนยัน' : 'ปฏิเสธ';
+        if (!window.confirm(`ต้องการ${label}การชำระเงินรายการนี้?`)) return;
+        try {
+            setVerifying(true);
+            const res = await api.put(`/payment/${paymentId}/verify`, { action });
+            if (res.data.success) {
+                alert(res.data.message);
+                setSlipPayment(null);
+                // รีเฟรชทั้งสถานะบิล (อาจกลายเป็น "ชำระแล้ว") และรายการสลิปรอตรวจ
+                fetchInvoices();
+                fetchPendingPayments();
+            }
+        } catch (err) {
+            alert(err.response?.data?.message || 'ดำเนินการไม่สำเร็จ');
+        } finally {
+            setVerifying(false);
+        }
+    };
+
     const money = (val) => (Number(val) || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 });
 
     return (
@@ -295,6 +344,7 @@ const BillList = ({ rentType, title }) => {
                                     <th className="px-4 py-3 text-right font-medium text-muted-foreground uppercase">ค่าไฟ</th>
                                     <th className="px-4 py-3 text-right font-medium text-muted-foreground uppercase">รวม</th>
                                     <th className="px-4 py-3 text-center font-medium text-muted-foreground uppercase">สถานะ</th>
+                                    <th className="px-4 py-3 text-center font-medium text-muted-foreground uppercase">สลิป</th>
                                     <th className="px-4 py-3 text-right font-medium text-muted-foreground uppercase">ดำเนินการ</th>
                                 </tr>
                             </thead>
@@ -319,6 +369,19 @@ const BillList = ({ rentType, title }) => {
                                                 <span className="block text-[10px] font-bold text-orange-600">✉️ ยังไม่ส่ง</span>
                                             )}
                                         </td>
+                                        {/* สลิปรอตรวจของบิลนี้ (ถ้ามี) — กดเปิด modal ดูสลิป + ยืนยัน/ปฏิเสธ */}
+                                        <td className="px-4 py-3 text-center">
+                                            {pendingByInvoice[inv.invoice_id] ? (
+                                                <button
+                                                    onClick={() => setSlipPayment(pendingByInvoice[inv.invoice_id])}
+                                                    className="text-sm font-medium text-orange-600 hover:text-orange-800"
+                                                >
+                                                    🧾 ตรวจสลิป
+                                                </button>
+                                            ) : (
+                                                <span className="text-muted-foreground">—</span>
+                                            )}
+                                        </td>
                                         <td className="px-4 py-3 text-right whitespace-nowrap space-x-2">
                                             <button onClick={() => openPdf(inv.invoice_id)} className="text-sm text-muted-foreground hover:text-foreground">PDF</button>
                                             <button onClick={() => sendEmail(inv.invoice_id)} className="text-sm text-primary hover:text-primary/70">ส่งเมล</button>
@@ -336,7 +399,7 @@ const BillList = ({ rentType, title }) => {
 
                                 {invoices.length === 0 && (
                                     <tr>
-                                        <td colSpan="9" className="text-center py-10 text-muted-foreground">
+                                        <td colSpan="10" className="text-center py-10 text-muted-foreground">
                                             ไม่พบใบแจ้งหนี้ในเดือนนี้
                                         </td>
                                     </tr>
@@ -454,6 +517,59 @@ const BillList = ({ rentType, title }) => {
                             </button>
                             <button onClick={handleUpdate} disabled={saving} className="px-4 py-2 text-sm bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition disabled:opacity-50">
                                 {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal ตรวจสลิป + ยืนยัน/ปฏิเสธการชำระ */}
+            {slipPayment && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                    onClick={() => setSlipPayment(null)}
+                >
+                    <div className="bg-card rounded-xl shadow-xl p-5 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-3">
+                            <h2 className="text-lg font-bold text-foreground">ตรวจสลิปการชำระ</h2>
+                            <button onClick={() => setSlipPayment(null)} className="text-muted-foreground hover:text-foreground">✕</button>
+                        </div>
+
+                        {/* สรุปห้อง/ยอด/วิธีชำระ */}
+                        <div className="text-sm text-muted-foreground mb-3 space-y-1">
+                            <p>ห้อง {slipPayment.room_number} · {slipPayment.guest_name || '—'}</p>
+                            <p>
+                                จำนวนเงิน: <span className="font-semibold text-foreground">{money(slipPayment.amount_paid)}</span> บาท · {slipPayment.payment_method}
+                            </p>
+                        </div>
+
+                        {/* รูปสลิป */}
+                        {slipPayment.payment_evidence ? (
+                            <img src={slipPayment.payment_evidence} alt="สลิปการโอนเงิน" className="w-full rounded-lg mb-3" />
+                        ) : (
+                            <p className="text-center text-muted-foreground py-8 mb-3">ไม่มีรูปสลิปแนบมา</p>
+                        )}
+
+                        {/* ข้อมูล QR ที่อ่านจากสลิป (ตัวช่วยตรวจ) */}
+                        {slipPayment.slip_qr_data && (
+                            <p className="text-[11px] text-muted-foreground break-all mb-4">🔍 QR: {slipPayment.slip_qr_data}</p>
+                        )}
+
+                        {/* ปุ่มยืนยัน/ปฏิเสธ */}
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => handleVerify(slipPayment.payment_id, 'reject')}
+                                disabled={verifying}
+                                className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition disabled:opacity-50"
+                            >
+                                ปฏิเสธ
+                            </button>
+                            <button
+                                onClick={() => handleVerify(slipPayment.payment_id, 'approve')}
+                                disabled={verifying}
+                                className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition disabled:opacity-50"
+                            >
+                                {verifying ? 'กำลังบันทึก...' : 'ยืนยันการชำระ'}
                             </button>
                         </div>
                     </div>
